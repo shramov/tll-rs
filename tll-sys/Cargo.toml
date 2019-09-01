@@ -1,0 +1,12 @@
+[package]
+name = "tll-sys"
+version = "0.1.0"
+authors = ["Pavel Shramov <shramov@mexmat.net>"]
+license = "MIT"
+edition = "2018"
+links = "tll"
+build = "build.rs"
+description = "Native bindings to TLL library"
+
+[dependencies]
+libc = ""

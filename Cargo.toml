@@ -1,0 +1,13 @@
+[package]
+name = "tll"
+version = "0.1.0"
+authors = ["Pavel Shramov <shramov@mexmat.net>"]
+edition = "2018"
+license = "MIT"
+
+[dependencies]
+tll-sys = { path = "tll-sys", version = "0.1.0" }
+
+#[build]
+#[profile.dev]
+#rustflags = ["-C", "link-arg=-Wl,-rpath,/home/psha/src/tll/build/lib"]
