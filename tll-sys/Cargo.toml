@@ -8,5 +8,8 @@ links = "tll"
 build = "build.rs"
 description = "Native bindings to TLL library"
 
+[build-dependencies]
+cc = ""
+
 [dependencies]
 libc = ""
