@@ -86,6 +86,16 @@ impl Message {
 }
 */
 
+impl From<* mut tll_channel_context_t> for Context
+{
+    fn from(ptr: *mut tll_channel_context_t) -> Self
+    {
+        assert!(!ptr.is_null());
+        unsafe { tll_channel_context_ref(ptr) };
+        Context { ptr: ptr }
+    }
+}
+
 impl Context {
     pub fn new() -> Self
     {
@@ -95,10 +105,9 @@ impl Context {
         Context { ptr: ptr }
     }
 
-    pub fn from_ptr(ptr: *mut tll_channel_context_t) -> Self
+    fn consume(ptr: *mut tll_channel_context_t) -> Self
     {
         assert!(!ptr.is_null());
-        unsafe { tll_channel_context_ref(ptr) };
         Context { ptr: ptr }
     }
 
@@ -106,12 +115,12 @@ impl Context {
 
     pub fn config(&self) -> Config
     {
-        Config::from_ptr(unsafe { tll_channel_context_config(self.ptr) })
+        Config::consume(unsafe { tll_channel_context_config(self.ptr) })
     }
 
     pub fn config_defaults(&self) -> Config
     {
-        Config::from_ptr(unsafe { tll_channel_context_config_defaults(self.ptr) })
+        Config::consume(unsafe { tll_channel_context_config_defaults(self.ptr) })
     }
 
     pub fn channel(&self, url: &str) -> Result<OwnedChannel>
@@ -196,8 +205,14 @@ impl Channel {
 
     pub fn context(&self) -> Context
     {
-        Context::from_ptr(unsafe { tll_channel_context(self.ptr) })
+        Context::consume(unsafe { tll_channel_context(self.ptr) })
     }
+
+    pub fn config(&self) -> Config
+    {
+        Config::consume(unsafe { tll_channel_config(self.ptr) })
+    }
+
 
     pub fn open(&mut self, props: &str) -> Result<()>
     {

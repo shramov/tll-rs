@@ -174,7 +174,7 @@ impl<T> CImpl<T>
         match Self::init( unsafe { &mut *c },
                 unsafe { std::slice::from_raw_parts(s as * const u8, len) },
                 if parent.is_null() { None } else { Some(Channel::from_ptr(parent)) },
-                    &Context::from_ptr(ctx)) {
+                    &Context::from(ctx)) {
             Ok(()) => 0,
             Err(r) => r.code.unwrap_or(EINVAL),
         }

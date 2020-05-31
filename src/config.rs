@@ -6,6 +6,16 @@ pub struct Config {
     ptr: *mut tll_config_t
 }
 
+impl From<* mut tll_config_t> for Config {
+    fn from(ptr: * mut tll_config_t) -> Self
+    {
+        assert!(!ptr.is_null());
+        unsafe { tll_config_ref(ptr) };
+        Config { ptr: ptr }
+    }
+
+}
+
 impl Config {
     pub fn new() -> Config
     {
@@ -14,17 +24,16 @@ impl Config {
         Config { ptr: ptr }
     }
 
+    pub fn consume(ptr: * mut tll_config_t) -> Self
+    {
+        assert!(!ptr.is_null());
+        Config { ptr: ptr }
+    }
+
     pub fn load(url: &str) -> Option<Config>
     {
         let ptr = unsafe { tll_config_load(url.as_ptr() as *const c_char, url.len() as c_int) };
         if ptr.is_null() { None } else { Some(Config {ptr: ptr}) }
-    }
-
-    pub fn from_ptr(ptr: *mut tll_config_t) -> Config
-    {
-        assert!(!ptr.is_null());
-        unsafe { tll_config_ref(ptr) };
-        Config { ptr: ptr }
     }
 
     pub fn as_ptr(&self) -> *const tll_config_t { self.ptr }
@@ -44,10 +53,9 @@ impl Config {
         }
     }
 
-    pub fn set(&self, key: &str, value: &str) -> ()
+    pub fn set(&self, key: &str, value: &str)
     {
         unsafe { tll_config_set(self.ptr, key.as_ptr() as *const c_char, key.len() as c_int, value.as_ptr() as *const c_char, value.len() as c_int) };
-        ()
     }
 
     pub fn sub(&self, key: &str) -> Option<Config>
