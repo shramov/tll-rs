@@ -1,8 +1,7 @@
+use tll_sys::channel::*;
 use tll_sys::channel::impl_::*;
-use tll_sys::channel::channel::*;
 use tll_sys::channel::callback::*;
 
-//use crate::config::Config;
 use crate::channel::*;
 use crate::props::*;
 
@@ -60,10 +59,7 @@ impl Internal {
         if old == state { return old; }
         println!("State change: {:?} -> {:?}", old, state);
         self.data.state = state.into();
-        let mut msg : tll_msg_t = unsafe { std::mem::zeroed() };
-        msg.type_ = Into::<tll_msg_type_t>::into(MsgType::State) as i16;
-        msg.msgid = self.data.state as i32;
-        self.callback(&msg);
+        self.callback_simple(MsgType::State, self.data.state as i32);
         old
     }
 
@@ -77,6 +73,11 @@ impl Internal {
         channel_callback_data(&self.data, msg);
     }
 
+    pub fn callback_simple(&self, t : MsgType, msgid: i32)
+    {
+        self.callback(Message::new().set_type(t).set_msgid(msgid))
+    }
+
     pub fn init(&mut self, url: &Url) -> Result<()>
     {
         self.set_name(&url.get("name").unwrap_or("noname"))?;
@@ -85,15 +86,15 @@ impl Internal {
     }
 
     /*
-    impl<T> ChannelImpl<T>
-        where T : ChannelBase
+    impl<T> CImpl<T>
+        where T : ChannelImpl
     pub fn open(&mut self, channel: &mut T, url: &Props) -> Result<()>
     {
     }
     */
 }
 
-pub struct ChannelImpl<T : ChannelBase> {
+pub struct CImpl<T : ChannelImpl> {
     data : tll_channel_impl_t,
     name : CString,
     phantom: std::marker::PhantomData<T>,
@@ -104,14 +105,14 @@ macro_rules! declare_channel_impl {
     ($var:ident, $klass:ident, $name:expr) => {
 #[allow(dead_code, non_camel_case_types)]
 #[doc(hidden)]
-fn $var() -> &'static ChannelImpl::<$klass>
+fn $var() -> &'static CImpl::<$klass>
 {
-    static mut POINTER: *const ChannelImpl::<$klass> = std::ptr::null();
+    static mut POINTER: *const CImpl::<$klass> = std::ptr::null();
     static ONCE: std::sync::Once = std::sync::Once::new();
 
     unsafe {
         ONCE.call_once(|| {
-            POINTER = std::mem::transmute(Box::new(ChannelImpl::<$klass>::new($name)));
+            POINTER = std::mem::transmute(Box::new(CImpl::<$klass>::new($name)));
         });
         &*POINTER
     }
@@ -120,12 +121,13 @@ fn $var() -> &'static ChannelImpl::<$klass>
     }
 }
 
-impl<T> ChannelImpl<T>
-    where T : ChannelBase
+impl<T> CImpl<T>
+    where T : ChannelImpl
 {
     pub fn new(name: &str) -> Self
     {
-        let mut i = ChannelImpl { data: unsafe { std::mem::zeroed() }, name: CString::new(name).unwrap(), phantom: std::marker::PhantomData };
+        let mut i = CImpl { data: unsafe { std::mem::zeroed() }, name: CString::new(name).unwrap(), phantom: std::marker::PhantomData };
+        i.data.name = i.name.as_ptr();
         i.data.init = Some(Self::c_init);
         i.data.free = Some(Self::c_free);
         i.data.open = Some(Self::c_open);
@@ -222,7 +224,7 @@ impl<T> ChannelImpl<T>
         if c.is_null() || unsafe { (*c).data.is_null() } { return EINVAL }
         if m.is_null() { return EINVAL }
         let channel = unsafe { &mut *((*c).data as * mut T) };
-        match channel.post(&Message::from(m)) {
+        match channel.post(unsafe { &*(m as * const Message) }) {
             Ok(_) => 0,
             Err(_) => EINVAL,
         }
@@ -239,23 +241,7 @@ impl<T> ChannelImpl<T>
     }
 }
 
-/*
-pub fn static_ptr<T>() -> * const tll_channel_impl_t
-    where T : ChannelBase
-{
-    static mut POINTER: *const ChannelImpl::<T> = std::ptr::null();
-    static ONCE: std::sync::Once = std::sync::Once::new();
-
-    unsafe {
-        ONCE.call_once(|| {
-            POINTER = std::mem::transmute(Box::new(ChannelImpl::new()));
-        });
-        (*POINTER).data
-    }
-}
-*/
-
-pub trait ChannelBase {
+pub trait ChannelImpl {
     fn new() -> Self;
     fn internal(&mut self) -> &mut Internal;
     fn init(&mut self, url: &Url, parent: Option<Channel>, context: &Context) -> Result<()>;
@@ -266,8 +252,3 @@ pub trait ChannelBase {
     fn post(&mut self, _: &Message) -> Result<i32> { Ok(0) }
     fn process(&mut self) -> Result<i32> { Ok(EAGAIN) }
 }
-
-//unsafe impl Send for MyBox {}
-//pub struct BoxedImpl<T : ChannelBase> { pub ptr: * const ChannelImpl<T> }
-
-//unsafe impl<T> Sync for BoxedImpl<T> where T : ChannelBase {}

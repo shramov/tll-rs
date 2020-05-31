@@ -1,8 +1,11 @@
-use tll_sys::channel::channel::*;
+use tll_sys::channel::*;
 
 use crate::config::Config;
-use crate::channel_impl::{ChannelImpl, ChannelBase};
+use crate::channel::impl_::{ChannelImpl, CImpl};
 use crate::error::*;
+
+pub use crate::channel::message::*;
+use std::ops::Deref;
 
 use std::ffi::CStr;
 use std::os::raw::{c_char, c_int, c_void};
@@ -40,41 +43,6 @@ impl Into<tll_state_t> for State {
     }
 }
 
-#[derive(Debug, PartialEq, Clone, Copy)]
-pub enum MsgType {
-    Data,
-    Control,
-    State,
-    Channel,
-    Unknown(i16),
-}
-
-impl From<tll_msg_type_t> for MsgType {
-    fn from(x: tll_msg_type_t) -> Self
-    {
-        match x {
-            TLL_MESSAGE_DATA => MsgType::Data,
-            TLL_MESSAGE_CONTROL => MsgType::Control,
-            TLL_MESSAGE_STATE => MsgType::State,
-            TLL_MESSAGE_CHANNEL => MsgType::Channel,
-            r => MsgType::Unknown(r as i16)
-        }
-    }
-}
-
-impl Into<tll_msg_type_t> for MsgType {
-    fn into(self) -> tll_msg_type_t
-    {
-        match self {
-            MsgType::Data => TLL_MESSAGE_DATA,
-            MsgType::Control => TLL_MESSAGE_CONTROL,
-            MsgType::State => TLL_MESSAGE_STATE,
-            MsgType::Channel => TLL_MESSAGE_CHANNEL,
-            MsgType::Unknown(r) => r as tll_msg_type_t
-        }
-    }
-}
-
 #[repr(u32)]
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum MsgMask {
@@ -90,6 +58,8 @@ pub struct Context {
     ptr: *mut tll_channel_context_t
 }
 
+//pub type Message = tll_msg_t;
+/*
 #[ derive(Debug, PartialEq, Eq) ]
 pub struct Message { ptr: * const tll_msg_t }
 
@@ -102,11 +72,19 @@ impl From<* const tll_msg_t> for Message {
 }
 
 impl Message {
+    pub fn new_msg() -> tll_msg_t { unsafe { std::mem::zeroed() } }
     pub fn msgid(&self) -> i32 { unsafe { (*self.ptr).msgid } }
     pub fn type_(&self) -> MsgType { MsgType::from(unsafe { (*self.ptr).type_ } as tll_msg_type_t) }
 
     pub fn as_ref(&self) -> &tll_msg_t { unsafe { &*self.ptr } }
+    pub fn data(&self) -> &[u8]
+    {
+        let size = unsafe { (*self.ptr).size };
+        if size == 0 { return b""; }
+        unsafe { std::slice::from_raw_parts((*self.ptr).data as * const u8, size) }
+    }
 }
+*/
 
 impl Context {
     pub fn new() -> Self
@@ -142,12 +120,12 @@ impl Context {
         if ptr.is_null() { Err(Error::from("Invalid argument")) } else { Ok(OwnedChannel(Channel {ptr: ptr})) }
     }
 
-    pub fn register<T>(&self, impl_ : &'static ChannelImpl::<T>) -> Result<()>
+    pub fn register<T>(&self, impl_ : &'static CImpl::<T>) -> Result<()>
     where
-        T : ChannelBase
+        T : ChannelImpl
     {
         println!("Impl {:?} {:?}", impl_.name(), impl_.as_ptr());
-        error_check(unsafe { tll_channel_register(self.ptr, impl_.name().as_ptr(), impl_.as_ptr()) })
+        error_check(unsafe { tll_channel_impl_register(self.ptr, impl_.as_ptr(), impl_.name().as_ptr()) })
     }
 }
 
@@ -176,15 +154,24 @@ impl Drop for OwnedChannel {
     }
 }
 
+impl std::ops::Deref for OwnedChannel {
+    type Target = Channel;
+    fn deref(&self) -> &Self::Target { &self.0 }
+}
+
+impl std::ops::DerefMut for OwnedChannel {
+    fn deref_mut(&mut self) -> &mut Self::Target { &mut self.0 }
+}
+
 extern "C" fn callback_wrap<F>(c : * const tll_channel_t, msg : * const tll_msg_t, user : * mut c_void ) -> c_int
-    where F : Fn(&Channel, &Message) -> i32
+    where F : FnMut(&Channel, &Message) -> i32
 {
     if c.is_null() || msg.is_null() || user.is_null() { return 0 }
     let channel = Channel::from_ptr(c as * mut tll_channel_t);
-    let message = Message::from(msg);
+    //let message = Message::from(msg);
     println!("Function: {:?}", user);
-    let f = unsafe { &* (user as * const F) };
-    f(&channel, &message)
+    let f = unsafe { &mut * (user as * mut F) };
+    f(&channel, unsafe { &*(msg as * const Message) })
 }
 
 impl Channel {
@@ -224,7 +211,7 @@ impl Channel {
     }
 
     pub fn callback_add<F>(&mut self, f: &F, mask: Option<u32>) -> Result<()>
-        where F : Fn(&Channel, &Message) -> i32
+        where F : FnMut(&Channel, &Message) -> i32
     {
         let fptr = f as * const F as * mut F;
         println!("Callback add {:?}", fptr);
@@ -234,5 +221,10 @@ impl Channel {
     pub fn process(&mut self) -> Result<()>
     {
         error_check(unsafe { tll_channel_process(self.ptr, 0, 0) })
+    }
+
+    pub fn post(&mut self, msg : &Message) -> Result<()>
+    {
+        error_check(unsafe { tll_channel_post(self.ptr, msg.deref(), 0) })
     }
 }

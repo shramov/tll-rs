@@ -2,18 +2,18 @@ use tll::channel::*;
 
 use tll::error::*;
 use tll::props::{Props, Url};
-use tll::channel_impl::*;
+use tll::channel::impl_::*;
 
 fn callback(c: &Channel, m: &Message) -> i32
 {
-    println!("Callback: {} {:?} {:?}", c.name(), m.type_(), m.msgid());
+    println!("Callback: {} {:?} {:?}", c.name(), m.type_, m.msgid);
     0
 }
 
 #[ derive(Debug, Default) ]
 struct Echo { internal: Internal }
 
-impl ChannelBase for Echo {
+impl ChannelImpl for Echo {
     fn new() -> Self { Echo { internal: Internal::new() } } // counter: 0 } }
     fn internal(&mut self) -> &mut Internal { &mut self.internal }
 
@@ -40,7 +40,7 @@ impl ChannelBase for Echo {
 
     fn post(&mut self, msg: &Message) -> Result<i32>
     {
-        self.internal.callback_data(msg.as_ref());
+        self.internal.callback_data(msg);
         Ok(0)
     }
 }
@@ -70,6 +70,8 @@ fn test() -> Result<()> {
 
         assert!(c.process().is_ok());
         assert_eq!(c.state(), State::Active);
+
+        assert!(c.post(Message::new().set_msgid(100).set_seq(100).set_data(b"abcd")).is_ok())
     }
 
     Ok(())

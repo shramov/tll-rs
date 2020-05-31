@@ -15,11 +15,9 @@ use std::option::Option;
 use std::ptr::null;
 
 use crate::config::tll_config_t;
+use crate::scheme::tll_scheme_t;
 use crate::channel::channel::*;
-
-#[ repr ( C ) ]
-#[ derive ( Debug, Copy, Clone ) ]
-pub struct tll_scheme_t { _unused : [ u8; 0 ], }
+use crate::channel::msg::*;
 
 #[ repr ( C ) ]
 #[ derive ( Debug, Copy, Clone ) ]
@@ -31,11 +29,13 @@ pub struct tll_channel_impl_t {
     pub process : Option < unsafe extern "C" fn ( arg1 : * mut tll_channel_t, timeout : c_long, flags : c_int ) -> c_int >,
     pub post : Option < unsafe extern "C" fn ( arg1 : * mut tll_channel_t, msg : * const tll_msg_t, flags : c_int ) -> c_int >,
     pub scheme : Option < unsafe extern "C" fn ( arg1 : * const tll_channel_t, arg2 : c_int ) -> * const tll_scheme_t >,
+    pub name : * const c_char,
     pub prefix : c_int,
     pub data : * mut c_void,
 }
+
 #[ test ]
-fn bindgen_test_layout_tll_channel_impl_t(){ assert_eq!(::std::mem::size_of::< tll_channel_impl_t >(), 72usize, concat!( "Size of: ", stringify!( tll_channel_impl_t ) ) );
+fn bindgen_test_layout_tll_channel_impl_t(){ assert_eq!(::std::mem::size_of::< tll_channel_impl_t >(), 80usize, concat!( "Size of: ", stringify!( tll_channel_impl_t ) ) );
     assert_eq!(::std::mem::align_of::< tll_channel_impl_t >(), 8usize, concat!( "Alignment of ", stringify!( tll_channel_impl_t ) ) );
     assert_eq!( unsafe { & ( * (null::< tll_channel_impl_t >()) ) . init as * const _ as usize }, 0usize, concat!( "Offset of field: ", stringify!( tll_channel_impl_t ), "::", stringify!( init ) ) );
     assert_eq!( unsafe { & ( * (null::< tll_channel_impl_t >()) ) . free as * const _ as usize }, 8usize, concat!( "Offset of field: ", stringify!( tll_channel_impl_t ), "::", stringify!( free ) ) );
@@ -44,8 +44,9 @@ fn bindgen_test_layout_tll_channel_impl_t(){ assert_eq!(::std::mem::size_of::< t
     assert_eq!( unsafe { & ( * (null::< tll_channel_impl_t >()) ) . process as * const _ as usize }, 32usize, concat!( "Offset of field: ", stringify!( tll_channel_impl_t ), "::", stringify!( process ) ) );
     assert_eq!( unsafe { & ( * (null::< tll_channel_impl_t >()) ) . post as * const _ as usize }, 40usize, concat!( "Offset of field: ", stringify!( tll_channel_impl_t ), "::", stringify!( post ) ) );
     assert_eq!( unsafe { & ( * (null::< tll_channel_impl_t >()) ) . scheme as * const _ as usize }, 48usize, concat!( "Offset of field: ", stringify!( tll_channel_impl_t ), "::", stringify!( scheme ) ) );
-    assert_eq!( unsafe { & ( * (null::< tll_channel_impl_t >()) ) . prefix as * const _ as usize }, 56usize, concat!( "Offset of field: ", stringify!( tll_channel_impl_t ), "::", stringify!( prefix ) ) );
-    assert_eq!( unsafe { & ( * (null::< tll_channel_impl_t >()) ) . data as * const _ as usize }, 64usize, concat!( "Offset of field: ", stringify!( tll_channel_impl_t ), "::", stringify!( data ) ) );
+    assert_eq!( unsafe { & ( * (null::< tll_channel_impl_t >()) ) . name as * const _ as usize }, 56usize, concat!( "Offset of field: ", stringify!( tll_channel_impl_t ), "::", stringify!( name ) ) );
+    assert_eq!( unsafe { & ( * (null::< tll_channel_impl_t >()) ) . prefix as * const _ as usize }, 64usize, concat!( "Offset of field: ", stringify!( tll_channel_impl_t ), "::", stringify!( prefix ) ) );
+    assert_eq!( unsafe { & ( * (null::< tll_channel_impl_t >()) ) . data as * const _ as usize }, 72usize, concat!( "Offset of field: ", stringify!( tll_channel_impl_t ), "::", stringify!( data ) ) );
 }
 
 #[ repr ( C ) ]
@@ -114,6 +115,4 @@ extern "C" {
     pub fn tll_channel_list_add ( l : * mut * mut tll_channel_list_t, c : * mut tll_channel_t ) -> c_int;
     pub fn tll_channel_internal_init ( ptr : * mut tll_channel_internal_t);
     pub fn tll_channel_internal_clear ( ptr : * mut tll_channel_internal_t);
-    pub fn tll_channel_callback_data_s ( in_ : * const tll_channel_internal_t, msg : * const tll_msg_t ) -> c_int;
-    pub fn tll_channel_callback_s ( in_ : * const tll_channel_internal_t, msg : * const tll_msg_t ) -> c_int;
 }

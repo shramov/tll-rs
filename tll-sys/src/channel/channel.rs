@@ -3,7 +3,8 @@
          non_upper_case_globals,
          non_snake_case)]
 
-use std::os::raw::c_short;
+use crate::channel::msg::*;
+
 use std::os::raw::c_int;
 use std::os::raw::c_uint;
 use std::os::raw::c_long;
@@ -13,6 +14,7 @@ use std::os::raw::c_void;
 use std::option::Option;
 
 use crate::config::tll_config_t;
+use crate::scheme::tll_scheme_t;
 use crate::channel::impl_::tll_channel_impl_t;
 use crate::channel::impl_::tll_channel_internal_t;
 
@@ -24,66 +26,12 @@ pub const TLL_STATE_CLOSING : tll_state_t = 3u32;
 pub const TLL_STATE_ERROR : tll_state_t = 4u32;
 pub const TLL_STATE_DESTROY : tll_state_t = 5u32;
 
-pub type tll_msg_type_t = u32;
-pub const TLL_MESSAGE_DATA : tll_msg_type_t = 0u32;
-pub const TLL_MESSAGE_CONTROL : tll_msg_type_t = 1u32;
-pub const TLL_MESSAGE_STATE : tll_msg_type_t = 2u32;
-pub const TLL_MESSAGE_CHANNEL : tll_msg_type_t = 3u32;
-
-pub type tll_msg_channel_t = u32;
-pub const TLL_MESSAGE_CHANNEL_UPDATE : tll_msg_channel_t = 0u32;
-pub const TLL_MESSAGE_CHANNEL_ADD : tll_msg_channel_t = 1u32;
-pub const TLL_MESSAGE_CHANNEL_DELETE : tll_msg_channel_t = 2u32;
-
-pub type tll_message_mask_t = u32;
-pub const TLL_MESSAGE_MASK_ALL : tll_message_mask_t = 0xffffffffu32;
-pub const TLL_MESSAGE_MASK_DATA : tll_message_mask_t = 1u32;
-pub const TLL_MESSAGE_MASK_CONTROL : tll_message_mask_t = 2u32;
-pub const TLL_MESSAGE_MASK_STATE : tll_message_mask_t = 4u32;
-pub const TLL_MESSAGE_MASK_CHANNEL : tll_message_mask_t = 8u32;
-
 pub type tll_process_flags_t = u32;
 pub const TLL_PROCESS_ONE_LEVEL : tll_process_flags_t = 1;
-
-pub type tll_addr_t = i64;
-
-#[ repr ( C ) ]
-#[ derive ( Debug, Copy, Clone ) ]
-pub struct tll_scheme_t { _unused : [ u8; 0 ], }
-
-#[ repr ( C ) ]
-#[ derive ( Debug, Copy, Clone ) ]
-pub struct tll_msg_t {
-    pub type_ : c_short,
-    pub msgid : c_int,
-    pub seq : c_longlong,
-    pub flags : c_short,
-    pub data : * const c_void,
-    pub size : usize, pub addr : tll_addr_t,
-}
-
-#[ test ]
-fn bindgen_test_layout_tll_msg_t () {
-    assert_eq!(::std::mem::size_of::< tll_msg_t > (), 48usize, concat!( "Size of: ", stringify!( tll_msg_t ) ) );
-    assert_eq!(::std::mem::align_of::< tll_msg_t > (), 8usize, concat!( "Alignment of ", stringify!( tll_msg_t ) ) );
-    assert_eq!( unsafe { & ( * (::std::ptr::null::<tll_msg_t>())) . type_ as * const _ as usize }, 0usize, concat!( "Offset of field: ", stringify!( tll_msg_t ), "::", stringify!( type_ ) ) );
-    assert_eq!( unsafe { & ( * (::std::ptr::null::<tll_msg_t>())) . msgid as * const _ as usize }, 4usize, concat!( "Offset of field: ", stringify!( tll_msg_t ), "::", stringify!( msgid ) ) );
-    assert_eq!( unsafe { & ( * (::std::ptr::null::<tll_msg_t>())) . seq as * const _ as usize }, 8usize, concat!( "Offset of field: ", stringify!( tll_msg_t ), "::", stringify!( seq ) ) );
-    assert_eq!( unsafe { & ( * (::std::ptr::null::<tll_msg_t>())) . flags as * const _ as usize }, 16usize, concat!( "Offset of field: ", stringify!( tll_msg_t ), "::", stringify!( flags ) ) );
-    assert_eq!( unsafe { & ( * (::std::ptr::null::<tll_msg_t>())) . data as * const _ as usize }, 24usize, concat!( "Offset of field: ", stringify!( tll_msg_t ), "::", stringify!( data ) ) );
-    assert_eq!( unsafe { & ( * (::std::ptr::null::<tll_msg_t>())) . size as * const _ as usize }, 32usize, concat!( "Offset of field: ", stringify!( tll_msg_t ), "::", stringify!( size ) ) );
-    assert_eq!( unsafe { & ( * (::std::ptr::null::<tll_msg_t>())) . addr as * const _ as usize }, 40usize, concat!( "Offset of field: ", stringify!( tll_msg_t ), "::", stringify!( addr ) ) );
-}
 
 #[ repr ( C ) ]
 #[ derive ( Debug, Copy, Clone ) ]
 pub struct tll_channel_context_t { _unused : [ u8; 0 ], }
-
-/*
-#[ repr ( C ) ]
-#[ derive ( Debug, Copy, Clone ) ]
-pub struct tll_channel_impl_t { _unused : [ u8; 0 ], }
-*/
 
 pub type tll_channel_cap_t = u32;
 pub const TLL_CAPS_INPUT : tll_channel_cap_t = 4;
@@ -172,8 +120,9 @@ extern "C" {
     pub fn tll_channel_context_config ( arg1 : * mut tll_channel_context_t ) -> * mut tll_config_t;
     pub fn tll_channel_context_config_defaults ( arg1 : * mut tll_channel_context_t ) -> * mut tll_config_t;
     pub fn tll_channel_context_scheme_load ( arg1 : * mut tll_channel_context_t, url : * const c_char, len : c_int, cache : c_int ) -> * const tll_scheme_t;
-    pub fn tll_channel_register ( ctx : * mut tll_channel_context_t, name : * const c_char, impl_ : * const tll_channel_impl_t ) -> c_int;
-    pub fn tll_channel_unregister ( ctx : * mut tll_channel_context_t, name : * const c_char, impl_ : * const tll_channel_impl_t ) -> c_int;
+    pub fn tll_channel_impl_get ( ctx : * const tll_channel_context_t, name : * const c_char ) -> * const tll_channel_impl_t;
+    pub fn tll_channel_impl_register ( ctx : * mut tll_channel_context_t, impl_ : * const tll_channel_impl_t, name : * const c_char ) -> c_int;
+    pub fn tll_channel_impl_unregister ( ctx : * mut tll_channel_context_t, impl_ : * const tll_channel_impl_t, name : * const c_char ) -> c_int;
     pub fn tll_channel_module_load ( ctx : * mut tll_channel_context_t, module : * const c_char, symbol : * const c_char ) -> c_int;
     pub fn tll_channel_module_unload ( ctx : * mut tll_channel_context_t, module : * const c_char ) -> c_int;
 }

@@ -1,7 +1,6 @@
 pub mod impl_;
 pub mod channel;
-pub mod callback;
-pub mod msg;
+pub mod message;
 
 pub use channel::*;
-pub use msg::*;
+pub use message::*;
