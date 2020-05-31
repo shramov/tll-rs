@@ -8,7 +8,6 @@ use crate::channel::msg::*;
 use std::os::raw::c_int;
 use std::os::raw::c_uint;
 use std::os::raw::c_long;
-use std::os::raw::c_longlong;
 use std::os::raw::c_char;
 use std::os::raw::c_void;
 use std::option::Option;
@@ -104,8 +103,8 @@ extern "C" {
     pub fn tll_channel_resume ( c : * mut tll_channel_t ) -> c_int;
     pub fn tll_channel_state ( c : * const tll_channel_t ) -> tll_state_t;
     pub fn tll_channel_name ( c : * const tll_channel_t ) -> * const c_char;
-    pub fn tll_channel_caps ( c : * const tll_channel_t ) -> c_longlong;
-    pub fn tll_channel_dcaps ( c : * const tll_channel_t ) -> c_longlong;
+    pub fn tll_channel_caps ( c : * const tll_channel_t ) -> c_uint;
+    pub fn tll_channel_dcaps ( c : * const tll_channel_t ) -> c_uint;
     pub fn tll_channel_fd ( c : * const tll_channel_t ) -> c_int;
     pub fn tll_channel_context ( c : * const tll_channel_t ) -> * mut tll_channel_context_t;
     pub fn tll_channel_config ( c : * mut tll_channel_t ) -> * mut tll_config_t;

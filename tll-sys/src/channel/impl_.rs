@@ -6,7 +6,6 @@
 use std::os::raw::c_int;
 use std::os::raw::c_uint;
 use std::os::raw::c_long;
-use std::os::raw::c_longlong;
 use std::os::raw::c_char;
 use std::os::raw::c_void;
 use std::option::Option;
@@ -67,8 +66,8 @@ pub struct tll_channel_internal_t {
     pub state : tll_state_t,
     pub self_ : * mut tll_channel_t,
     pub name : * const c_char,
-    pub caps : c_longlong,
-    pub dcaps : c_longlong,
+    pub caps : c_uint,
+    pub dcaps : c_uint,
     pub fd : c_int,
     pub config : * mut tll_config_t,
     pub children : * mut tll_channel_list_t,
@@ -79,20 +78,20 @@ pub struct tll_channel_internal_t {
 }
 
 #[ test ]
-fn bindgen_test_layout_tll_channel_internal_t(){ assert_eq!(::std::mem::size_of::<tll_channel_internal_t>(), 96usize, concat!( "Size of: ", stringify!(tll_channel_internal_t) ) );
+fn bindgen_test_layout_tll_channel_internal_t(){ assert_eq!(::std::mem::size_of::<tll_channel_internal_t>(), 88usize, concat!( "Size of: ", stringify!(tll_channel_internal_t) ) );
     assert_eq!(::std::mem::align_of::<tll_channel_internal_t>(), 8usize, concat!( "Alignment of ", stringify!(tll_channel_internal_t) ) );
     assert_eq!( unsafe { & ( * (null::<tll_channel_internal_t>()) ) . state as * const _ as usize }, 0usize, concat!( "Offset of field: ", stringify!(tll_channel_internal_t), "::", stringify!( state ) ) );
     assert_eq!( unsafe { & ( * (null::<tll_channel_internal_t>()) ) . self_ as * const _ as usize }, 8usize, concat!( "Offset of field: ", stringify!(tll_channel_internal_t), "::", stringify!( self_ ) ) );
     assert_eq!( unsafe { & ( * (null::<tll_channel_internal_t>()) ) . name as * const _ as usize }, 16usize, concat!( "Offset of field: ", stringify!(tll_channel_internal_t), "::", stringify!( name ) ) );
     assert_eq!( unsafe { & ( * (null::<tll_channel_internal_t>()) ) . caps as * const _ as usize }, 24usize, concat!( "Offset of field: ", stringify!(tll_channel_internal_t), "::", stringify!( caps ) ) );
-    assert_eq!( unsafe { & ( * (null::<tll_channel_internal_t>()) ) . dcaps as * const _ as usize }, 32usize, concat!( "Offset of field: ", stringify!(tll_channel_internal_t), "::", stringify!( dcaps ) ) );
-    assert_eq!( unsafe { & ( * (null::<tll_channel_internal_t>()) ) . fd as * const _ as usize }, 40usize, concat!( "Offset of field: ", stringify!(tll_channel_internal_t), "::", stringify!( fd ) ) );
-    assert_eq!( unsafe { & ( * (null::<tll_channel_internal_t>()) ) . config as * const _ as usize }, 48usize, concat!( "Offset of field: ", stringify!(tll_channel_internal_t), "::", stringify!( config ) ) );
-    assert_eq!( unsafe { & ( * (null::<tll_channel_internal_t>()) ) . children as * const _ as usize }, 56usize, concat!( "Offset of field: ", stringify!(tll_channel_internal_t), "::", stringify!( children ) ) );
-    assert_eq!( unsafe { & ( * (null::<tll_channel_internal_t>()) ) . data_cb_size as * const _ as usize }, 64usize, concat!( "Offset of field: ", stringify!(tll_channel_internal_t), "::", stringify!( data_cb_size ) ) );
-    assert_eq!( unsafe { & ( * (null::<tll_channel_internal_t>()) ) . data_cb as * const _ as usize }, 72usize, concat!( "Offset of field: ", stringify!(tll_channel_internal_t), "::", stringify!( data_cb ) ) );
-    assert_eq!( unsafe { & ( * (null::<tll_channel_internal_t>()) ) . cb_size as * const _ as usize }, 80usize, concat!( "Offset of field: ", stringify!(tll_channel_internal_t), "::", stringify!( cb_size ) ) );
-    assert_eq!( unsafe { & ( * (null::<tll_channel_internal_t>()) ) . cb as * const _ as usize }, 88usize, concat!( "Offset of field: ", stringify!(tll_channel_internal_t), "::", stringify!( cb ) ) );
+    assert_eq!( unsafe { & ( * (null::<tll_channel_internal_t>()) ) . dcaps as * const _ as usize }, 28usize, concat!( "Offset of field: ", stringify!(tll_channel_internal_t), "::", stringify!( dcaps ) ) );
+    assert_eq!( unsafe { & ( * (null::<tll_channel_internal_t>()) ) . fd as * const _ as usize }, 32usize, concat!( "Offset of field: ", stringify!(tll_channel_internal_t), "::", stringify!( fd ) ) );
+    assert_eq!( unsafe { & ( * (null::<tll_channel_internal_t>()) ) . config as * const _ as usize }, 40usize, concat!( "Offset of field: ", stringify!(tll_channel_internal_t), "::", stringify!( config ) ) );
+    assert_eq!( unsafe { & ( * (null::<tll_channel_internal_t>()) ) . children as * const _ as usize }, 48usize, concat!( "Offset of field: ", stringify!(tll_channel_internal_t), "::", stringify!( children ) ) );
+    assert_eq!( unsafe { & ( * (null::<tll_channel_internal_t>()) ) . data_cb_size as * const _ as usize }, 56usize, concat!( "Offset of field: ", stringify!(tll_channel_internal_t), "::", stringify!( data_cb_size ) ) );
+    assert_eq!( unsafe { & ( * (null::<tll_channel_internal_t>()) ) . data_cb as * const _ as usize }, 64usize, concat!( "Offset of field: ", stringify!(tll_channel_internal_t), "::", stringify!( data_cb ) ) );
+    assert_eq!( unsafe { & ( * (null::<tll_channel_internal_t>()) ) . cb_size as * const _ as usize }, 72usize, concat!( "Offset of field: ", stringify!(tll_channel_internal_t), "::", stringify!( cb_size ) ) );
+    assert_eq!( unsafe { & ( * (null::<tll_channel_internal_t>()) ) . cb as * const _ as usize }, 80usize, concat!( "Offset of field: ", stringify!(tll_channel_internal_t), "::", stringify!( cb ) ) );
 }
 
 #[ repr ( C ) ]
