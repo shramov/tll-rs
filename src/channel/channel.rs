@@ -1,4 +1,5 @@
 use tll_sys::channel::*;
+use tll_sys::channel::impl_::tll_channel_impl_t;
 
 use crate::config::Config;
 use crate::channel::impl_::{ChannelImpl, CImpl};
@@ -125,7 +126,7 @@ impl Context {
 
     pub fn channel(&self, url: &str) -> Result<OwnedChannel>
     {
-        let ptr = unsafe { tll_channel_new(url.as_ptr() as *const c_char, url.len(), std::ptr::null_mut::<tll_channel_t>(), self.ptr) };
+        let ptr = unsafe { tll_channel_new(self.ptr, url.as_ptr() as *const c_char, url.len(), std::ptr::null_mut::<tll_channel_t>(), std::ptr::null::<tll_channel_impl_t>()) };
         if ptr.is_null() { Err(Error::from("Invalid argument")) } else { Ok(OwnedChannel(Channel {ptr: ptr})) }
     }
 

@@ -73,7 +73,7 @@ pub struct tll_channel_t {
     pub data : * mut c_void,
     pub internal : * mut tll_channel_internal_t,
     pub context : * mut tll_channel_context_t,
-    pub parent : * mut tll_channel_t,
+    pub master : * mut tll_channel_t,
 }
 
 #[ test ]
@@ -85,7 +85,7 @@ fn bindgen_test_layout_tll_channel_t ()
     assert_eq!( unsafe { & ( * (::std::ptr::null::<tll_channel_t> () ) ) . data as * const _ as usize }, 8usize, concat!( "Offset of field: ", stringify!(tll_channel_t), "::", stringify!(data) ) );
     assert_eq!( unsafe { & ( * (::std::ptr::null::<tll_channel_t> () ) ) . internal as * const _ as usize }, 16usize, concat!( "Offset of field: ", stringify!(tll_channel_t), "::", stringify!(internal) ) );
     assert_eq!( unsafe { & ( * (::std::ptr::null::<tll_channel_t> () ) ) . context as * const _ as usize }, 24usize, concat!( "Offset of field: ", stringify!(tll_channel_t), "::", stringify!(context) ) );
-    assert_eq!( unsafe { & ( * (::std::ptr::null::<tll_channel_t> () ) ) . parent as * const _ as usize }, 32usize, concat!( "Offset of field: ", stringify!(tll_channel_t), "::", stringify!(parent) ) );
+    assert_eq!( unsafe { & ( * (::std::ptr::null::<tll_channel_t> () ) ) . master as * const _ as usize }, 32usize, concat!( "Offset of field: ", stringify!(tll_channel_t), "::", stringify!(master) ) );
 }
 
 pub type tll_channel_callback_t = Option < unsafe extern "C" fn ( c : * const tll_channel_t, msg : * const tll_msg_t, user : * mut c_void ) -> c_int >;
@@ -93,7 +93,7 @@ pub type tll_channel_callback_t = Option < unsafe extern "C" fn ( c : * const tl
 extern "C" {
     pub fn tll_channel_callback_add ( arg1 : * mut tll_channel_t, cb : tll_channel_callback_t, user : * mut c_void, mask : c_uint ) -> c_int;
     pub fn tll_channel_callback_del ( arg1 : * mut tll_channel_t, cb : tll_channel_callback_t, user : * mut c_void, mask : c_uint ) -> c_int;
-    pub fn tll_channel_new ( str : * const c_char, len : usize, master : * mut tll_channel_t, ctx : * mut tll_channel_context_t ) -> * mut tll_channel_t;
+    pub fn tll_channel_new ( ctx : * mut tll_channel_context_t, str : * const c_char, len : usize, master : * mut tll_channel_t, impl_ : * const tll_channel_impl_t ) -> * mut tll_channel_t;
     pub fn tll_channel_free ( arg1 : * mut tll_channel_t );
     pub fn tll_channel_open ( arg1 : * mut tll_channel_t, str : * const c_char, len : usize ) -> c_int;
     pub fn tll_channel_close ( arg1 : * mut tll_channel_t ) -> c_int;

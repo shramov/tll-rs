@@ -21,7 +21,7 @@ use crate::channel::msg::*;
 #[ repr ( C ) ]
 #[ derive ( Debug, Copy, Clone ) ]
 pub struct tll_channel_impl_t {
-    pub init : Option < unsafe extern "C" fn ( arg1 : * mut tll_channel_t, str : * const c_char, len : usize, parent : * mut tll_channel_t, ctx : * mut tll_channel_context_t ) -> c_int >,
+    pub init : Option < unsafe extern "C" fn ( arg1 : * mut tll_channel_t, str : * const c_char, len : usize, master : * mut tll_channel_t, ctx : * mut tll_channel_context_t ) -> c_int >,
     pub free : Option < unsafe extern "C" fn ( arg1 : * mut tll_channel_t ) >,
     pub open : Option < unsafe extern "C" fn ( arg1 : * mut tll_channel_t, str : * const c_char, len : usize ) -> c_int >,
     pub close : Option < unsafe extern "C" fn ( arg1 : * mut tll_channel_t ) -> c_int >,

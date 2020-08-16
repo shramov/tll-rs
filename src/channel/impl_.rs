@@ -141,7 +141,7 @@ impl<T> CImpl<T>
 
     pub fn name(&self) -> &CString { &self.name }
 
-    fn init(c : &mut tll_channel_t, s: &[u8], parent: Option<Channel>, ctx: &Context) -> Result<()>
+    fn init(c : &mut tll_channel_t, s: &[u8], master: Option<Channel>, ctx: &Context) -> Result<()>
     {
         let surl = std::str::from_utf8(s)?;
         let url = Url::new(surl)?;
@@ -154,7 +154,7 @@ impl<T> CImpl<T>
         c.internal = &mut internal.data;
         println!("Call init on boxed object {:?}", c.data);
         internal.init(&url)?;
-        let r = channel.init(&url, parent, ctx);
+        let r = channel.init(&url, master, ctx);
         println!("Init result: {:?}", r);
         if r.is_err() { Self::dealloc(c) };
         Ok(())
@@ -167,13 +167,13 @@ impl<T> CImpl<T>
         channel.open(&url)
     }
 
-    extern "C" fn c_init(c : * mut tll_channel_t, s : * const c_char, len : usize, parent : * mut tll_channel_t, ctx : * mut tll_channel_context_t) -> c_int
+    extern "C" fn c_init(c : * mut tll_channel_t, s : * const c_char, len : usize, master : * mut tll_channel_t, ctx : * mut tll_channel_context_t) -> c_int
     {
         if c.is_null() || s.is_null() || ctx.is_null() { return EINVAL as c_int }
         //if &self.data != unsafe { (*c).impl_ } { return EINVAL }
         match Self::init( unsafe { &mut *c },
                 unsafe { std::slice::from_raw_parts(s as * const u8, len) },
-                if parent.is_null() { None } else { Some(Channel::from_ptr(parent)) },
+                if master.is_null() { None } else { Some(Channel::from_ptr(master)) },
                     &Context::from(ctx)) {
             Ok(()) => 0,
             Err(r) => r.code.unwrap_or(EINVAL),
@@ -244,7 +244,7 @@ impl<T> CImpl<T>
 pub trait ChannelImpl {
     fn new() -> Self;
     fn internal(&mut self) -> &mut Internal;
-    fn init(&mut self, url: &Url, parent: Option<Channel>, context: &Context) -> Result<()>;
+    fn init(&mut self, url: &Url, master: Option<Channel>, context: &Context) -> Result<()>;
     fn open(&mut self, url: &Props) -> Result<()>;
     fn close(&mut self) {}
     fn free(&mut self) {}
