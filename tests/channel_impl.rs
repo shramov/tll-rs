@@ -1,7 +1,8 @@
 use tll::channel::*;
 
 use tll::error::*;
-use tll::props::{Props, Url};
+use tll::config::{Config};
+use tll::props::{Props};
 use tll::channel::impl_::*;
 
 fn callback(c: &Channel, m: &Message) -> i32
@@ -17,9 +18,9 @@ impl ChannelImpl for Echo {
     fn new() -> Self { Echo { internal: Internal::new() } } // counter: 0 } }
     fn internal(&mut self) -> &mut Internal { &mut self.internal }
 
-    fn init(&mut self, url: &Url, parent: Option<Channel>, _: &Context) -> Result<()>
+    fn init(&mut self, _url: &Config, parent: Option<Channel>, _: &Context) -> Result<()>
     {
-        println!("Create channel {:?}, parent {:?}", url, parent);
+        println!("Create channel, parent {:?}", parent);
         Ok(()) 
     }
 

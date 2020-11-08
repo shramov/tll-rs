@@ -94,6 +94,7 @@ extern "C" {
     pub fn tll_channel_callback_add ( arg1 : * mut tll_channel_t, cb : tll_channel_callback_t, user : * mut c_void, mask : c_uint ) -> c_int;
     pub fn tll_channel_callback_del ( arg1 : * mut tll_channel_t, cb : tll_channel_callback_t, user : * mut c_void, mask : c_uint ) -> c_int;
     pub fn tll_channel_new ( ctx : * mut tll_channel_context_t, str : * const c_char, len : usize, master : * mut tll_channel_t, impl_ : * const tll_channel_impl_t ) -> * mut tll_channel_t;
+    pub fn tll_channel_new_url ( ctx : * mut tll_channel_context_t, url : * const tll_config_t, master : * mut tll_channel_t, impl_ : * const tll_channel_impl_t ) -> * mut tll_channel_t;
     pub fn tll_channel_free ( arg1 : * mut tll_channel_t );
     pub fn tll_channel_open ( arg1 : * mut tll_channel_t, str : * const c_char, len : usize ) -> c_int;
     pub fn tll_channel_close ( arg1 : * mut tll_channel_t ) -> c_int;
