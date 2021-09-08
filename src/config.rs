@@ -60,7 +60,7 @@ impl Config {
 
     pub fn sub(&self, key: &str) -> Option<Config>
     {
-        let ptr = unsafe { tll_config_sub(self.ptr, key.as_ptr() as *const c_char, key.len() as c_int) };
+        let ptr = unsafe { tll_config_sub(self.ptr, key.as_ptr() as *const c_char, key.len() as c_int, 0 as c_int) };
         if !ptr.is_null() {
             return Some (Config { ptr: ptr })
         } else {

@@ -37,14 +37,14 @@ impl Logger {
         }
     }
 
-    fn level(&self) -> i32 
+    fn level(&self) -> u32
     {
         unsafe { (*self.ptr).level }
     }
 
     pub fn enabled(&self, level: Level) -> bool
     {
-        self.level() <= level as i32
+        self.level() <= level as u32
     }
 
     pub fn log(&self, level: Level, msg: &str)

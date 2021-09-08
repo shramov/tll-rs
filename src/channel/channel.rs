@@ -1,5 +1,4 @@
 use tll_sys::channel::*;
-use tll_sys::channel::impl_::tll_channel_impl_t;
 
 use crate::config::Config;
 use crate::channel::impl_::{ChannelImpl, CImpl};
@@ -222,7 +221,7 @@ impl Channel {
 
     pub fn close(&mut self) -> ()
     {
-        unsafe { tll_channel_close(self.ptr) };
+        unsafe { tll_channel_close(self.ptr, 0) };
         ()
     }
 

@@ -1,6 +1,5 @@
 use tll_sys::channel::*;
-use tll_sys::channel::impl_::*;
-use tll_sys::channel::callback::*;
+use tll_sys::channel_callback::*;
 use tll_sys::config::tll_config_t;
 
 use crate::channel::*;
@@ -211,11 +210,11 @@ impl<T> CImpl<T>
         }
     }
 
-    extern "C" fn c_close(c : * mut tll_channel_t) -> c_int
+    extern "C" fn c_close(c : * mut tll_channel_t, force : c_int) -> c_int
     {
         if c.is_null() || unsafe { (*c).data.is_null() } { return EINVAL }
         let channel = unsafe { &mut *((*c).data as * mut T) };
-        channel.close();
+        channel.close(force != 0);
         0
     }
 
@@ -246,7 +245,7 @@ pub trait ChannelImpl {
     fn internal(&mut self) -> &mut Internal;
     fn init(&mut self, url: &Config, master: Option<Channel>, context: &Context) -> Result<()>;
     fn open(&mut self, url: &Props) -> Result<()>;
-    fn close(&mut self) {}
+    fn close(&mut self, _force : bool) {}
     fn free(&mut self) {}
 
     fn post(&mut self, _: &Message) -> Result<i32> { Ok(0) }

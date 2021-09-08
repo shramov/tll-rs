@@ -1,5 +1,6 @@
-use tll_sys::channel::msg::*;
-use std::ffi::c_void;
+use tll_sys::channel::*;
+use std::os::raw::c_void;
+use std::os::raw::c_short;
 use std::ops::Deref;
 
 #[derive(Debug, PartialEq, Clone, Copy)]
@@ -11,10 +12,10 @@ pub enum MsgType {
     Unknown(i16),
 }
 
-impl From<tll_msg_type_t> for MsgType {
-    fn from(x: tll_msg_type_t) -> Self
+impl From<c_short> for MsgType {
+    fn from(x: i16) -> Self
     {
-        match x {
+        match x as tll_msg_type_t {
             TLL_MESSAGE_DATA => MsgType::Data,
             TLL_MESSAGE_CONTROL => MsgType::Control,
             TLL_MESSAGE_STATE => MsgType::State,
@@ -24,15 +25,15 @@ impl From<tll_msg_type_t> for MsgType {
     }
 }
 
-impl Into<tll_msg_type_t> for MsgType {
-    fn into(self) -> tll_msg_type_t
+impl Into<c_short> for MsgType {
+    fn into(self) -> i16
     {
         match self {
-            MsgType::Data => TLL_MESSAGE_DATA,
-            MsgType::Control => TLL_MESSAGE_CONTROL,
-            MsgType::State => TLL_MESSAGE_STATE,
-            MsgType::Channel => TLL_MESSAGE_CHANNEL,
-            MsgType::Unknown(r) => r as tll_msg_type_t
+            MsgType::Data => TLL_MESSAGE_DATA as i16,
+            MsgType::Control => TLL_MESSAGE_CONTROL as i16,
+            MsgType::State => TLL_MESSAGE_STATE as i16,
+            MsgType::Channel => TLL_MESSAGE_CHANNEL as i16,
+            MsgType::Unknown(r) => r as i16
         }
     }
 }
