@@ -1,5 +1,4 @@
-use crate::channel::impl_::*;
-use crate::channel::msg::*;
+use crate::channel::*;
 
 pub fn channel_callback_data( internal : &tll_channel_internal_t, msg : *const tll_msg_t ) -> i32
 {
@@ -24,4 +23,3 @@ pub fn channel_callback( internal : &tll_channel_internal_t, msg : *const tll_ms
         }
 	0
 }
-
