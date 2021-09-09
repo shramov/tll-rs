@@ -1,3 +1,6 @@
+#[macro_use]
+extern crate bitflags;
+
 pub mod logger;
 pub mod stat;
 pub mod config;

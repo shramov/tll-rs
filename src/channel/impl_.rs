@@ -12,6 +12,18 @@ use std::ffi::CString;
 use std::os::raw::{c_char, c_int, c_long, c_void};
 //use std::option::Option;
 
+#[ derive(Debug, Eq, PartialEq) ]
+pub enum ProcessPolicy {
+    Normal,
+    Never,
+}
+
+#[ derive(Debug, Eq, PartialEq) ]
+pub enum OpenPolicy {
+    Normal,
+    Manual,
+}
+
 #[ derive(Debug) ]
 pub struct Internal {
     pub data : tll_channel_internal_t,
@@ -84,6 +96,27 @@ impl Internal {
         self.set_name(&url.get("name").unwrap_or("noname".to_string()))?;
         println!("New name: '{}' ({:?})", self.name(), self.c_name);
         Ok(())
+    }
+
+    pub fn caps(&self) -> Caps
+    {
+        Caps::from_bits_truncate(self.data.caps)
+    }
+
+    pub fn set_caps(&mut self, caps: Caps)
+    {
+        self.data.caps = caps.bits();
+    }
+
+    pub fn update_dcaps(&mut self, caps: DCaps, mask: DCaps)
+    {
+        let old = self.data.dcaps;
+        println!("Update dcaps: {} -> {:?}", old, caps);
+        if old & mask.bits() == caps.bits() { return; }
+        self.data.dcaps ^= (old & mask.bits()) ^ caps.bits();
+        let mut msg = Message::new();
+        msg.set_type(MsgType::Channel).set_msgid(TLL_MESSAGE_CHANNEL_UPDATE as i32).set_data(&old.to_ne_bytes());
+        self.callback(&msg);
     }
 
     /*
@@ -163,7 +196,17 @@ impl<T> CImpl<T>
     {
         let surl = std::str::from_utf8(s).map_err(|_| format!("Invalid utf8 string {:?}", s))?;
         let url = Props::new(surl).map_err(|e| format!("Invalid props {:?}: {:?}'", surl, e))?;
-        channel.open(&url)
+        channel.internal().set_state(State::Opening);
+        match <T>::process_policy() {
+            ProcessPolicy::Normal => channel.internal().update_dcaps(DCaps::Process, DCaps::Process),
+            ProcessPolicy::Never => ()
+        }
+
+        let r = channel.open(&url);
+        if r.is_ok() {
+            if <T>::open_policy() == OpenPolicy::Normal { channel.internal().set_state(State::Active); }
+        }
+        r
     }
 
     extern "C" fn c_init(c : * mut tll_channel_t, url : * const tll_config_t, master : * mut tll_channel_t, ctx : * mut tll_channel_context_t) -> c_int
@@ -220,6 +263,7 @@ impl<T> CImpl<T>
 
     extern "C" fn c_post(c : * mut tll_channel_t, m : * const tll_msg_t, _ : c_int ) -> c_int
     {
+        println!(">> Try to call open");
         if c.is_null() || unsafe { (*c).data.is_null() } { return EINVAL }
         if m.is_null() { return EINVAL }
         let channel = unsafe { &mut *((*c).data as * mut T) };
@@ -231,6 +275,7 @@ impl<T> CImpl<T>
 
     extern "C" fn c_process(c : * mut tll_channel_t, _ : c_long, _ : c_int) -> c_int
     {
+        println!(">> Try to call process");
         if c.is_null() || unsafe { (*c).data.is_null() } { return EINVAL }
         let channel = unsafe { &mut *((*c).data as * mut T) };
         match channel.process() {
@@ -241,6 +286,9 @@ impl<T> CImpl<T>
 }
 
 pub trait ChannelImpl {
+    fn process_policy() -> ProcessPolicy { ProcessPolicy::Normal }
+    fn open_policy() -> OpenPolicy { OpenPolicy::Normal }
+
     fn new() -> Self;
     fn internal(&mut self) -> &mut Internal;
     fn init(&mut self, url: &Config, master: Option<Channel>, context: &Context) -> Result<()>;

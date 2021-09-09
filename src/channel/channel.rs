@@ -5,6 +5,8 @@ use crate::channel::impl_::{ChannelImpl, CImpl};
 use crate::error::*;
 
 pub use crate::channel::message::*;
+pub use crate::channel::caps::*;
+
 use std::ops::Deref;
 
 use std::ffi::CStr;
@@ -136,6 +138,12 @@ impl Context {
         println!("Impl {:?} {:?}", impl_.name(), impl_.as_ptr());
         error_check(unsafe { tll_channel_impl_register(self.ptr, impl_.as_ptr(), impl_.name().as_ptr()) })
     }
+
+    pub fn get(&self, name: &str) -> Option<Channel>
+    {
+        let ptr = unsafe { tll_channel_get(self.ptr, name.as_ptr() as *const c_char, name.len() as i32) };
+        if ptr.is_null() { None } else { Some(Channel {ptr: ptr}) }
+    }
 }
 
 impl Drop for Context {
@@ -195,6 +203,16 @@ impl Channel {
         State::from( unsafe { tll_channel_state(self.ptr) } )
     }
 
+    pub fn caps(&self) -> Caps
+    {
+        Caps::from_bits_truncate( unsafe { tll_channel_caps(self.ptr) } )
+    }
+
+    pub fn dcaps(&self) -> DCaps
+    {
+        DCaps::from_bits_truncate( unsafe { tll_channel_dcaps(self.ptr) } )
+    }
+
     pub fn name<'a>(&'a self) -> &'a str
     {
         let n = unsafe { tll_channel_name(self.ptr) };
@@ -233,9 +251,13 @@ impl Channel {
         error_check(unsafe { tll_channel_callback_add(self.ptr, Some(callback_wrap::<F>), fptr as * mut c_void, mask.unwrap_or(MsgMask::All as u32)) })
     }
 
-    pub fn process(&mut self) -> Result<()>
+    pub fn process(&mut self) -> Result<i32>
     {
-        error_check(unsafe { tll_channel_process(self.ptr, 0, 0) })
+        match unsafe { tll_channel_process(self.ptr, 0, 0) } {
+            0 => Ok(0),
+            EAGAIN => Ok(EAGAIN),
+            e => Err(Error::from(e))
+        }
     }
 
     pub fn post(&mut self, msg : &Message) -> Result<()>

@@ -3,7 +3,7 @@ use std::option::Option;
 pub const EAGAIN : i32 = 11;
 pub const EINVAL : i32 = 22;
 
-#[ derive(Debug, Default, Clone) ]
+#[ derive(Debug, Default, Clone, Eq, PartialEq) ]
 pub struct Error
 {
     pub code: Option<i32>,

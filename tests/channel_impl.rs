@@ -15,6 +15,8 @@ fn callback(c: &Channel, m: &Message) -> i32
 struct Echo { internal: Internal }
 
 impl ChannelImpl for Echo {
+    fn open_policy() -> OpenPolicy { OpenPolicy::Manual }
+
     fn new() -> Self { Echo { internal: Internal::new() } } // counter: 0 } }
     fn internal(&mut self) -> &mut Internal { &mut self.internal }
 
@@ -26,13 +28,13 @@ impl ChannelImpl for Echo {
 
     fn open(&mut self, url: &Props) -> Result<()>
     {
-        self.internal.set_state(State::Opening);
         println!("Open channel {:?}", url);
         Ok(()) 
     }
 
     fn process(&mut self) -> Result<i32>
     {
+        println!("Called process");
         if self.internal.state() == State::Opening {
             self.internal.set_state(State::Active);
         }
@@ -69,7 +71,7 @@ fn test() -> Result<()> {
         assert!(c.open("").is_ok());
         assert_eq!(c.state(), State::Opening);
 
-        assert!(c.process().is_ok());
+        assert_eq!(c.process(), Ok(0));
         assert_eq!(c.state(), State::Active);
 
         assert!(c.post(Message::new().set_msgid(100).set_seq(100).set_data(b"abcd")).is_ok())

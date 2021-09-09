@@ -7,6 +7,7 @@ license = "MIT"
 
 [dependencies]
 tll-sys = { path = "tll-sys", version = "0.1.0" }
+bitflags = ""
 
 #[build]
 #[profile.dev]
