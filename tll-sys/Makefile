@@ -5,7 +5,7 @@ BINDGEN_OPTIONS += --raw-line "\#![allow(dead_code, non_camel_case_types, non_up
 TLL := $(HOME)/src/tll
 INCLUDE := -I$(TLL)/src
 
-all: src/logger.rs src/config.rs src/channel.rs
+all: src/logger.rs src/config.rs src/channel.rs src/processor.rs src/processor_loop.rs
 
 src/logger.rs: $(TLL)/src/tll/logger.h
 	bindgen -o $@ $(BINDGEN_OPTIONS) \
@@ -29,4 +29,20 @@ src/channel.rs: $(TLL)/src/tll/channel/impl.h
 		--raw-line 'use crate::config::tll_config_t;' \
 		--raw-line 'use crate::scheme::tll_scheme_t;' \
 		--raw-line 'use crate::stat::*;' \
+		$< -- $(INCLUDE)
+
+src/processor.rs: $(TLL)/src/tll/processor.h
+	bindgen -o $@ $(BINDGEN_OPTIONS) \
+		--allowlist-type 'tll_processor.*' --allowlist-function tll_processor.* \
+		--blocklist-type 'tll_(config|channel)_.*' \
+		--blocklist-type 'tll_processor_loop_t' \
+		--raw-line 'use crate::channel::*;' \
+		--raw-line 'use crate::processor_loop::*;' \
+		$< -- $(INCLUDE)
+
+src/processor_loop.rs: $(TLL)/src/tll/processor/loop.h
+	bindgen -o $@ $(BINDGEN_OPTIONS) \
+		--allowlist-type 'tll_processor.*' --allowlist-function tll_processor.* \
+		--blocklist-type 'tll_(config|channel)_.*' \
+		--raw-line 'use crate::channel::*;' \
 		$< -- $(INCLUDE)
