@@ -10,6 +10,7 @@ pub use crate::channel::caps::*;
 use std::ops::Deref;
 
 use std::ffi::CStr;
+use std::ffi::CString;
 use std::os::raw::{c_char, c_int, c_void};
 //use std::option::Option;
 
@@ -139,6 +140,13 @@ impl Context {
         error_check(unsafe { tll_channel_impl_register(self.ptr, impl_.as_ptr(), impl_.name().as_ptr()) })
     }
 
+    pub fn load(&self, module : &str, symbol : &str) -> Result<()>
+    {
+        let cmodule = CString::new(module).map_err(|_| Error::from("Internal null byte in module string"))?;
+        let csymbol = CString::new(symbol).map_err(|_| Error::from("Internal null byte in symbol string"))?;
+        error_check(unsafe { tll_channel_module_load(self.ptr, cmodule.as_ptr(), csymbol.as_ptr()) })
+    }
+
     pub fn get(&self, name: &str) -> Option<Channel>
     {
         let ptr = unsafe { tll_channel_get(self.ptr, name.as_ptr() as *const c_char, name.len() as i32) };
@@ -197,6 +205,9 @@ impl Channel {
         assert!(!ptr.is_null());
         Channel { ptr: ptr }
     }
+
+    pub fn as_ptr(&mut self) -> * mut tll_channel_t { self.ptr }
+    pub fn as_const_ptr(&self) -> * const tll_channel_t { self.ptr }
 
     pub fn state(&self) -> State
     {
