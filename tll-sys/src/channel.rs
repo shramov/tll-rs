@@ -993,7 +993,8 @@ pub type tll_channel_module_flags_t = ::std::os::raw::c_uint;
 #[derive(Debug, Copy, Clone)]
 pub struct tll_channel_module_t {
     pub version: ::std::os::raw::c_int,
-    pub impl_: *mut *mut tll_channel_impl_t,
+    //pub impl_: *mut *mut tll_channel_impl_t,
+    pub impl_: i64,
     pub init: ::std::option::Option<
         unsafe extern "C" fn(
             m: *mut tll_channel_module_t,
