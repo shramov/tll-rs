@@ -261,6 +261,8 @@ impl<T> CImpl<T>
         if c.is_null() || unsafe { (*c).data.is_null() } { return EINVAL }
         let channel = unsafe { &mut *((*c).data as * mut T) };
         channel.close(force != 0);
+        channel.internal_mut().update_dcaps(DCaps::empty(), DCaps::Process | DCaps::POLLMASK);
+        channel.set_state(State::Closed);
         0
     }
 
@@ -309,4 +311,34 @@ pub trait ChannelImpl {
     fn state(&self) -> State { self.internal().state() }
     fn set_state(&mut self, state: State) -> State { self.internal_mut().set_state(state) }
     fn update_dcaps(&mut self, caps: DCaps, mask: DCaps) { self.internal_mut().update_dcaps(caps, mask) }
+}
+
+#[macro_export]
+macro_rules! declare_channel_module {
+    ( $( $impl0:ident ), * ) => {
+unsafe extern "C" fn _channel_module_init(_m: *mut tll_channel_module_t, ctx: *mut tll_channel_context_t) -> std::os::raw::c_int
+{
+    $(
+    if let Err(e) = Context::from(ctx).register($impl0()) { return e.code.unwrap_or(EINVAL); };
+    )*
+    0
+}
+
+unsafe extern "C" fn _channel_module_free(_m: *mut tll_channel_module_t, ctx: *mut tll_channel_context_t) -> std::os::raw::c_int
+{
+    //$(
+    //let _ = Context::from(ctx).unregister($impl0());
+    //)*
+    0
+}
+
+#[no_mangle]
+pub static channel_module : tll_channel_module_t = tll_channel_module_t {
+    version: 0,
+    flags: 0,
+    init: Some(_channel_module_init),
+    free: Some(_channel_module_free),
+    impl_: 0, //std::ptr::null_mut(),
+};
+    }
 }

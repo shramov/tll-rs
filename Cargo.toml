@@ -13,3 +13,7 @@ memchr = ""
 #[build]
 #[profile.dev]
 #rustflags = ["-C", "link-arg=-Wl,-rpath,/home/psha/src/tll/build/lib"]
+
+[[example]]
+name = "echo"
+crate-type = ["cdylib"]
