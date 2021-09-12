@@ -140,6 +140,14 @@ impl Context {
         error_check(unsafe { tll_channel_impl_register(self.ptr, impl_.as_ptr(), impl_.name().as_ptr()) })
     }
 
+    pub fn unregister<T>(&self, impl_ : &'static CImpl::<T>) -> Result<()>
+    where
+        T : ChannelImpl
+    {
+        println!("Unreg Impl {:?} {:?}", impl_.name(), impl_.as_ptr());
+        error_check(unsafe { tll_channel_impl_unregister(self.ptr, impl_.as_ptr(), impl_.name().as_ptr()) })
+    }
+
     pub fn load(&self, module : &str, symbol : &str) -> Result<()>
     {
         let cmodule = CString::new(module).map_err(|_| Error::from("Internal null byte in module string"))?;
