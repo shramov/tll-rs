@@ -7,6 +7,7 @@ use crate::config::*;
 use crate::props::*;
 
 use crate::error::*;
+use crate::logger::*;
 
 use std::ffi::CString;
 use std::os::raw::{c_char, c_int, c_long, c_void};
@@ -29,6 +30,7 @@ pub struct Internal {
     pub data : tll_channel_internal_t,
     c_name : CString,
     name : String,
+    pub logger : Logger,
 }
 
 impl Drop for Internal {
@@ -41,7 +43,7 @@ impl Drop for Internal {
 impl Default for Internal {
     fn default() -> Self
     {
-        let mut r = Internal { c_name: CString::default(), name: String::default(), data: unsafe { std::mem::zeroed::<tll_channel_internal_t>() } };
+        let mut r = Internal { c_name: CString::default(), name: String::default(), logger: Logger::new("rust.channel"), data: unsafe { std::mem::zeroed::<tll_channel_internal_t>() } };
         unsafe {
             tll_channel_internal_init(&mut r.data);
             r.data.name = r.c_name.as_ptr();
@@ -94,6 +96,7 @@ impl Internal {
     pub fn init(&mut self, url: &Config) -> Result<()>
     {
         self.set_name(&url.get("name").unwrap_or("noname".to_string()))?;
+        self.logger = Logger::new(&format!("rust.channel.{}", self.name));
         println!("New name: '{}' ({:?})", self.name(), self.c_name);
         Ok(())
     }
@@ -181,7 +184,7 @@ impl<T> CImpl<T>
         println!("Call init on boxed object {:?}", c.data);
         //let mut channel = unsafe { std::ptr::NonNull::new_unchecked((*c).data as * mut T) };
         let channel = unsafe { &mut *((*c).data as * mut T) };
-        let internal = channel.internal();
+        let internal = channel.internal_mut();
         internal.data.self_ = c;
         c.internal = &mut internal.data;
         println!("Call init on boxed object {:?}", c.data);
@@ -196,15 +199,15 @@ impl<T> CImpl<T>
     {
         let surl = std::str::from_utf8(s).map_err(|_| format!("Invalid utf8 string {:?}", s))?;
         let url = Props::new(surl).map_err(|e| format!("Invalid props {:?}: {:?}'", surl, e))?;
-        channel.internal().set_state(State::Opening);
+        channel.set_state(State::Opening);
         match <T>::process_policy() {
-            ProcessPolicy::Normal => channel.internal().update_dcaps(DCaps::Process, DCaps::Process),
+            ProcessPolicy::Normal => channel.update_dcaps(DCaps::Process, DCaps::Process),
             ProcessPolicy::Never => ()
         }
 
         let r = channel.open(&url);
         if r.is_ok() {
-            if <T>::open_policy() == OpenPolicy::Normal { channel.internal().set_state(State::Active); }
+            if <T>::open_policy() == OpenPolicy::Normal { channel.set_state(State::Active); }
         }
         r
     }
@@ -286,11 +289,13 @@ impl<T> CImpl<T>
 }
 
 pub trait ChannelImpl {
+    fn internal_mut(&mut self) -> &mut Internal;
+    fn internal(&self) -> &Internal;
+
     fn process_policy() -> ProcessPolicy { ProcessPolicy::Normal }
     fn open_policy() -> OpenPolicy { OpenPolicy::Normal }
 
     fn new() -> Self;
-    fn internal(&mut self) -> &mut Internal;
     fn init(&mut self, url: &Config, master: Option<Channel>, context: &Context) -> Result<()>;
     fn open(&mut self, url: &Props) -> Result<()>;
     fn close(&mut self, _force : bool) {}
@@ -298,4 +303,10 @@ pub trait ChannelImpl {
 
     fn post(&mut self, _: &Message) -> Result<i32> { Ok(0) }
     fn process(&mut self) -> Result<i32> { Ok(EAGAIN) }
+
+    fn logger(&self) -> &Logger { &self.internal().logger }
+
+    fn state(&self) -> State { self.internal().state() }
+    fn set_state(&mut self, state: State) -> State { self.internal_mut().set_state(state) }
+    fn update_dcaps(&mut self, caps: DCaps, mask: DCaps) { self.internal_mut().update_dcaps(caps, mask) }
 }

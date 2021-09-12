@@ -18,11 +18,13 @@ impl ChannelImpl for Echo {
     fn open_policy() -> OpenPolicy { OpenPolicy::Manual }
 
     fn new() -> Self { Echo { internal: Internal::new() } } // counter: 0 } }
-    fn internal(&mut self) -> &mut Internal { &mut self.internal }
+    fn internal(&self) -> &Internal { &self.internal }
+    fn internal_mut(&mut self) -> &mut Internal { &mut self.internal }
 
     fn init(&mut self, _url: &Config, parent: Option<Channel>, _: &Context) -> Result<()>
     {
         println!("Create channel, parent {:?}", parent);
+        self.logger().info(&format!("Create channel, parent {:?}", parent));
         Ok(()) 
     }
 
@@ -35,8 +37,8 @@ impl ChannelImpl for Echo {
     fn process(&mut self) -> Result<i32>
     {
         println!("Called process");
-        if self.internal.state() == State::Opening {
-            self.internal.set_state(State::Active);
+        if self.state() == State::Opening {
+            self.set_state(State::Active);
         }
         Ok(0)
     }

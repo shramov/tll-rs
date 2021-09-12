@@ -17,6 +17,7 @@ pub enum Level {
 //    pub const Crit : Level = Level::Critical;
 //}
 
+#[derive(Debug, PartialEq, Eq)]
 pub struct Logger {
     ptr: * mut tll_logger_t
 }
