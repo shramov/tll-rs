@@ -40,9 +40,9 @@ impl ChannelImpl for Echo {
         Ok(0)
     }
 
-    fn post(&mut self, msg: &Message) -> Result<i32> {
+    fn post(&mut self, msg: &Message) -> Result<()> {
         self.internal.callback_data(msg);
-        Ok(0)
+        Ok(())
     }
 }
 
