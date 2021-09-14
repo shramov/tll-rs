@@ -2,6 +2,9 @@ use tll_sys::channel::*;
 use tll_sys::channel_callback::*;
 use tll_sys::config::tll_config_t;
 
+// Reexport for using in macro
+pub use tll_sys::channel::{tll_channel_module_t, tll_channel_context_t};
+
 use crate::channel::*;
 use crate::config::*;
 use crate::props::*;
@@ -23,6 +26,13 @@ pub enum ProcessPolicy {
 pub enum OpenPolicy {
     Normal,
     Manual,
+}
+
+#[ derive(Debug, Eq, PartialEq) ]
+pub enum ChildPolicy {
+    Never,
+    Single,
+    Many,
 }
 
 #[ derive(Debug) ]
@@ -189,6 +199,11 @@ impl<T> CImpl<T>
         c.internal = &mut internal.data;
         println!("Call init on boxed object {:?}", c.data);
         internal.init(url)?;
+        internal.set_caps(match <T>::child_policy() {
+            ChildPolicy::Never => Caps::empty(),
+            ChildPolicy::Single => Caps::Parent | Caps::Proxy,
+            ChildPolicy::Many => Caps::Parent,
+        });
         let r = channel.init(&url, master, ctx);
         println!("Init result: {:?}", r);
         if r.is_err() { Self::dealloc(c) };
@@ -296,6 +311,7 @@ pub trait ChannelImpl {
 
     fn process_policy() -> ProcessPolicy { ProcessPolicy::Normal }
     fn open_policy() -> OpenPolicy { OpenPolicy::Normal }
+    fn child_policy() -> ChildPolicy { ChildPolicy::Never }
 
     fn new() -> Self;
     fn init(&mut self, url: &Config, master: Option<Channel>, context: &Context) -> Result<()>;
@@ -303,7 +319,7 @@ pub trait ChannelImpl {
     fn close(&mut self, _force : bool) {}
     fn free(&mut self) {}
 
-    fn post(&mut self, _: &Message) -> Result<i32> { Ok(0) }
+    fn post(&mut self, _: &Message) -> Result<()> { Ok(()) }
     fn process(&mut self) -> Result<i32> { Ok(EAGAIN) }
 
     fn logger(&self) -> &Logger { &self.internal().logger }

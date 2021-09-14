@@ -7,6 +7,10 @@ bitflags! {
         const Input = TLL_CAPS_INPUT;
         const Output = TLL_CAPS_OUTPUT;
         const InOut = TLL_CAPS_INOUT;
+
+        const Custom = TLL_CAPS_CUSTOM;
+        const Parent = TLL_CAPS_PARENT;
+        const Proxy = TLL_CAPS_PROXY;
     }
 }
 
