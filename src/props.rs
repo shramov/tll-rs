@@ -20,6 +20,16 @@ impl Props {
     }
 
     pub fn get(&self, key: &str) -> Option<&str> { return self.map.get(key).map(|s| s as &str) }
+
+    pub fn as_string(&self) -> String
+    {
+        let mut r = String::new();
+        for (key, value) in &self.map {
+            if r.len() > 0 { r += ";"; }
+            r += &format!("{}={}", key, value)
+        }
+        return r;
+    }
 }
 
 #[ derive(Default, Debug) ]
