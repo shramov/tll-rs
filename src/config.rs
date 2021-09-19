@@ -36,6 +36,12 @@ impl Config {
         if ptr.is_null() { None } else { Some(Config {ptr: ptr}) }
     }
 
+    pub fn copy(&self) -> Self
+    {
+        let ptr = unsafe { tll_config_copy(self.ptr) }; // Can only fail if self.ptr is null
+        Config::consume(ptr)
+    }
+
     pub fn as_ptr(&self) -> *const tll_config_t { self.ptr }
     pub fn as_mut_ptr(&mut self) -> *mut tll_config_t { self.ptr }
 
@@ -58,6 +64,16 @@ impl Config {
         unsafe { tll_config_set(self.ptr, key.as_ptr() as *const c_char, key.len() as c_int, value.as_ptr() as *const c_char, value.len() as c_int) };
     }
 
+    pub fn remove(&self, key: &str)
+    {
+        unsafe { tll_config_del(self.ptr, key.as_ptr() as *const c_char, key.len() as c_int, 0 as c_int) };
+    }
+
+    pub fn remove_rec(&self, key: &str)
+    {
+        unsafe { tll_config_del(self.ptr, key.as_ptr() as *const c_char, key.len() as c_int, 1 as c_int) };
+    }
+
     pub fn sub(&self, key: &str) -> Option<Config>
     {
         let ptr = unsafe { tll_config_sub(self.ptr, key.as_ptr() as *const c_char, key.len() as c_int, 0 as c_int) };
@@ -67,7 +83,6 @@ impl Config {
             return None;
         }
     }
-
 }
 
 impl Drop for Config {
