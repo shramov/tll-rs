@@ -132,6 +132,12 @@ impl Context {
         if ptr.is_null() { Err(Error::from("Invalid argument")) } else { Ok(OwnedChannel(Channel {ptr: ptr})) }
     }
 
+    pub fn channel_url(&self, url: &Config) -> Result<OwnedChannel>
+    {
+        let ptr = unsafe { tll_channel_new_url(self.ptr, url.as_ptr(), std::ptr::null_mut::<tll_channel_t>(), std::ptr::null::<tll_channel_impl_t>()) };
+        if ptr.is_null() { Err(Error::from("Invalid argument")) } else { Ok(OwnedChannel(Channel {ptr: ptr})) }
+    }
+
     pub fn register<T>(&self, impl_ : &'static CImpl::<T>) -> Result<()>
     where
         T : ChannelImpl
