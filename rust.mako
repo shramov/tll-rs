@@ -129,6 +129,3 @@ impl MsgId for ${keyword(msg.name)}
 % endif
 
 % endfor
-% if options.namespace:
-} // namespace ${options.namespace}
-% endif
