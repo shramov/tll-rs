@@ -39,9 +39,8 @@ fn test() -> Result<()> {
         assert_eq!(cfg.get("state"), Some( String::from("Closed") ));
 
         let mut last = (MsgType::Data, 0i32);
-        let cb = |_ : &Channel, m : &Message| { last = (m.get_type(), m.msgid()); 0 };
-        assert!(c.callback_add(&cb, None).is_ok());
-        //assert!(c.callback_add(&callback, None).is_ok());
+        let mut cb = |_ : &Channel, m : &Message| { last = (m.get_type(), m.msgid()); 0 };
+        assert!(c.callback_add_mut(&mut cb, None).is_ok());
 
         assert!(c.open("").is_ok());
 
