@@ -36,6 +36,12 @@ impl Config {
         if ptr.is_null() { None } else { Some(Config {ptr: ptr}) }
     }
 
+    pub fn load_data(proto: &str, data: &str) -> Option<Config>
+    {
+        let ptr = unsafe { tll_config_load_data(proto.as_ptr() as *const c_char, proto.len() as c_int, data.as_ptr() as *const c_char, data.len() as c_int) };
+        if ptr.is_null() { None } else { Some(Config {ptr: ptr}) }
+    }
+
     pub fn copy(&self) -> Self
     {
         let ptr = unsafe { tll_config_copy(self.ptr) }; // Can only fail if self.ptr is null
