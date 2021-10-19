@@ -66,6 +66,19 @@ impl SystemState
     }
 }
 
+enum TimerCallback {}
+enum RouteCallback {}
+
+impl CallbackMut<TimerCallback> for SystemState
+{
+    fn message_callback_mut(&mut self, _c: &Channel, m: &Message) -> i32 { self.timer_cb(m) }
+}
+
+impl CallbackMut<RouteCallback> for SystemState
+{
+    fn message_callback_mut(&mut self, _c: &Channel, m: &Message) -> i32 { self.route_cb(m) }
+}
+
 pub fn main()
 {
     let mut state = SystemState::default();
@@ -77,16 +90,18 @@ pub fn main()
     ctx.load("/home/psha/src/tll-netlink/build/tll-netlink", "channel_module").expect("Failed to load module");
 
     let mut c = ctx.channel("netlink://;name=netlink;dump=scheme").expect("Failed to create channel");
-    c.callback_add(&|_, m| state.route_cb(m), None).expect("Failed to add callback");
+    //c.callback_add(&|_, m| state.route_cb(m), None).expect("Failed to add callback");
+    c.callback_add_mut::<SystemState, RouteCallback>(&mut state, None).expect("Failed to add callback");
 
     let mut tc = ctx.channel("timer://;interval=1s;clock=realtime;dump=yes;name=timer").expect("Failed to create channel");
 
-    tc.callback_add(&|_, m| state.timer_cb(m), None).expect("Failed to add callback");
+    //tc.callback_add_mut(&|_, m| state.timer_cb(m), None).expect("Failed to add callback");
+    tc.callback_add_mut::<SystemState, TimerCallback>(&mut state, None).expect("Failed to add callback");
 
     let mut l = Loop::new("rust");
     l.add(&mut c).expect("Failed to add channel to loop");
     l.add(&mut tc).expect("Failed to add channel to loop");
-    //tc.open("").expect("Failed to open channel");
+    tc.open("").expect("Failed to open channel");
     c.open("").expect("Failed to open channel");
     loop {
         l.step(1000).expect("Step failed");
