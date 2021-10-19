@@ -1,5 +1,8 @@
 use tll_sys::logger::*;
 
+use crate::config::Config;
+use crate::error::*;
+
 use std::ffi::CStr;
 use std::os::raw::{c_int, c_char};
 
@@ -60,6 +63,14 @@ impl Logger {
     pub fn warning(&self, msg: &str) { self.log(Level::Warning, msg) }
     pub fn error(&self, msg: &str) { self.log(Level::Error, msg) }
     pub fn critical(&self, msg: &str) { self.log(Level::Critical, msg) }
+
+    pub fn config(cfg: &Config) -> Result<()>
+    {
+        let r = unsafe { tll_logger_config(cfg.as_ptr()) };
+        if r != 0 { return Err(Error::from("Failed to configure logger")) }
+        Ok(())
+    }
+
 }
 
 impl Drop for Logger {

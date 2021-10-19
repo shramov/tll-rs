@@ -1,5 +1,7 @@
 use tll::channel::*;
 use tll::processor::Loop;
+use tll::config::Config;
+use tll::logger::Logger;
 
 use std::convert::TryInto;
 use std::time::Duration;
@@ -67,6 +69,9 @@ impl SystemState
 pub fn main()
 {
     let mut state = SystemState::default();
+
+    let cfg = Config::load_data("yamls", "{type: spdlog}").unwrap();
+    Logger::config(&cfg).unwrap();
 
     let ctx = Context::new();
     ctx.load("/home/psha/src/tll-netlink/build/tll-netlink", "channel_module").expect("Failed to load module");
