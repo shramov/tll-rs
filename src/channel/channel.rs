@@ -12,7 +12,6 @@ use std::ops::Deref;
 use std::ffi::CStr;
 use std::ffi::CString;
 use std::os::raw::{c_char, c_int, c_void};
-//use std::option::Option;
 
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum State {
@@ -60,34 +59,6 @@ pub enum MsgMask {
 pub struct Context {
     ptr: *mut tll_channel_context_t
 }
-
-//pub type Message = tll_msg_t;
-/*
-#[ derive(Debug, PartialEq, Eq) ]
-pub struct Message { ptr: * const tll_msg_t }
-
-impl From<* const tll_msg_t> for Message {
-    fn from(ptr: *const tll_msg_t) -> Self
-    {
-        assert!(!ptr.is_null());
-        Message { ptr: ptr }
-    }
-}
-
-impl Message {
-    pub fn new_msg() -> tll_msg_t { unsafe { std::mem::zeroed() } }
-    pub fn msgid(&self) -> i32 { unsafe { (*self.ptr).msgid } }
-    pub fn type_(&self) -> MsgType { MsgType::from(unsafe { (*self.ptr).type_ } as tll_msg_type_t) }
-
-    pub fn as_ref(&self) -> &tll_msg_t { unsafe { &*self.ptr } }
-    pub fn data(&self) -> &[u8]
-    {
-        let size = unsafe { (*self.ptr).size };
-        if size == 0 { return b""; }
-        unsafe { std::slice::from_raw_parts((*self.ptr).data as * const u8, size) }
-    }
-}
-*/
 
 impl From<* mut tll_channel_context_t> for Context
 {
@@ -202,15 +173,54 @@ impl std::ops::DerefMut for OwnedChannel {
     fn deref_mut(&mut self) -> &mut Self::Target { &mut self.0 }
 }
 
-extern "C" fn callback_wrap<F>(c : * const tll_channel_t, msg : * const tll_msg_t, user : * mut c_void ) -> c_int
-    where F : FnMut(&Channel, &Message) -> i32
+pub trait CallbackMut<Tag = ()> {
+    fn message_callback_mut(&mut self, c: &Channel, m: &Message) -> i32;
+}
+
+pub trait Callback<Tag = ()> {
+    fn message_callback(&self, c: &Channel, m: &Message) -> i32;
+}
+
+impl <T : FnMut(&Channel, &Message) -> i32> CallbackMut<()> for T {
+    fn message_callback_mut(&mut self, c: &Channel, m: &Message) -> i32 { self(c, m) }
+}
+
+impl <T : Fn(&Channel, &Message) -> i32> Callback<()> for T {
+    fn message_callback(&self, c: &Channel, m: &Message) -> i32 { self(c, m) }
+}
+
+//impl<T : Callback> CallbackMut for T {
+//    fn message_callback_mut(&mut self, c: &Channel, m: &Message) -> i32 { self.message_callback(c, m) }
+//}
+
+struct Dumper {}
+impl Callback<()> for Dumper {
+    fn message_callback(&self, _c: &Channel, m: &Message) -> i32 {
+        println!("Message {:?}", m);
+        0
+    }
+}
+
+extern "C" fn callback_wrap_mut<F, T>(c : * const tll_channel_t, msg : * const tll_msg_t, user : * mut c_void ) -> c_int
+    where F : CallbackMut<T>
 {
     if c.is_null() || msg.is_null() || user.is_null() { return 0 }
     let channel = Channel::from_ptr(c as * mut tll_channel_t);
     //let message = Message::from(msg);
-    println!("Function: {:?}", user);
+    //println!("Function: {:?}", user);
     let f = unsafe { &mut * (user as * mut F) };
-    f(&channel, unsafe { &*(msg as * const Message) })
+    f.message_callback_mut(&channel, unsafe { &*(msg as * const Message) })
+}
+
+extern "C" fn callback_wrap<F, T>(c : * const tll_channel_t, msg : * const tll_msg_t, user : * mut c_void ) -> c_int
+    where F : Callback<T>
+{
+    if c.is_null() || msg.is_null() || user.is_null() { return 0 }
+    let channel = Channel::from_ptr(c as * mut tll_channel_t);
+    //let message = Message::from(msg);
+    //println!("Function: {:?}", user);
+    let f = unsafe { &mut * (user as * mut F) };
+    f.message_callback(&channel, unsafe { &*(msg as * const Message) })
 }
 
 impl Channel {
@@ -268,12 +278,20 @@ impl Channel {
         ()
     }
 
-    pub fn callback_add<F>(&mut self, f: &F, mask: Option<u32>) -> Result<()>
-        where F : FnMut(&Channel, &Message) -> i32
+    pub fn callback_add<F, T>(&mut self, f: &F, mask: Option<u32>) -> Result<()>
+        where F : Callback<T>
     {
         let fptr = f as * const F as * mut F;
         println!("Callback add {:?}", fptr);
-        error_check(unsafe { tll_channel_callback_add(self.ptr, Some(callback_wrap::<F>), fptr as * mut c_void, mask.unwrap_or(MsgMask::All as u32)) })
+        error_check(unsafe { tll_channel_callback_add(self.ptr, Some(callback_wrap::<F, T>), fptr as * mut c_void, mask.unwrap_or(MsgMask::All as u32)) })
+    }
+
+    pub fn callback_add_mut<F, T>(&mut self, f: &mut F, mask: Option<u32>) -> Result<()>
+        where F : CallbackMut<T>
+    {
+        let fptr = f as * mut F;
+        //println!("Callback add {:?}", fptr);
+        error_check(unsafe { tll_channel_callback_add(self.ptr, Some(callback_wrap_mut::<F, T>), fptr as * mut c_void, mask.unwrap_or(MsgMask::All as u32)) })
     }
 
     pub fn process(&mut self) -> Result<i32>
