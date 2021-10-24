@@ -17,7 +17,6 @@ struct Echo { internal: Internal }
 impl ChannelImpl for Echo {
     fn open_policy() -> OpenPolicy { OpenPolicy::Manual }
 
-    fn new() -> Self { Echo { internal: Internal::new() } } // counter: 0 } }
     fn internal(&self) -> &Internal { &self.internal }
     fn internal_mut(&mut self) -> &mut Internal { &mut self.internal }
 

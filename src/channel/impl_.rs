@@ -305,7 +305,7 @@ impl<T> CImpl<T>
     }
 }
 
-pub trait ChannelImpl {
+pub trait ChannelImpl : Default {
     fn internal_mut(&mut self) -> &mut Internal;
     fn internal(&self) -> &Internal;
 
@@ -313,7 +313,7 @@ pub trait ChannelImpl {
     fn open_policy() -> OpenPolicy { OpenPolicy::Normal }
     fn child_policy() -> ChildPolicy { ChildPolicy::Never }
 
-    fn new() -> Self;
+    fn new() -> Self { Self::default() }
     fn init(&mut self, url: &Config, master: Option<Channel>, context: &Context) -> Result<()>;
     fn open(&mut self, url: &Props) -> Result<()>;
     fn close(&mut self, _force : bool) {}
