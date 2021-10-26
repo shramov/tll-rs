@@ -40,7 +40,7 @@ def field2type(f):
 	    return f.type_enum.name
         return t
     elif f.type == f.Decimal128:
-        return "[u8; 16]"
+        return "tll::decimal128::Decimal128"
     elif f.type == f.Bytes:
 	if f.sub_type == f.Sub.ByteString:
 	    return f"ByteString{f.size}"
