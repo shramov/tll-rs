@@ -17,17 +17,64 @@ struct SystemState {
     link: Option<String>,
 }
 
+enum TimerBind<'a> {
+    RefAbsolute(&'a absolute),
+    RefRelative(&'a relative),
+    SizeError(i32),
+    Unknown(i32),
+}
+
+fn timer_bind(m: &Message) -> TimerBind {
+    match m.msgid() {
+        absolute::MSGID => match absolute::bind(m.data()) {
+            Some(m) => TimerBind::RefAbsolute(m),
+            None => TimerBind::SizeError(m.msgid()),
+        },
+        relative::MSGID => match relative::bind(m.data()) {
+            Some(m) => TimerBind::RefRelative(m),
+            None => TimerBind::SizeError(m.msgid()),
+        },
+        _ => TimerBind::Unknown(m.msgid()),
+    }
+}
+
+enum NetlinkBind<'a> {
+    RefLink(&'a Link),
+    RefRoute4(&'a Route4),
+    RefRoute6(&'a Route6),
+    SizeError(i32),
+    Unknown(i32),
+}
+
+fn netlink_bind(m: &Message) -> NetlinkBind {
+    match m.msgid() {
+        Link::MSGID => match Link::bind(m.data()) {
+            Some(m) => NetlinkBind::RefLink(m),
+            None => NetlinkBind::SizeError(m.msgid()),
+        },
+        Route4::MSGID => match Route4::bind(m.data()) {
+            Some(m) => NetlinkBind::RefRoute4(m),
+            None => NetlinkBind::SizeError(m.msgid()),
+        },
+        Route6::MSGID => match Route6::bind(m.data()) {
+            Some(m) => NetlinkBind::RefRoute6(m),
+            None => NetlinkBind::SizeError(m.msgid()),
+        },
+        _ => NetlinkBind::Unknown(m.msgid()),
+    }
+}
+
 impl SystemState {
     pub fn timer_cb(&mut self, m: &Message) -> i32 {
         if m.get_type() != MsgType::Data {
             return 0;
         }
-        if absolute::MSGID != m.msgid() {
-            return 0;
-        }
-        if let Some(msg) = absolute::bind(m.data()) {
-            println!("Timer: {:?}", { msg.ts });
-            //self.time = msg.ts.value.into::<Duration>()
+        match timer_bind(m) {
+            TimerBind::RefAbsolute(msg) => {
+                println!("Timer: {:?}", { msg.ts });
+                //self.time = msg.ts.value.into::<Duration>()
+            }
+            _ => {}
         }
         /*
         match m.data().try_into().map(|a| u64::from_ne_bytes(a)) {
@@ -43,38 +90,34 @@ impl SystemState {
         if m.get_type() != MsgType::Data {
             return 0;
         }
-        match m.msgid() {
-            Link::MSGID => {
-                if let Some(msg) = Link::bind(m.data()) {
-                    let name = unsafe { msg.name.as_str_unchecked() };
-                    println!("Link: {:?} {} {}", msg.action, name, msg.up);
-                    if msg.action == Action::New || msg.up == 1 {
-                        return 0;
-                    }
-                    if self.link.as_ref().map(|s| s.as_str()) == Some(name) {
-                        self.link = None;
-                    }
+        match netlink_bind(m) {
+            NetlinkBind::RefLink(msg) => {
+                let name = unsafe { msg.name.as_str_unchecked() };
+                println!("Link: {:?} {} {}", msg.action, name, msg.up);
+                if msg.action == Action::New || msg.up == 1 {
+                    return 0;
+                }
+                if self.link.as_ref().map(|s| s.as_str()) == Some(name) {
+                    self.link = None;
                 }
             }
-            Route4::MSGID => {
-                if let Some(r4) = Route4::bind(m.data()) {
-                    let name = unsafe { r4.oif.as_str_unchecked() };
-                    println!(
-                        "Route4: {:?} {}/{} -> {}",
-                        r4.action,
-                        std::net::Ipv4Addr::from(u32::from_be(r4.dst)),
-                        r4.dst_mask,
-                        name
-                    );
-                    if r4.dst_mask != 0 {
-                        return 0;
-                    }
-                    println!("Default route");
-                    match r4.action {
-                        Action::New => self.link = Some(name.to_string()),
-                        Action::Delete => self.link = None,
-                        //_ => (),
-                    }
+            NetlinkBind::RefRoute4(r4) => {
+                let name = unsafe { r4.oif.as_str_unchecked() };
+                println!(
+                    "Route4: {:?} {}/{} -> {}",
+                    r4.action,
+                    std::net::Ipv4Addr::from(u32::from_be(r4.dst)),
+                    r4.dst_mask,
+                    name
+                );
+                if r4.dst_mask != 0 {
+                    return 0;
+                }
+                println!("Default route");
+                match r4.action {
+                    Action::New => self.link = Some(name.to_string()),
+                    Action::Delete => self.link = None,
+                    //_ => (),
                 }
             }
             _ => (),
