@@ -9,7 +9,7 @@ build = "build.rs"
 description = "Native bindings to TLL library"
 
 [build-dependencies]
-cc = ""
+cc = ">= 1.0"
 
 [dependencies]
-libc = ""
+libc = ">= 0.2"
