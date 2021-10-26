@@ -266,7 +266,6 @@ impl Channel {
         Config::consume(unsafe { tll_channel_config(self.ptr) })
     }
 
-
     pub fn open(&mut self, props: &str) -> Result<()>
     {
         error_check(unsafe { tll_channel_open(self.ptr, props.as_ptr() as *const c_char, props.len()) })
