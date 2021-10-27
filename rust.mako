@@ -12,7 +12,7 @@ def weaktrim(text):
 <%
 NUMERIC = {
     S.Type.Int8: 'i8',
-    S.Type.Int16: 'i6',
+    S.Type.Int16: 'i16',
     S.Type.Int32: 'i32',
     S.Type.Int64: 'i64',
     S.Type.UInt8: 'u8',

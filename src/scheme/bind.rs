@@ -1,3 +1,5 @@
+use crate::decimal128::Decimal128;
+
 pub unsafe fn bind_unchecked<T>(data: &[u8]) -> &T {
     &*(data.as_ptr() as *const T)
 }
@@ -23,6 +25,8 @@ impl Binder for u16 {}
 impl Binder for i32 {}
 impl Binder for u32 {}
 impl Binder for i64 {}
+impl Binder for f64 {}
+impl Binder for Decimal128 {}
 
 impl<T, const SIZE : usize> Binder for [T; SIZE] where T : Binder
 {
