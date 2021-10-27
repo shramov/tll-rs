@@ -73,6 +73,6 @@ mod tests {
         }
         dt = start.elapsed().unwrap();
         println!("Time (512): {:?}", dt);
-        assert!(false);
+        //assert!(false);
     }
 }
