@@ -35,6 +35,8 @@ config:
         i64: -1000000000
         f64: 1.234
         d128: 1234567890.e-5
+        b16: bytes
+        c16: string
 scheme: {}
 ", SCHEME_STRING)).ok_or("Failed to load config")?;
 
@@ -52,6 +54,8 @@ scheme: {}
         assert_eq!({ data.i64 }, -1000000000);
         assert_eq!({ data.f64 }, 1.234);
         assert_eq!(format!("{}", {data.d128}), "1234567890.E-5");
+        assert_eq!(data.c16.as_str(), Ok("string"));
+        assert_eq!(data.b16, *b"bytes\0\0\0");
         Ok(())
     };
     assert!(c.callback_add_mut(&mut |_ : &Channel, m : &Message| { r = check(m); 0 }, Some(MsgMask::Data as u32)).is_ok());
