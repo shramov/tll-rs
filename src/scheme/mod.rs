@@ -67,3 +67,46 @@ impl<T : Binder> Binder for OffsetPtr<T>
         Some(r)
     }
 }
+
+pub trait SizeType { fn as_usize(&self) -> usize; }
+impl SizeType for i8 { fn as_usize(&self) -> usize { *self as usize } }
+impl SizeType for i16 { fn as_usize(&self) -> usize { *self as usize } }
+impl SizeType for i32 { fn as_usize(&self) -> usize { *self as usize } }
+impl SizeType for i64 { fn as_usize(&self) -> usize { *self as usize } }
+impl SizeType for u8 { fn as_usize(&self) -> usize { *self as usize } }
+impl SizeType for u16 { fn as_usize(&self) -> usize { *self as usize } }
+impl SizeType for u32 { fn as_usize(&self) -> usize { *self as usize } }
+impl SizeType for u64 { fn as_usize(&self) -> usize { *self as usize } }
+
+#[repr(C, packed(1))]
+#[derive(Debug, Clone, Copy)]
+pub struct Array<T, C : SizeType, const SIZE : usize>
+{
+	counter: C,
+        array: [T; SIZE]
+}
+
+impl<T, C : SizeType, const SIZE : usize> Array<T, C, SIZE> {
+    pub fn size(&self) -> usize { self.counter.as_usize() }
+    pub fn data(&self) -> &[T] {
+        &self.array[..self.size()]
+    }
+}
+
+impl<T : Binder, C : Binder + SizeType, const SIZE : usize> Binder for Array<T, C, SIZE>
+{
+    const PRIMITIVE_BIND : bool = T::PRIMITIVE_BIND && C::PRIMITIVE_BIND;
+
+    fn bind(data: &[u8]) -> Option<&Self> {
+        let r = unsafe { bind_checked::<Self>(data)? };
+        if <T as Binder>::PRIMITIVE_BIND {
+            return Some(r);
+        }
+
+        let off = std::mem::size_of::<C>();
+        for i in 0..SIZE {
+            <T as Binder>::bind(&data[off + i * std::mem::size_of::<T>()..])?;
+        }
+        Some(r)
+    }
+}

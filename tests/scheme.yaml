@@ -11,5 +11,6 @@
     - {name: f64, type: double}
     - {name: d128, type: decimal128}
     - {name: c16, type: byte16, options.type: string}
-    - {name: b16, type: byte8}
+    - {name: b8, type: byte8}
+    - {name: arr4, type: 'int32[4]'}
 # vim: sts=2 sw=2 et

@@ -7,7 +7,7 @@
 
 pub use tll::scheme::*;
 
-pub const SCHEME_STRING : &str = "yamls+gz://eJxtj8sKgzAQRff9itnNpkK1RSR/oybKQB7SJAsR/72JdJHE7O6dOZxhGtCjEgxQ2RUfAMQZtK8QFhKSWxYSQAPHn6IBn+D27craDXgWgE8AXyWo7TNHqDdJivg6Q+8u04R606SIrzPUfzJNqCWypAg3fpLixvC2Sx7nYiY1yjgrwTl9bdqduLrZHBltGRwYVxh21n1Jr3iWgqkUxBs/Ipd9KQ==";
+pub const SCHEME_STRING : &str = "yamls+gz://eJxtkMsKgzAQRff9itnNpkK1IpJfKV2oiTKgUUyyEPHfO0oXebi7N3NywiQD3UxKAE5mwAcASQH5i0NPapRGcALIYP9TVOMT7LZcWdsajwhwHuBuCcqrwME1kfiIu2foXQQaronGR9w9Q1UZaLjGSO8jcnbtqBJG5oW3uFQdTc14nsVg56/WblZdfV4szdoI2PEcIc+MXUkPeMSCtg7vp08061pGX/Mpv4z9AISah90=";
 
 #[repr(C, packed(1))]
 #[derive(Debug, Clone, Copy)]
@@ -22,7 +22,8 @@ pub struct msg {
     pub f64: f64,
     pub d128: tll::decimal128::Decimal128,
     pub c16: tll::scheme::ByteString<16>,
-    pub b16: [u8; 8],
+    pub b8: [u8; 8],
+    pub arr4: tll::scheme::Array<i32, i8, 4>,
 }
 impl MsgId for msg {
     const MSGID: i32 = 10;
@@ -42,7 +43,8 @@ impl Binder for msg {
         <f64 as Binder>::bind(&data[22..])?; // f64
         <tll::decimal128::Decimal128 as Binder>::bind(&data[30..])?; // d128
         <tll::scheme::ByteString<16> as Binder>::bind(&data[46..])?; // c16
-        <[u8; 8] as Binder>::bind(&data[62..])?; // b16
+        <[u8; 8] as Binder>::bind(&data[62..])?; // b8
+        <tll::scheme::Array<i32, i8, 4> as Binder>::bind(&data[70..])?; // arr4
         Some(unsafe { bind_unchecked::<Self>(data) })
     }
 }

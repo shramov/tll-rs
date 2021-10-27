@@ -71,7 +71,7 @@ def field2type(f):
     elif f.type == f.Array:
     	t = field2type(f.type_array)
 	ct = field2type(f.count_ptr)
-        return f"tll::scheme::Array<{t}, {f.count}, {ct}>"
+        return f"tll::scheme::Array<{t}, {ct}, {f.count}>"
     elif f.type == f.Pointer:
     	t = field2type(f.type_ptr)
         return f"tll::scheme::OffsetPtr<{t}>"
