@@ -7,6 +7,8 @@
 
 pub use tll::scheme::*;
 
+pub const SCHEME_STRING : &str = "yamls+gz://eJxtz8EKgzAMBuC7T5FbLwqrDpG+jVvqCLRuoDmM0Xc3Gzuktrf/Dx8/pIN1jt6BidvDNACEDuxFwkI+4OYkAXTw+SuaTAv7+/XL6z6ZdAKsAFcF2THbkFqMaMJ1Q0OfzUgtZjThuqHxms1IPZNFE3zyLfjCoO3V4+jvFOfwvaXmAPWFX/o=";
+
 #[repr(C, packed(1))]
 #[derive(Debug, Clone, Copy)]
 pub struct msg {

@@ -2,6 +2,8 @@
 
 pub use tll::scheme::*;
 
+pub const SCHEME_STRING : &str = "${scheme.dump('yamls+gz')}";
+
 <%!
 def weaktrim(text):
     text = text.lstrip('\n')

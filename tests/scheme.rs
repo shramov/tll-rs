@@ -3,7 +3,8 @@ use tll::config::*;
 use tll::error::*;
 
 mod scheme_scheme;
-use scheme_scheme::*;
+use crate::scheme_scheme::*;
+//use crate::scheme_scheme::SCHEME_STRING;
 
 #[allow(dead_code)]
 fn check(m: &Message) -> Result<()>
@@ -17,7 +18,7 @@ fn check(m: &Message) -> Result<()>
 fn test() -> Result<()> {
     let ctx = Context::new();
 
-    let url = Config::load_data("yamls", "
+    let url = Config::load_data("yamls", &format!("
 tll.proto: yaml
 name: yaml
 dump: scheme
@@ -34,21 +35,8 @@ config:
         i64: -1000000000
         f64: 1.234
         d128: 1234567890.e-5
-scheme: |
-    yamls://
-    - name: msg
-      id: 10
-      fields:
-        - {name: i8, type: int8}
-        - {name: u8, type: uint8}
-        - {name: i16, type: int16}
-        - {name: u16, type: uint16}
-        - {name: i32, type: int32}
-        - {name: u32, type: uint32}
-        - {name: i64, type: int64}
-        - {name: f64, type: double}
-        - {name: d128, type: decimal128}
-").ok_or("Failed to load config")?;
+scheme: {}
+", SCHEME_STRING)).ok_or("Failed to load config")?;
 
     let mut c = ctx.channel_url(&url)?;
     let mut r = Err(Error::from("No message received"));
