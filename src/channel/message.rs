@@ -67,6 +67,13 @@ impl Message {
         self
     }
 
+    pub fn set_data_from_ref<T : Sized>(&mut self, data : &T) -> &mut Self
+    {
+        self.0.size = std::mem::size_of::<T>();
+        self.0.data = data as * const T as * const c_void;
+        self
+    }
+
     pub fn get_type(&self) -> MsgType { MsgType::from(self.0.type_) }
     pub fn set_type(&mut self, t : MsgType) -> &mut Self
     {
@@ -87,4 +94,13 @@ impl Message {
         self.0.seq = seq;
         self
     }
+}
+
+#[test]
+fn test_set_data() {
+    let mut msg = Message::default();
+    let i = 0xbeefu32;
+    msg.set_data_from_ref(&i);
+    assert_eq!(msg.size, 4);
+    assert_eq!(msg.data(), b"\xef\xbe\0\0");
 }
