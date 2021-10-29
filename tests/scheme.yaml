@@ -1,3 +1,7 @@
+- name: sub
+  fields:
+    - {name: s8, type: int8}
+
 - name: msg
   id: 10
   fields:
@@ -13,4 +17,6 @@
     - {name: c16, type: byte16, options.type: string}
     - {name: b8, type: byte8}
     - {name: arr4, type: 'int32[4]'}
+    - {name: ptr, type: '*int64'}
+    - {name: sub, type: sub}
 # vim: sts=2 sw=2 et

@@ -7,10 +7,24 @@
 
 pub use tll::scheme::*;
 
-pub const SCHEME_STRING : &str = "yamls+gz://eJxtkMsKgzAQRff9itnNpkK1IpJfKV2oiTKgUUyyEPHfO0oXebi7N3NywiQD3UxKAE5mwAcASQH5i0NPapRGcALIYP9TVOMT7LZcWdsajwhwHuBuCcqrwME1kfiIu2foXQQaronGR9w9Q1UZaLjGSO8jcnbtqBJG5oW3uFQdTc14nsVg56/WblZdfV4szdoI2PEcIc+MXUkPeMSCtg7vp08061pGX/Mpv4z9AISah90=";
+pub const SCHEME_STRING : &str = "yamls+gz://eJx1kk0KgzAQRveeYnaBUqFaKZKrlC6MiTKgUTRZiHj3JgXb/HWXL/PmhUmSg2xGQYGsmpEMoEMx8JWaFUAO+1msyRXUNts1SlWTI8vPxnHtbSNyCsXtrwFjgw9oB9BJAouH5zAxkriITjN4Lz2NiZHGRXSawUflaUwMkc5F+KTZICKGF6UzOBctjs1g90KwdUdjmxKfPM0KJ7lS2IktEftWakHZkyMUsNrvj49olqUKruZZvSJsVsuPuqRHt7/py9hwZG9RuKsj";
 
 #[repr(C, packed(1))]
 #[derive(Debug, Clone, Copy)]
+pub struct sub {
+    pub s8: i8,
+}
+impl Binder for sub {
+    fn bind(data: &[u8]) -> Option<&Self> {
+        if data.len() < std::mem::size_of::<Self>() {
+            return None;
+        }
+        <i8 as Binder>::bind(&data[0..])?; // s8
+        Some(unsafe { bind_unchecked::<Self>(data) })
+    }
+}
+
+#[repr(C, packed(1))]
 pub struct msg {
     pub i8: i8,
     pub u8: u8,
@@ -24,6 +38,8 @@ pub struct msg {
     pub c16: tll::scheme::ByteString<16>,
     pub b8: [u8; 8],
     pub arr4: tll::scheme::Array<i32, i8, 4>,
+    pub ptr: tll::scheme::OffsetPtr<i64>,
+    pub sub: sub,
 }
 impl MsgId for msg {
     const MSGID: i32 = 10;
@@ -45,6 +61,8 @@ impl Binder for msg {
         <tll::scheme::ByteString<16> as Binder>::bind(&data[46..])?; // c16
         <[u8; 8] as Binder>::bind(&data[62..])?; // b8
         <tll::scheme::Array<i32, i8, 4> as Binder>::bind(&data[70..])?; // arr4
+        <tll::scheme::OffsetPtr<i64> as Binder>::bind(&data[87..])?; // ptr
+        <sub as Binder>::bind(&data[95..])?; // sub
         Some(unsafe { bind_unchecked::<Self>(data) })
     }
 }

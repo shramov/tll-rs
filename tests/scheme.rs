@@ -38,6 +38,8 @@ config:
         c16: string
         b8: bytes
         arr4: [1, 2, 3]
+        ptr: [10, 20, 30, 40]
+        sub.s8: 10
 scheme: {}
 ", SCHEME_STRING)).ok_or("Failed to load config")?;
 
@@ -58,6 +60,8 @@ scheme: {}
         assert_eq!(data.c16.as_str(), Ok("string"));
         assert_eq!(data.b8, *b"bytes\0\0\0");
         assert_eq!(data.arr4.data(), [1, 2, 3]);
+        assert_eq!(unsafe { data.ptr.data() }, [10, 20, 30, 40]);
+        assert_eq!(data.sub.s8, 10);
         Ok(())
     };
     assert!(c.callback_add_mut(&mut |_ : &Channel, m : &Message| { r = check(m); 0 }, Some(MsgMask::Data as u32)).is_ok());

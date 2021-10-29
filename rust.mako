@@ -45,35 +45,49 @@ KEYWORDS = {'type': 'type_'}
 def keyword(n):
     return KEYWORDS.get(n, n)
 
+def has_pointer_field(f):
+    if f.type == f.Pointer:
+        return True
+    elif f.type == f.Array:
+        return has_pointer_field(f.type_array)
+    elif f.type == f.Message:
+        return has_pointer(f.type_msg)
+    return False
+
+def has_pointer(msg):
+    for f in msg.fields:
+        if has_pointer_field(f): return True
+    return False
+
 DECL_CACHE = set()
 options.msgid = 'MSGID'
 
 def field2type(f):
     t = numeric(f.type)
     if t is not None:
-	if f.sub_type == f.Sub.Bits:
-	    return t #f.name
-	elif f.sub_type == f.Sub.Enum:
-	    return f.type_enum.name
-	elif f.sub_type == f.Sub.Duration:
-	    return f"tll::scheme::Duration<{t}, {time_resolution(f)}>"
-	elif f.sub_type == f.Sub.TimePoint:
-	    return f"tll::scheme::TimePoint<{t}, {time_resolution(f)}>"
+        if f.sub_type == f.Sub.Bits:
+            return t #f.name
+        elif f.sub_type == f.Sub.Enum:
+            return f.type_enum.name
+        elif f.sub_type == f.Sub.Duration:
+            return f"tll::scheme::Duration<{t}, {time_resolution(f)}>"
+        elif f.sub_type == f.Sub.TimePoint:
+            return f"tll::scheme::TimePoint<{t}, {time_resolution(f)}>"
         return t
     elif f.type == f.Decimal128:
         return "tll::decimal128::Decimal128"
     elif f.type == f.Bytes:
-	if f.sub_type == f.Sub.ByteString:
-	    return f"tll::scheme::ByteString<{f.size}>"
+        if f.sub_type == f.Sub.ByteString:
+            return f"tll::scheme::ByteString<{f.size}>"
         return f"[u8; {f.size}]"
     elif f.type == f.Message:
         return f.type_msg.name
     elif f.type == f.Array:
-    	t = field2type(f.type_array)
-	ct = field2type(f.count_ptr)
+        t = field2type(f.type_array)
+        ct = field2type(f.count_ptr)
         return f"tll::scheme::Array<{t}, {ct}, {f.count}>"
     elif f.type == f.Pointer:
-    	t = field2type(f.type_ptr)
+        t = field2type(f.type_ptr)
         return f"tll::scheme::OffsetPtr<{t}>"
     raise ValueError(f"Unknown type for field {f.name}: {f.type}")
 %>\
@@ -83,7 +97,7 @@ def field2type(f):
 pub enum ${e.name}
 {
 % for n,v in sorted(e.items(), key=lambda t: (t[1], t[0])):
-	${keyword(n)} = ${v},
+        ${keyword(n)} = ${v},
 % endfor
 }
 impl Binder for ${e.name} {}
@@ -94,12 +108,12 @@ impl Binder for ${e.name} {}
 #[ derive( Debug, Clone, Copy, PartialEq, Eq ) ]
 pub struct ByteString${f.size}
 {
-	data: [u8; ${f.size}],
+        data: [u8; ${f.size}],
 }
 
 impl tll::scheme::ByteString for ByteString${f.size}
 {
-	fn get_data(&self) -> &[u8] { &self.data }
+        fn get_data(&self) -> &[u8] { &self.data }
 }
 impl Binder for ByteString${f.size} {}<% DECL_CACHE.add(f'ByteString${f.size}') %>
 %endif
@@ -116,14 +130,14 @@ impl Binder for ByteString${f.size} {}<% DECL_CACHE.add(f'ByteString${f.size}') 
 struct ${f.name}: public tll::scheme::Bits<${numeric(f.type)}>
 {
 % for n,b in sorted(f.bitfields.items(), key=lambda t: (t[1].offset, t[1].size, t[0])):
-	auto ${b.name}() const { return get(${b.offset}, ${b.size}); }; void ${b.name}(${"unsigned" if b.size > 1 else "bool"} v) { return set(${b.offset}, ${b.size}, v); };
+        auto ${b.name}() const { return get(${b.offset}, ${b.size}); }; void ${b.name}(${"unsigned" if b.size > 1 else "bool"} v) { return set(${b.offset}, ${b.size}, v); };
 % endfor
 };
 */
 % endif
 </%def>\
 <%def name='field2code(f)'>\
-	pub ${keyword(f.name)}: ${field2type(f)},\
+        pub ${keyword(f.name)}: ${field2type(f)},\
 </%def>
 % for e in scheme.enums.values():
 <%call expr='enum2code(e)'></%call>
@@ -135,7 +149,9 @@ struct ${f.name}: public tll::scheme::Bits<${numeric(f.type)}>
 % endfor
 % for msg in scheme.messages:
 #[repr(C, packed(1))]
+% if not has_pointer(msg):
 #[ derive( Debug, Clone, Copy ) ]
+% endif
 pub struct ${keyword(msg.name)} {
 % for e in msg.enums.values():
 <%call expr='enum2code(e)'></%call>
@@ -147,7 +163,7 @@ pub struct ${keyword(msg.name)} {
 % if msg.msgid != 0:
 impl MsgId for ${keyword(msg.name)}
 {
-	const MSGID : i32 = ${msg.msgid};
+        const MSGID : i32 = ${msg.msgid};
 }
 % endif
 impl Binder for ${keyword(msg.name)}
@@ -156,7 +172,7 @@ impl Binder for ${keyword(msg.name)}
     {
         if data.len() < std::mem::size_of::<Self>() { return None; }
 % for f in msg.fields:
-	<${field2type(f)} as Binder>::bind(&data[${f.offset}..])?; // ${f.name}
+        <${field2type(f)} as Binder>::bind(&data[${f.offset}..])?; // ${f.name}
 % endfor
         Some(unsafe { bind_unchecked::<Self>(data) })
     }

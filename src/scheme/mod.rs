@@ -32,13 +32,18 @@ impl<const SIZE : usize> ByteString<SIZE> {
 
 impl<const SIZE : usize> Binder for ByteString<SIZE> {}
 
-#[repr(C)]
-#[derive(Debug)]
+#[repr(C,packed(1))]
 pub struct OffsetPtr<T>
 {
 	offset: u32,
         comb: u32,
         phantom: std::marker::PhantomData<T>,
+}
+
+impl<T> std::fmt::Debug for OffsetPtr<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&format!("OffsetPtr {{ offset: {}, size: {} , entity: {}}}", {self.offset}, self.size(), self.entity()))
+    }
 }
 
 impl<T> OffsetPtr<T> {
@@ -68,7 +73,7 @@ impl<T : Binder> Binder for OffsetPtr<T>
     }
 }
 
-pub trait SizeType { fn as_usize(&self) -> usize; }
+pub trait SizeType : Clone + Copy { fn as_usize(&self) -> usize; }
 impl SizeType for i8 { fn as_usize(&self) -> usize { *self as usize } }
 impl SizeType for i16 { fn as_usize(&self) -> usize { *self as usize } }
 impl SizeType for i32 { fn as_usize(&self) -> usize { *self as usize } }
@@ -79,17 +84,37 @@ impl SizeType for u32 { fn as_usize(&self) -> usize { *self as usize } }
 impl SizeType for u64 { fn as_usize(&self) -> usize { *self as usize } }
 
 #[repr(C, packed(1))]
-#[derive(Debug, Clone, Copy)]
+//#[derive(Debug, Clone, Copy)]
 pub struct Array<T, C : SizeType, const SIZE : usize>
 {
 	counter: C,
         array: [T; SIZE]
 }
 
+impl<T : std::fmt::Debug, C : SizeType + std::fmt::Debug, const SIZE : usize> std::fmt::Debug for Array<T, C, SIZE> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&format!("Array {{ counter: {:?}, array: {:?} }}", self.size(), self.data()))
+    }
+}
+
+impl<T : Copy, C : SizeType, const SIZE : usize> Copy for Array<T, C, SIZE> {}
+
+impl<T : Clone, C : SizeType, const SIZE : usize> Clone for Array<T, C, SIZE> {
+    fn clone(&self) -> Self {
+        let cnt = self.counter;
+        let mut array = unsafe { std::mem::zeroed::<[T; SIZE]>() };
+        for x in self.data().iter().enumerate() {
+            array[x.0] = x.1.clone();
+        }
+        Array::<T, C, SIZE> { counter: cnt, array: array } //array: std::mem::zeroeddata.clone() }
+    }
+}
+
 impl<T, C : SizeType, const SIZE : usize> Array<T, C, SIZE> {
-    pub fn size(&self) -> usize { self.counter.as_usize() }
+    pub fn size(&self) -> usize { {self.counter}.as_usize() }
     pub fn data(&self) -> &[T] {
-        &self.array[..self.size()]
+        unsafe { std::slice::from_raw_parts(std::ptr::addr_of!(self.array) as * const T, self.size()) }
+        //&self.array[..self.size()]
     }
 }
 
