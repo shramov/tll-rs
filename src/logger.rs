@@ -25,6 +25,14 @@ pub struct Logger {
     ptr: * mut tll_logger_t
 }
 
+impl Clone for Logger {
+    fn clone(&self) -> Self {
+        let ptr = unsafe { tll_logger_copy(self.ptr) };
+        assert!(!ptr.is_null());
+        Logger { ptr: ptr }
+    }
+}
+
 impl Logger {
     pub fn new(name: &str) -> Logger
     {
@@ -70,7 +78,6 @@ impl Logger {
         if r != 0 { return Err(Error::from("Failed to configure logger")) }
         Ok(())
     }
-
 }
 
 impl Drop for Logger {
