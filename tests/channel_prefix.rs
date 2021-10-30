@@ -8,7 +8,7 @@ use tll_sys::channel::tll_state_t;
 
 #[derive(Debug)]
 struct TestPrefix {
-    internal: Internal,
+    base: Base,
     child: Option<OwnedChannel>,
 }
 
@@ -17,7 +17,7 @@ impl Default for TestPrefix
     fn default() -> Self
     {
         Self {
-            internal: Internal::default(),
+            base: Base::default(),
             child: None,
         }
     }
@@ -38,6 +38,17 @@ impl CallbackMut for TestPrefix {
     }
 }
 
+impl Extension for TestPrefix {
+    type Inner = Base;
+
+    fn inner(&self) -> &Self::Inner {
+        &self.base
+    }
+    fn inner_mut(&mut self) -> &mut Self::Inner {
+        &mut self.base
+    }
+}
+
 impl ChannelImpl for TestPrefix {
     fn open_policy() -> OpenPolicy {
         OpenPolicy::Manual
@@ -49,13 +60,6 @@ impl ChannelImpl for TestPrefix {
 
     fn child_policy() -> ChildPolicy {
         ChildPolicy::Single
-    }
-
-    fn internal(&self) -> &Internal {
-        &self.internal
-    }
-    fn internal_mut(&mut self) -> &mut Internal {
-        &mut self.internal
     }
 
     fn init(&mut self, url: &Config, _parent: Option<Channel>, ctx: &Context) -> Result<()> {
@@ -73,7 +77,7 @@ impl ChannelImpl for TestPrefix {
                 }
                 self.logger().info(&format!("Child protocol: {}", v[1]));
                 curl.set("tll.proto", v[1]);
-                curl.set("name", &format!("{}/{}", v[0], self.internal().name()));
+                curl.set("name", &format!("{}/{}", v[0], self.base().name()));
             }
             None => {
                 self.logger().error("Invalid url: missing tll.proto field");
@@ -127,12 +131,12 @@ impl TestPrefix {
     }
 
     pub fn on_active(&mut self) -> i32 {
-        self.internal_mut().set_state(State::Active);
+        self.base_mut().set_state(State::Active);
         0
     }
 
     pub fn on_error(&mut self) -> i32 {
-        self.internal_mut().set_state(State::Error);
+        self.base_mut().set_state(State::Error);
         0
     }
 
@@ -141,22 +145,22 @@ impl TestPrefix {
     }
 
     pub fn on_closed(&mut self) -> i32 {
-        self.internal_mut().set_state(State::Closed);
+        self.base_mut().set_state(State::Closed);
         0
     }
 
     pub fn on_data(&mut self, msg: &Message) -> i32 {
-        self.internal().callback_data(msg);
+        self.base().callback_data(msg);
         0
     }
 
     pub fn on_control(&mut self, msg: &Message) -> i32 {
-        self.internal().callback(msg);
+        self.base().callback(msg);
         0
     }
 
     pub fn on_other(&mut self, msg: &Message) -> i32 {
-        self.internal().callback(msg);
+        self.base().callback(msg);
         0
     }
 

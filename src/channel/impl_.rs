@@ -36,24 +36,24 @@ pub enum ChildPolicy {
 }
 
 #[ derive(Debug) ]
-pub struct Internal {
+pub struct Base {
     pub data : tll_channel_internal_t,
     c_name : CString,
     name : String,
     pub logger : Logger,
 }
 
-impl Drop for Internal {
+impl Drop for Base {
     fn drop(&mut self)
     {
         unsafe { tll_channel_internal_clear(&mut self.data) }
     }
 }
 
-impl Default for Internal {
+impl Default for Base {
     fn default() -> Self
     {
-        let mut r = Internal { c_name: CString::default(), name: String::default(), logger: Logger::new("rust.channel"), data: unsafe { std::mem::zeroed::<tll_channel_internal_t>() } };
+        let mut r = Base { c_name: CString::default(), name: String::default(), logger: Logger::new("rust.channel"), data: unsafe { std::mem::zeroed::<tll_channel_internal_t>() } };
         unsafe {
             tll_channel_internal_init(&mut r.data);
             r.data.name = r.c_name.as_ptr();
@@ -62,10 +62,10 @@ impl Default for Internal {
     }
 }
 
-impl Internal {
+impl Base {
     pub fn new() -> Self
     {
-        Internal::default()
+        Base::default()
     }
 
     pub fn name(&self) -> &str { &self.name }
@@ -103,7 +103,7 @@ impl Internal {
         self.callback(Message::new().set_type(t).set_msgid(msgid))
     }
 
-    pub fn init(&mut self, url: &Config) -> Result<()>
+    pub fn init_base(&mut self, url: &Config) -> Result<()>
     {
         self.set_name(&url.get("name").unwrap_or("noname".to_string()))?;
         self.logger = Logger::new(&format!("rust.channel.{}", self.name));
@@ -139,6 +139,58 @@ impl Internal {
     {
     }
     */
+}
+
+pub trait ChannelImpl : Extension {
+    fn process_policy() -> ProcessPolicy { <Self::Inner as ChannelImpl>::process_policy() }
+    fn open_policy() -> OpenPolicy { <Self::Inner as ChannelImpl>::open_policy() }
+    fn child_policy() -> ChildPolicy { <Self::Inner as ChannelImpl>::child_policy() }
+
+    fn init(&mut self, url: &Config, master: Option<Channel>, context: &Context) -> Result<()> { self.inner_mut().init(url, master, context) }
+    fn open(&mut self, url: &Props) -> Result<()> { self.inner_mut().open(url) }
+    fn close(&mut self, force : bool) { self.inner_mut().close(force) }
+    fn free(&mut self) { self.inner_mut().free() }
+
+    fn post(&mut self, msg: &Message) -> Result<()> { self.inner_mut().post(msg) }
+    fn process(&mut self) -> Result<i32> { self.inner_mut().process() }
+
+    fn logger(&self) -> &Logger { self.base().logger() }
+    fn state(&self) -> State { self.base().state() }
+    fn set_state(&mut self, state: State) -> State { self.base_mut().set_state(state) }
+    fn update_dcaps(&mut self, caps: DCaps, mask: DCaps) { self.base_mut().update_dcaps(caps, mask) }
+}
+
+pub trait Extension : Default {
+    type Inner : ChannelImpl;
+
+    fn base(&self) -> &Base { self.inner().base() }
+    fn base_mut(&mut self) -> &mut Base { self.inner_mut().base_mut() }
+
+    fn inner(&self) -> &Self::Inner;
+    fn inner_mut(&mut self) -> &mut Self::Inner;
+}
+
+impl Extension for Base {
+    type Inner = Base;
+    fn base(&self) -> &Base { self }
+    fn base_mut(&mut self) -> &mut Base { self }
+
+    fn inner(&self) -> &Self::Inner { self }
+    fn inner_mut(&mut self) -> &mut Self::Inner { self }
+}
+
+impl ChannelImpl for Base {
+    fn process_policy() -> ProcessPolicy { ProcessPolicy::Normal }
+    fn open_policy() -> OpenPolicy { OpenPolicy::Normal }
+    fn child_policy() -> ChildPolicy { ChildPolicy::Never }
+
+    fn init(&mut self, _url: &Config, _master: Option<Channel>, _context: &Context) -> Result<()> { Ok(()) }
+    fn open(&mut self, _url: &Props) -> Result<()> { Ok(()) }
+    fn close(&mut self, _force : bool) {}
+    fn free(&mut self) {}
+
+    fn post(&mut self, _: &Message) -> Result<()> { Ok(()) }
+    fn process(&mut self) -> Result<i32> { Ok(EAGAIN) }
 }
 
 pub struct CImpl<T : ChannelImpl> {
@@ -190,15 +242,15 @@ impl<T> CImpl<T>
 
     fn init(c : &mut tll_channel_t, url: &Config, master: Option<Channel>, ctx: &Context) -> Result<()>
     {
-        c.data = Box::into_raw(Box::new(<T>::new())) as * mut c_void;
+        c.data = Box::into_raw(Box::new(<T>::default())) as * mut c_void;
         println!("Call init on boxed object {:?}", c.data);
         //let mut channel = unsafe { std::ptr::NonNull::new_unchecked((*c).data as * mut T) };
         let channel = unsafe { &mut *((*c).data as * mut T) };
-        let internal = channel.internal_mut();
+        let internal = channel.base_mut();
         internal.data.self_ = c;
         c.internal = &mut internal.data;
         println!("Call init on boxed object {:?}", c.data);
-        internal.init(url)?;
+        internal.init_base(url)?;
         internal.set_caps(match <T>::child_policy() {
             ChildPolicy::Never => Caps::empty(),
             ChildPolicy::Single => Caps::Parent | Caps::Proxy,
@@ -276,7 +328,7 @@ impl<T> CImpl<T>
         if c.is_null() || unsafe { (*c).data.is_null() } { return EINVAL }
         let channel = unsafe { &mut *((*c).data as * mut T) };
         channel.close(force != 0);
-        channel.internal_mut().update_dcaps(DCaps::empty(), DCaps::Process | DCaps::POLLMASK);
+        channel.base_mut().update_dcaps(DCaps::empty(), DCaps::Process | DCaps::POLLMASK);
         channel.set_state(State::Closed);
         0
     }
@@ -303,30 +355,6 @@ impl<T> CImpl<T>
             Err(_) => EINVAL,
         }
     }
-}
-
-pub trait ChannelImpl : Default {
-    fn internal_mut(&mut self) -> &mut Internal;
-    fn internal(&self) -> &Internal;
-
-    fn process_policy() -> ProcessPolicy { ProcessPolicy::Normal }
-    fn open_policy() -> OpenPolicy { OpenPolicy::Normal }
-    fn child_policy() -> ChildPolicy { ChildPolicy::Never }
-
-    fn new() -> Self { Self::default() }
-    fn init(&mut self, url: &Config, master: Option<Channel>, context: &Context) -> Result<()>;
-    fn open(&mut self, url: &Props) -> Result<()>;
-    fn close(&mut self, _force : bool) {}
-    fn free(&mut self) {}
-
-    fn post(&mut self, _: &Message) -> Result<()> { Ok(()) }
-    fn process(&mut self) -> Result<i32> { Ok(EAGAIN) }
-
-    fn logger(&self) -> &Logger { &self.internal().logger }
-
-    fn state(&self) -> State { self.internal().state() }
-    fn set_state(&mut self, state: State) -> State { self.internal_mut().set_state(state) }
-    fn update_dcaps(&mut self, caps: DCaps, mask: DCaps) { self.internal_mut().update_dcaps(caps, mask) }
 }
 
 #[macro_export]

@@ -5,11 +5,20 @@ use tll::config::Config;
 use tll::error::*;
 use tll::props::Props;
 
-use tll_sys::channel::{tll_channel_module_t, tll_channel_context_t};
-
 #[derive(Debug, Default)]
 struct Echo {
-    internal: Internal,
+    base: Base,
+}
+
+impl Extension for Echo {
+    type Inner = Base;
+
+    fn inner(&self) -> &Self::Inner {
+        &self.base
+    }
+    fn inner_mut(&mut self) -> &mut Self::Inner {
+        &mut self.base
+    }
 }
 
 impl ChannelImpl for Echo {
@@ -17,19 +26,14 @@ impl ChannelImpl for Echo {
         OpenPolicy::Manual
     }
 
-    fn new() -> Self { Self::default() }
-
-    fn internal(&self) -> &Internal { &self.internal }
-    fn internal_mut(&mut self) -> &mut Internal { &mut self.internal }
-
-    fn init(&mut self, _url: &Config, parent: Option<Channel>, _: &Context) -> Result<()> {
-        println!("Create channel, parent {:?}", parent);
-        Ok(())
+    fn init(&mut self, url: &Config, master: Option<Channel>, context: &Context) -> Result<()> {
+        println!("Create channel, master {:?}", master);
+        self.inner_mut().init(url, master, context)
     }
 
     fn open(&mut self, url: &Props) -> Result<()> {
         println!("Open channel {:?}", url);
-        Ok(())
+        self.inner_mut().open(url)
     }
 
     fn process(&mut self) -> Result<i32> {
@@ -41,7 +45,7 @@ impl ChannelImpl for Echo {
     }
 
     fn post(&mut self, msg: &Message) -> Result<()> {
-        self.internal.callback_data(msg);
+        self.base.callback_data(msg);
         Ok(())
     }
 }

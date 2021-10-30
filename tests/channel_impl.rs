@@ -12,25 +12,33 @@ fn callback(c: &Channel, m: &Message) -> i32
 }
 
 #[ derive(Debug, Default) ]
-struct Echo { internal: Internal }
+struct Echo { base: Base }
+
+impl Extension for Echo {
+    type Inner = Base;
+
+    fn inner(&self) -> &Self::Inner {
+        &self.base
+    }
+    fn inner_mut(&mut self) -> &mut Self::Inner {
+        &mut self.base
+    }
+}
 
 impl ChannelImpl for Echo {
     fn open_policy() -> OpenPolicy { OpenPolicy::Manual }
 
-    fn internal(&self) -> &Internal { &self.internal }
-    fn internal_mut(&mut self) -> &mut Internal { &mut self.internal }
-
-    fn init(&mut self, _url: &Config, parent: Option<Channel>, _: &Context) -> Result<()>
+    fn init(&mut self, url: &Config, master: Option<Channel>, context: &Context) -> Result<()>
     {
-        println!("Create channel, parent {:?}", parent);
-        self.logger().info(&format!("Create channel, parent {:?}", parent));
-        Ok(()) 
+        println!("Create channel, master {:?}", master);
+        self.logger().info(&format!("Create channel, master {:?}", master));
+        self.inner_mut().init(url, master, context)
     }
 
     fn open(&mut self, url: &Props) -> Result<()>
     {
         println!("Open channel {:?}", url);
-        Ok(()) 
+        self.inner_mut().open(url)
     }
 
     fn process(&mut self) -> Result<i32>
@@ -44,7 +52,7 @@ impl ChannelImpl for Echo {
 
     fn post(&mut self, msg: &Message) -> Result<()>
     {
-        self.internal.callback_data(msg);
+        self.base_mut().callback_data(msg);
         Ok(())
     }
 }
