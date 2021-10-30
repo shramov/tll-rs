@@ -191,6 +191,11 @@ impl ChannelImpl for Base {
 
     fn post(&mut self, _: &Message) -> Result<()> { Ok(()) }
     fn process(&mut self) -> Result<i32> { Ok(EAGAIN) }
+
+    fn logger(&self) -> &Logger { &self.logger }
+    fn state(&self) -> State { self.state() }
+    fn set_state(&mut self, state: State) -> State { self.set_state(state) }
+    fn update_dcaps(&mut self, caps: DCaps, mask: DCaps) { self.update_dcaps(caps, mask) }
 }
 
 pub struct CImpl<T : ChannelImpl> {
@@ -258,7 +263,7 @@ impl<T> CImpl<T>
         });
         let r = channel.init(&url, master, ctx);
         println!("Init result: {:?}", r);
-        if r.is_err() { Self::dealloc(c) };
+        if r.is_err() { Self::dealloc(c); return r; };
         Ok(())
     }
 
