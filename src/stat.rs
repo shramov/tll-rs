@@ -178,6 +178,12 @@ pub struct Base<T> {
     name: String,
 }
 
+impl<T> std::fmt::Debug for Base<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&format!("stat::Base {{ name: {} }}", self.name))
+    }
+}
+
 pub struct Reference<'a, T : Default> {
     data: &'a mut BasePage<T>,
     base: *mut tll_stat_block_t,
@@ -208,6 +214,8 @@ impl <T: Default> Base<T> {
         b.block.lock = b.block.active;
         b
     }
+
+    pub fn as_ptr(&mut self) -> * mut tll_stat_block_t { &mut self.block }
 
     pub fn acquire(&mut self) -> Option<Reference<T>>
     {
