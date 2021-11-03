@@ -30,3 +30,18 @@ fn browse() {
     v = cfg.get("a.b.c");
     assert!(v == Some ("xxx".to_string()));
 }
+
+#[test]
+fn test_type() {
+    let cfg = Config::load("yamls://
+i8: -100
+u8: 200
+f64: 1.234
+bool: true
+").unwrap();
+    assert_eq!(-100, cfg.get_typed::<i8>("i8", 0).unwrap());
+    assert_eq!(200, cfg.get_typed::<u8>("u8", 0).unwrap());
+    assert_eq!(1.234, cfg.get_typed::<f64>("f64", 0.).unwrap());
+    assert_eq!(true, cfg.get_typed::<bool>("bool", false).unwrap());
+}
+

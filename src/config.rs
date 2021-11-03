@@ -1,6 +1,9 @@
 use tll_sys::config::*;
 use std::option::Option;
+use std::str::FromStr;
 use std::os::raw::{c_int, c_char};
+
+use crate::error::*;
 
 pub struct Config {
     ptr: *mut tll_config_t
@@ -62,6 +65,17 @@ impl Config {
             let s = std::str::from_utf8(v).unwrap().to_owned();
             unsafe { tll_config_value_free(ptr) };
             Some(s)
+        }
+    }
+
+    pub fn get_typed<T : FromStr>(&self, key: &str, default: T) -> Result<T> where <T as FromStr>::Err : std::fmt::Debug
+    {
+        match self.get(key) {
+            Some(s) => {
+                if s.len() == 0 { return Ok(default); }
+                T::from_str(&s).map_err(|e| Error::from(format!("{:?}", e).as_str()))
+            },
+            None => Ok(default)
         }
     }
 
