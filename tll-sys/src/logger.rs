@@ -48,6 +48,9 @@ extern "C" {
     pub fn tll_logger_free(log: *mut tll_logger_t);
 }
 extern "C" {
+    pub fn tll_logger_copy(log: *const tll_logger_t) -> *mut tll_logger_t;
+}
+extern "C" {
     pub fn tll_logger_config(cfg: *const tll_config_t) -> ::std::os::raw::c_int;
 }
 extern "C" {

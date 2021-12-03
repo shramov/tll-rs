@@ -89,7 +89,7 @@ pub struct tll_msg_t {
     pub data: *const ::std::os::raw::c_void,
     pub size: usize,
     pub addr: tll_addr_t,
-    pub timestamp: ::std::os::raw::c_longlong,
+    pub time: ::std::os::raw::c_longlong,
 }
 #[test]
 fn bindgen_test_layout_tll_msg_t() {
@@ -174,19 +174,19 @@ fn bindgen_test_layout_tll_msg_t() {
         )
     );
     assert_eq!(
-        unsafe { &(*(::std::ptr::null::<tll_msg_t>())).timestamp as *const _ as usize },
+        unsafe { &(*(::std::ptr::null::<tll_msg_t>())).time as *const _ as usize },
         48usize,
         concat!(
             "Offset of field: ",
             stringify!(tll_msg_t),
             "::",
-            stringify!(timestamp)
+            stringify!(time)
         )
     );
 }
 impl ::std::fmt::Debug for tll_msg_t {
     fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
-        write ! ( f , "tll_msg_t {{ type: {:?}, msgid: {:?}, seq: {:?}, flags: {:?}, data: {:?}, size: {:?}, addr: {:?}, timestamp: {:?} }}" , self . type_ , self . msgid , self . seq , self . flags , self . data , self . size , self . addr , self . timestamp )
+        write ! ( f , "tll_msg_t {{ type: {:?}, msgid: {:?}, seq: {:?}, flags: {:?}, data: {:?}, size: {:?}, addr: {:?}, time: {:?} }}" , self . type_ , self . msgid , self . seq , self . flags , self . data , self . size , self . addr , self . time )
     }
 }
 #[repr(C)]
@@ -381,6 +381,12 @@ extern "C" {
     ) -> ::std::os::raw::c_int;
 }
 extern "C" {
+    pub fn tll_channel_open_cfg(
+        arg1: *mut tll_channel_t,
+        cfg: *const tll_config_t,
+    ) -> ::std::os::raw::c_int;
+}
+extern "C" {
     pub fn tll_channel_close(
         arg1: *mut tll_channel_t,
         force: ::std::os::raw::c_int,
@@ -393,6 +399,8 @@ extern "C" {
         flags: ::std::os::raw::c_int,
     ) -> ::std::os::raw::c_int;
 }
+pub const TLL_POST_MORE: tll_channel_post_flag_t = 1;
+pub type tll_channel_post_flag_t = ::std::os::raw::c_uint;
 extern "C" {
     pub fn tll_channel_post(
         c: *mut tll_channel_t,
@@ -559,8 +567,7 @@ pub struct tll_channel_impl_t {
     pub open: ::std::option::Option<
         unsafe extern "C" fn(
             arg1: *mut tll_channel_t,
-            str_: *const ::std::os::raw::c_char,
-            len: usize,
+            arg2: *const tll_config_t,
         ) -> ::std::os::raw::c_int,
     >,
     pub close: ::std::option::Option<
