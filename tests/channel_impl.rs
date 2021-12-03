@@ -2,7 +2,6 @@ use tll::channel::*;
 
 use tll::error::*;
 use tll::config::{Config};
-use tll::props::{Props};
 use tll::channel::impl_::*;
 
 fn callback(c: &Channel, m: &Message) -> i32
@@ -35,9 +34,9 @@ impl ChannelImpl for Echo {
         self.inner_mut().init(url, master, context)
     }
 
-    fn open(&mut self, url: &Props) -> Result<()>
+    fn open(&mut self, url: &Config) -> Result<()>
     {
-        println!("Open channel {:?}", url);
+        println!("Open channel");
         self.inner_mut().open(url)
     }
 

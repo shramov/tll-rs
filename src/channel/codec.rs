@@ -3,7 +3,6 @@ use crate::channel::impl_::*;
 
 use crate::config::Config;
 use crate::error::*;
-use crate::props::Props;
 use tll_sys::channel::tll_state_t;
 
 #[derive(Debug, Default)]
@@ -84,9 +83,9 @@ impl<T: CodecImpl> ChannelImpl for Codec<T> {
 
     fn free(&mut self) {}
 
-    fn open(&mut self, url: &Props) -> Result<()> {
-        self.inner_mut().open(url)?;
-        self.child.as_mut().unwrap().open(&url.as_string())
+    fn open(&mut self, cfg: &Config) -> Result<()> {
+        self.inner_mut().open(cfg)?;
+        self.child.as_mut().unwrap().open_cfg(cfg)
     }
 
     fn close(&mut self, _force: bool) {

@@ -3,7 +3,6 @@ use tll::channel::*;
 use tll::channel::impl_::*;
 use tll::config::Config;
 use tll::error::*;
-use tll::props::Props;
 
 #[derive(Debug, Default)]
 struct Echo {
@@ -31,8 +30,8 @@ impl ChannelImpl for Echo {
         self.inner_mut().init(url, master, context)
     }
 
-    fn open(&mut self, url: &Props) -> Result<()> {
-        println!("Open channel {:?}", url);
+    fn open(&mut self, url: &Config) -> Result<()> {
+        println!("Open channel");
         self.inner_mut().open(url)
     }
 

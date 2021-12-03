@@ -7,13 +7,12 @@ pub use tll_sys::channel::{tll_channel_module_t, tll_channel_context_t};
 
 use crate::channel::*;
 use crate::config::*;
-use crate::props::*;
 
 use crate::error::*;
 use crate::logger::*;
 
 use std::ffi::CString;
-use std::os::raw::{c_char, c_int, c_long, c_void};
+use std::os::raw::{c_int, c_long, c_void};
 //use std::option::Option;
 
 #[ derive(Debug, Eq, PartialEq) ]
@@ -147,7 +146,7 @@ pub trait ChannelImpl : Extension {
     fn child_policy() -> ChildPolicy { <Self::Inner as ChannelImpl>::child_policy() }
 
     fn init(&mut self, url: &Config, master: Option<Channel>, context: &Context) -> Result<()> { self.inner_mut().init(url, master, context) }
-    fn open(&mut self, url: &Props) -> Result<()> { self.inner_mut().open(url) }
+    fn open(&mut self, url: &Config) -> Result<()> { self.inner_mut().open(url) }
     fn close(&mut self, force : bool) { self.inner_mut().close(force) }
     fn free(&mut self) { self.inner_mut().free() }
 
@@ -185,7 +184,7 @@ impl ChannelImpl for Base {
     fn child_policy() -> ChildPolicy { ChildPolicy::Never }
 
     fn init(&mut self, _url: &Config, _master: Option<Channel>, _context: &Context) -> Result<()> { Ok(()) }
-    fn open(&mut self, _url: &Props) -> Result<()> { Ok(()) }
+    fn open(&mut self, _url: &Config) -> Result<()> { Ok(()) }
     fn close(&mut self, _force : bool) {}
     fn free(&mut self) {}
 
@@ -267,17 +266,15 @@ impl<T> CImpl<T>
         Ok(())
     }
 
-    fn open(channel : &mut T, s: &[u8]) -> Result<()>
+    fn open(channel : &mut T, cfg: &Config) -> Result<()>
     {
-        let surl = std::str::from_utf8(s).map_err(|_| format!("Invalid utf8 string {:?}", s))?;
-        let url = Props::new(surl).map_err(|e| format!("Invalid props {:?}: {:?}'", surl, e))?;
         channel.set_state(State::Opening);
         match <T>::process_policy() {
             ProcessPolicy::Normal => channel.update_dcaps(DCaps::Process, DCaps::Process),
             ProcessPolicy::Never => ()
         }
 
-        let r = channel.open(&url);
+        let r = channel.open(cfg);
         if r.is_ok() {
             if <T>::open_policy() == OpenPolicy::Normal { channel.set_state(State::Active); }
         }
@@ -315,11 +312,11 @@ impl<T> CImpl<T>
         Self::dealloc(c)
     }
 
-    extern "C" fn c_open(c : * mut tll_channel_t, s : * const c_char, len : usize) -> c_int
+    extern "C" fn c_open(c : * mut tll_channel_t, url : * const tll_config_t) -> c_int
     {
         if c.is_null() || unsafe { (*c).data.is_null() } { return EINVAL }
         let channel = unsafe { &mut *((*c).data as * mut T) };
-        match Self::open(channel, unsafe { std::slice::from_raw_parts(s as * const u8, len) }) {
+        match Self::open(channel, &Config::from(url as * mut tll_config_t)) {
             Err(e) => {
                 println!("Open failed: {:?}", e);
                 EINVAL

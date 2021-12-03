@@ -3,7 +3,6 @@ use tll::channel::*;
 use tll::channel::impl_::*;
 use tll::config::Config;
 use tll::error::*;
-use tll::props::Props;
 use tll_sys::channel::tll_state_t;
 
 #[derive(Debug)]
@@ -102,9 +101,9 @@ impl ChannelImpl for TestPrefix {
         self.child = None;
     }
 
-    fn open(&mut self, url: &Props) -> Result<()> {
+    fn open(&mut self, url: &Config) -> Result<()> {
         if let Some(c) = &mut self.child {
-            c.open(&url.as_string())
+            c.open_cfg(&url)
         } else {
             Err(Error::from(EINVAL))
         }

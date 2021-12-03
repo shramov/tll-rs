@@ -271,6 +271,11 @@ impl Channel {
         error_check(unsafe { tll_channel_open(self.ptr, props.as_ptr() as *const c_char, props.len()) })
     }
 
+    pub fn open_cfg(&mut self, cfg: &Config) -> Result<()>
+    {
+        error_check(unsafe { tll_channel_open_cfg(self.ptr, cfg.as_ptr()) })
+    }
+
     pub fn close(&mut self) -> ()
     {
         unsafe { tll_channel_close(self.ptr, 0) };
