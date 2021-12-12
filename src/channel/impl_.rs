@@ -316,7 +316,8 @@ impl<T> CImpl<T>
     {
         if c.is_null() || unsafe { (*c).data.is_null() } { return EINVAL }
         let channel = unsafe { &mut *((*c).data as * mut T) };
-        match Self::open(channel, &Config::from(url as * mut tll_config_t)) {
+        let cfg = if url.is_null() { Config::new() } else { Config::from(url as * mut tll_config_t) };
+        match Self::open(channel, &cfg) {
             Err(e) => {
                 println!("Open failed: {:?}", e);
                 EINVAL
