@@ -20,7 +20,7 @@ src/config.rs: $(TLL)/src/tll/config.h
 src/channel/msg.rs: $(TLL)/src/tll/channel.h
 	bindgen -o $@ $(BINDGEN_OPTIONS) --allowlist-type 'tll_(msg|message).*' --allowlist-function tll_msg.* $< -- $(INCLUDE)
 
-src/channel.rs: $(TLL)/src/tll/channel/impl.h
+src/channel.rs: $(TLL)/src/tll/channel/module.h
 	bindgen -o $@ $(BINDGEN_OPTIONS) \
 		--allowlist-type 'tll_channel.*' --allowlist-function tll_channel.* \
 		--allowlist-type 'tll_msg_.*' \

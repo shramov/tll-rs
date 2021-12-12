@@ -994,14 +994,67 @@ fn bindgen_test_layout_tll_channel_internal_t() {
         )
     );
 }
+extern "C" {
+    pub fn tll_channel_list_free(l: *mut tll_channel_list_t);
+}
+extern "C" {
+    pub fn tll_channel_list_add(
+        l: *mut *mut tll_channel_list_t,
+        c: *mut tll_channel_t,
+    ) -> ::std::os::raw::c_int;
+}
+extern "C" {
+    pub fn tll_channel_list_del(
+        l: *mut *mut tll_channel_list_t,
+        c: *const tll_channel_t,
+    ) -> ::std::os::raw::c_int;
+}
+extern "C" {
+    pub fn tll_channel_internal_init(ptr: *mut tll_channel_internal_t);
+}
+extern "C" {
+    pub fn tll_channel_internal_clear(ptr: *mut tll_channel_internal_t);
+}
+extern "C" {
+    pub fn tll_channel_internal_child_add(
+        ptr: *mut tll_channel_internal_t,
+        c: *mut tll_channel_t,
+        tag: *const ::std::os::raw::c_char,
+        len: ::std::os::raw::c_int,
+    ) -> ::std::os::raw::c_int;
+}
+extern "C" {
+    pub fn tll_channel_internal_child_del(
+        ptr: *mut tll_channel_internal_t,
+        c: *const tll_channel_t,
+        tag: *const ::std::os::raw::c_char,
+        len: ::std::os::raw::c_int,
+    ) -> ::std::os::raw::c_int;
+}
+pub const TLL_MESSAGE_LOG_DISABLE: tll_channel_log_msg_format_t = 0;
+pub const TLL_MESSAGE_LOG_FRAME: tll_channel_log_msg_format_t = 1;
+pub const TLL_MESSAGE_LOG_TEXT: tll_channel_log_msg_format_t = 2;
+pub const TLL_MESSAGE_LOG_TEXT_HEX: tll_channel_log_msg_format_t = 3;
+pub const TLL_MESSAGE_LOG_SCHEME: tll_channel_log_msg_format_t = 4;
+pub type tll_channel_log_msg_format_t = ::std::os::raw::c_uint;
+extern "C" {
+    pub fn tll_channel_log_msg(
+        c: *const tll_channel_t,
+        log: *const ::std::os::raw::c_char,
+        level: tll_logger_level_t,
+        format: tll_channel_log_msg_format_t,
+        msg: *const tll_msg_t,
+        text: *const ::std::os::raw::c_char,
+        tlen: ::std::os::raw::c_int,
+    ) -> ::std::os::raw::c_int;
+}
 pub const TLL_CHANNEL_MODULE_DLOPEN_GLOBAL: tll_channel_module_flags_t = 1;
 pub type tll_channel_module_flags_t = ::std::os::raw::c_uint;
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct tll_channel_module_t {
     pub version: ::std::os::raw::c_int,
-    //pub impl_: *mut *mut tll_channel_impl_t,
-    pub impl_: i64,
+    pub impl_: *mut *mut tll_channel_impl_t,
     pub init: ::std::option::Option<
         unsafe extern "C" fn(
             m: *mut tll_channel_module_t,
@@ -1079,57 +1132,5 @@ fn bindgen_test_layout_tll_channel_module_t() {
         )
     );
 }
-extern "C" {
-    pub fn tll_channel_list_free(l: *mut tll_channel_list_t);
-}
-extern "C" {
-    pub fn tll_channel_list_add(
-        l: *mut *mut tll_channel_list_t,
-        c: *mut tll_channel_t,
-    ) -> ::std::os::raw::c_int;
-}
-extern "C" {
-    pub fn tll_channel_list_del(
-        l: *mut *mut tll_channel_list_t,
-        c: *const tll_channel_t,
-    ) -> ::std::os::raw::c_int;
-}
-extern "C" {
-    pub fn tll_channel_internal_init(ptr: *mut tll_channel_internal_t);
-}
-extern "C" {
-    pub fn tll_channel_internal_clear(ptr: *mut tll_channel_internal_t);
-}
-extern "C" {
-    pub fn tll_channel_internal_child_add(
-        ptr: *mut tll_channel_internal_t,
-        c: *mut tll_channel_t,
-        tag: *const ::std::os::raw::c_char,
-        len: ::std::os::raw::c_int,
-    ) -> ::std::os::raw::c_int;
-}
-extern "C" {
-    pub fn tll_channel_internal_child_del(
-        ptr: *mut tll_channel_internal_t,
-        c: *const tll_channel_t,
-        tag: *const ::std::os::raw::c_char,
-        len: ::std::os::raw::c_int,
-    ) -> ::std::os::raw::c_int;
-}
-pub const TLL_MESSAGE_LOG_DISABLE: tll_channel_log_msg_format_t = 0;
-pub const TLL_MESSAGE_LOG_FRAME: tll_channel_log_msg_format_t = 1;
-pub const TLL_MESSAGE_LOG_TEXT: tll_channel_log_msg_format_t = 2;
-pub const TLL_MESSAGE_LOG_TEXT_HEX: tll_channel_log_msg_format_t = 3;
-pub const TLL_MESSAGE_LOG_SCHEME: tll_channel_log_msg_format_t = 4;
-pub type tll_channel_log_msg_format_t = ::std::os::raw::c_uint;
-extern "C" {
-    pub fn tll_channel_log_msg(
-        c: *const tll_channel_t,
-        log: *const ::std::os::raw::c_char,
-        level: tll_logger_level_t,
-        format: tll_channel_log_msg_format_t,
-        msg: *const tll_msg_t,
-        text: *const ::std::os::raw::c_char,
-        tlen: ::std::os::raw::c_int,
-    ) -> ::std::os::raw::c_int;
-}
+pub type tll_channel_module_func_t =
+    ::std::option::Option<unsafe extern "C" fn() -> *mut tll_channel_module_t>;
