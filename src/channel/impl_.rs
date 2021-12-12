@@ -371,19 +371,26 @@ unsafe extern "C" fn _channel_module_init(_m: *mut tll_channel_module_t, ctx: *m
 
 unsafe extern "C" fn _channel_module_free(_m: *mut tll_channel_module_t, ctx: *mut tll_channel_context_t) -> std::os::raw::c_int
 {
-    //$(
-    //let _ = Context::from(ctx).unregister($impl0());
-    //)*
+    /*
+    $(
+    if let Err(_) = Context::from(ctx).unregister($impl0()) { assert!(false, "Failed to unload"); };
+    )*
+    */
     0
 }
 
 #[no_mangle]
-pub static channel_module : tll_channel_module_t = tll_channel_module_t {
-    version: 0,
-    flags: 0,
-    init: Some(_channel_module_init),
-    free: Some(_channel_module_free),
-    impl_: 0, //std::ptr::null_mut(),
-};
+unsafe extern "C" fn channel_module() -> *const tll_channel_module_t
+{
+    static mut MODULE : tll_channel_module_t =
+        tll_channel_module_t {
+                version: 1,
+                flags: 0,
+                init: Some(_channel_module_init),
+                free: Some(_channel_module_free),
+                impl_: std::ptr::null_mut(),
+        };
+    &MODULE
+}
     }
 }
