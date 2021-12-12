@@ -338,7 +338,6 @@ impl<T> CImpl<T>
 
     extern "C" fn c_post(c : * mut tll_channel_t, m : * const tll_msg_t, _ : c_int ) -> c_int
     {
-        println!(">> Try to call open");
         if c.is_null() || unsafe { (*c).data.is_null() } { return EINVAL }
         if m.is_null() { return EINVAL }
         let channel = unsafe { &mut *((*c).data as * mut T) };
@@ -350,7 +349,6 @@ impl<T> CImpl<T>
 
     extern "C" fn c_process(c : * mut tll_channel_t, _ : c_long, _ : c_int) -> c_int
     {
-        println!(">> Try to call process");
         if c.is_null() || unsafe { (*c).data.is_null() } { return EINVAL }
         let channel = unsafe { &mut *((*c).data as * mut T) };
         match channel.process() {
