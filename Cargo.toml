@@ -10,6 +10,10 @@ tll-sys = { path = "tll-sys", version = "0.1.0" }
 bitflags = ">= 1.2"
 memchr = ">= 2.3"
 
+[profile.dev]
+debug-assertions = true
+overflow-checks = true
+
 #[build]
 #[profile.dev]
 #rustflags = ["-C", "link-arg=-Wl,-rpath,/home/psha/src/tll/build/lib"]
