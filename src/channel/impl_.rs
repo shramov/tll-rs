@@ -34,12 +34,34 @@ pub enum ChildPolicy {
     Many,
 }
 
+#[repr(C)]
+#[ derive(Debug) ]
+struct Stat {
+    rx: crate::stat::Field,
+    rxb: crate::stat::Field,
+    tx: crate::stat::Field,
+    txb: crate::stat::Field,
+}
+
+impl Default for Stat {
+    fn default() -> Self
+    {
+        Self {
+            rx: crate::stat::Field::new("rx", crate::stat::Type::Sum),
+            rxb: crate::stat::Field::new_unit("tx", crate::stat::Type::Sum, crate::stat::Unit::Bytes),
+            tx: crate::stat::Field::new("rx", crate::stat::Type::Sum),
+            txb: crate::stat::Field::new_unit("tx", crate::stat::Type::Sum, crate::stat::Unit::Bytes),
+        }
+    }
+}
+
 #[ derive(Debug) ]
 pub struct Base {
     pub data : tll_channel_internal_t,
     c_name : CString,
     name : String,
     pub logger : Logger,
+    stat : Option<crate::stat::Base<Stat>>
 }
 
 impl Drop for Base {
@@ -52,7 +74,7 @@ impl Drop for Base {
 impl Default for Base {
     fn default() -> Self
     {
-        let mut r = Base { c_name: CString::default(), name: String::default(), logger: Logger::new("rust.channel"), data: unsafe { std::mem::zeroed::<tll_channel_internal_t>() } };
+        let mut r = Base { c_name: CString::default(), name: String::default(), logger: Logger::new("rust.channel"), data: unsafe { std::mem::zeroed::<tll_channel_internal_t>() }, stat: None };
         unsafe {
             tll_channel_internal_init(&mut r.data);
             r.data.name = r.c_name.as_ptr();
@@ -107,6 +129,11 @@ impl Base {
         self.set_name(&url.get("name").unwrap_or("noname".to_string()))?;
         self.logger = Logger::new(&format!("rust.channel.{}", self.name));
         println!("New name: '{}' ({:?})", self.name(), self.c_name);
+        if url.get_typed("stat", false)? {
+            let mut stat = crate::stat::Base::<Stat>::new(self.name());
+            self.data.stat = stat.as_ptr();
+            self.stat = Some(stat);
+        }
         Ok(())
     }
 
