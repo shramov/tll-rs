@@ -247,14 +247,18 @@ impl<T> CImpl<T>
     fn init(c : &mut tll_channel_t, url: &Config, master: Option<Channel>, ctx: &Context) -> Result<()>
     {
         c.data = Box::into_raw(Box::new(<T>::default())) as * mut c_void;
-        println!("Call init on boxed object {:?}", c.data);
+        let log = Logger::new(&format!("tll.channel.{}", url.get("name").unwrap_or(String::from("noname"))));
+        //println!("Call init on boxed object {:?}", c.data);
         //let mut channel = unsafe { std::ptr::NonNull::new_unchecked((*c).data as * mut T) };
         let channel = unsafe { &mut *((*c).data as * mut T) };
         let internal = channel.base_mut();
         internal.data.self_ = c;
         c.internal = &mut internal.data;
         println!("Call init on boxed object {:?}", c.data);
-        internal.init_base(url)?;
+        if let Err(e) = internal.init_base(url) {
+            log.error(&format!("Base init failed: {:?}", e));
+            return Err(e);
+        }
         internal.set_caps(match <T>::child_policy() {
             ChildPolicy::Never => Caps::empty(),
             ChildPolicy::Single => Caps::Parent | Caps::Proxy,
