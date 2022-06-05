@@ -3,7 +3,7 @@ use tll::config::Config;
 use tll::logger::Logger;
 use tll::processor::Loop;
 
-//use std::convert::TryInto;
+use std::convert::TryInto;
 use std::time::Duration;
 
 mod netlink_scheme;
@@ -72,7 +72,11 @@ impl SystemState {
         match timer_bind(m) {
             TimerBind::RefAbsolute(msg) => {
                 println!("Timer: {:?}", { msg.ts });
-                //self.time = msg.ts.value.into::<Duration>()
+                if let Ok (ts) = TryInto::<Duration>::try_into(msg.ts.value) {
+                    self.time = ts;
+                } else {
+                    println!("Negative timestamp")
+                }
             }
             _ => {}
         }
