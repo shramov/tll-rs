@@ -88,6 +88,8 @@ def field2type(f):
         ct = field2type(f.count_ptr)
         return f"tll::scheme::Array<{t}, {ct}, {f.count}>"
     elif f.type == f.Pointer:
+	if f.sub_type == f.Sub.ByteString:
+	    return f'tll::scheme::OffsetString'
         t = field2type(f.type_ptr)
         return f"tll::scheme::OffsetPtr<{t}>"
     raise ValueError(f"Unknown type for field {f.name}: {f.type}")
