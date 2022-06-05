@@ -1,3 +1,5 @@
+use std::cmp::max;
+
 pub mod bind;
 pub mod chrono;
 
@@ -69,6 +71,39 @@ impl<T : Binder> Binder for OffsetPtr<T>
         for i in 0..r.size() {
             <T as Binder>::bind(&data[r.offset as usize + i * r.entity()..])?;
         }
+        Some(r)
+    }
+}
+
+#[repr(C,packed(1))]
+pub struct OffsetString
+{
+        ptr: OffsetPtr<u8>
+}
+
+impl std::fmt::Debug for OffsetString {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&format!("OffsetString {{ offset: {}, size: {} , entity: {}}}", {self.ptr.offset}, self.ptr.size(), self.ptr.entity()))
+    }
+}
+
+impl OffsetString {
+    pub fn size(&self) -> usize { max(self.ptr.size(), 1) - 1 }
+    pub fn as_str(&self) -> Result<&str, std::str::Utf8Error> {
+        unsafe { std::str::from_utf8(self.ptr.data()) }
+    }
+    pub unsafe fn as_str_unchecked(&self) -> &str {
+        std::str::from_utf8_unchecked(self.ptr.data())
+    }
+}
+
+impl Binder for OffsetString
+{
+    const PRIMITIVE_BIND : bool = false;
+
+    fn bind(data: &[u8]) -> Option<&Self> {
+        let r = unsafe { bind_checked::<Self>(data)? };
+        OffsetPtr::<u8>::bind(data)?;
         Some(r)
     }
 }
