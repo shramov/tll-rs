@@ -8,6 +8,7 @@ use std::time::Duration;
 
 mod netlink_scheme;
 use crate::netlink_scheme::*;
+mod udev_scheme;
 mod timer_scheme;
 use crate::timer_scheme::*;
 
@@ -15,6 +16,8 @@ use crate::timer_scheme::*;
 struct SystemState {
     time: Duration,
     link: Option<String>,
+    battery: i32,
+    ac: bool,
 }
 
 enum TimerBind<'a> {
@@ -65,7 +68,7 @@ fn netlink_bind(m: &Message) -> NetlinkBind {
 }
 
 impl SystemState {
-    pub fn timer_cb(&mut self, m: &Message) -> i32 {
+    pub fn on_timer(&mut self, m: &Message) -> i32 {
         if m.get_type() != MsgType::Data {
             return 0;
         }
@@ -90,7 +93,7 @@ impl SystemState {
         0
     }
 
-    pub fn route_cb(&mut self, m: &Message) -> i32 {
+    pub fn on_route(&mut self, m: &Message) -> i32 {
         if m.get_type() != MsgType::Data {
             return 0;
         }
@@ -130,23 +133,62 @@ impl SystemState {
         0
     }
 
+    pub fn on_power(&mut self, m: &Message) -> i32 {
+        if m.get_type() != MsgType::Data {
+            return 0;
+        }
+        if m.msgid != udev_scheme::Device::MSGID {
+            return 0;
+        }
+        if let Some (data) = udev_scheme::Device::bind(m.data()) {
+            match data.subsystem.as_str() {
+                Ok("power_supply") => (),
+                _ => return 0,
+            }
+            match data.sysname.as_str() {
+                Ok("AC") => (),
+                _ => return 0,
+            }
+            for p in unsafe { data.properties.data() } {
+                match p.name.as_str() {
+                    Ok("POWER_SUPPLY_ONLINE") =>
+                        match p.value.as_str() {
+                            Ok("0") => self.ac = false,
+                            Ok("1") => self.ac = true,
+                            _ => (),
+                        },
+                    _  => (),
+                }
+            }
+        }
+        self.dump();
+        0
+    }
+
     pub fn dump(&self) {
-        println!("Time: {:?}, Link: {:?}", self.time, self.link);
+        println!("Time: {:?}, Link: {:?}, AC: {:?}", self.time, self.link, self.ac);
     }
 }
 
 enum TimerCallback {}
 enum RouteCallback {}
+enum PowerCallback {}
 
 impl CallbackMut<TimerCallback> for SystemState {
     fn message_callback_mut(&mut self, _c: &Channel, m: &Message) -> i32 {
-        self.timer_cb(m)
+        self.on_timer(m)
     }
 }
 
 impl CallbackMut<RouteCallback> for SystemState {
     fn message_callback_mut(&mut self, _c: &Channel, m: &Message) -> i32 {
-        self.route_cb(m)
+        self.on_route(m)
+    }
+}
+
+impl CallbackMut<PowerCallback> for SystemState {
+    fn message_callback_mut(&mut self, _c: &Channel, m: &Message) -> i32 {
+        self.on_power(m)
     }
 }
 
@@ -162,27 +204,40 @@ pub fn main() {
         "channel_module",
     )
     .expect("Failed to load module");
+    ctx.load(
+        "/home/psha/src/tll-udev/build/tll-udev",
+        "channel_module",
+    )
+    .expect("Failed to load module");
 
-    let mut c = ctx
+    let mut netlink = ctx
         .channel("netlink://;name=netlink;dump=scheme")
         .expect("Failed to create channel");
-    //c.callback_add(&|_, m| state.route_cb(m), None).expect("Failed to add callback");
-    c.callback_add_mut::<SystemState, RouteCallback>(&mut state, None)
+    //netlink.callback_add(&|_, m| state.on_route(m), None).expect("Failed to add callback");
+    netlink.callback_add_mut::<SystemState, RouteCallback>(&mut state, None)
+        .expect("Failed to add callback");
+
+    let mut udev = ctx
+        .channel("udev://;name=udev;dump=scheme;subsystem=power_supply")
+        .expect("Failed to create channel");
+    netlink.callback_add_mut::<SystemState, PowerCallback>(&mut state, None)
         .expect("Failed to add callback");
 
     let mut tc = ctx
-        .channel("timer://;interval=1s;clock=realtime;dump=frame;name=timer")
+        .channel("timer://;interval=1s;clock=realtime;dump=frame;name=timer;skip-old=yes")
         .expect("Failed to create channel");
 
-    //tc.callback_add_mut(&|_, m| state.timer_cb(m), None).expect("Failed to add callback");
+    //tc.callback_add_mut(&|_, m| state.on_timer(m), None).expect("Failed to add callback");
     tc.callback_add_mut::<SystemState, TimerCallback>(&mut state, None)
         .expect("Failed to add callback");
 
     let mut l = Loop::new("rust");
-    l.add(&mut c).expect("Failed to add channel to loop");
+    l.add(&mut netlink).expect("Failed to add channel to loop");
+    l.add(&mut udev).expect("Failed to add channel to loop");
     l.add(&mut tc).expect("Failed to add channel to loop");
     tc.open("").expect("Failed to open channel");
-    c.open("").expect("Failed to open channel");
+    netlink.open("").expect("Failed to open channel");
+    udev.open("").expect("Failed to open channel");
     loop {
         l.step(1000).expect("Step failed");
     }
