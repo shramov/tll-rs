@@ -32,10 +32,10 @@ pub enum Action
         Unbind = 4,
         Remove = 5,
 }
-
 impl Binder for Action {}
+
 #[repr(C, packed(1))]
-pub struct Device{
+pub struct Device {
         pub action: Action,
         pub subsystem: tll::scheme::OffsetString,
         pub sysname: tll::scheme::OffsetString,
