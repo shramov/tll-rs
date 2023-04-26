@@ -3,6 +3,7 @@
 use tll_sys::channel::*;
 
 bitflags! {
+    //#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)] // Enable for bitflags >= 2.0
     pub struct Caps: u32 {
         const Input = TLL_CAPS_INPUT;
         const Output = TLL_CAPS_OUTPUT;
@@ -15,6 +16,7 @@ bitflags! {
 }
 
 bitflags! {
+    //#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)] // Enable for bitflags >= 2.0
     pub struct DCaps: u32 {
         const POLLIN = TLL_DCAPS_POLLIN;
         const POLLOUT = TLL_DCAPS_POLLOUT;
