@@ -45,4 +45,5 @@ src/processor_loop.rs: $(TLL)/src/tll/processor/loop.h
 		--allowlist-type 'tll_processor.*' --allowlist-function tll_processor.* \
 		--blocklist-type 'tll_(config|channel)_.*' \
 		--raw-line 'use crate::channel::*;' \
+		--raw-line 'use crate::config::tll_config_t;' \
 		$< -- $(INCLUDE)
