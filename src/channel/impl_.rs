@@ -330,7 +330,7 @@ impl<T> CImpl<T>
         if c.is_null() { return () }
         unsafe {
             let data = (*c).data as * mut T;
-            Box::<T>::from_raw(data);
+            drop(Box::<T>::from_raw(data));
             (*c).data = std::ptr::null_mut();
         }
     }
