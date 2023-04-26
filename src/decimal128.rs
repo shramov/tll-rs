@@ -1,4 +1,5 @@
-use std::option::Option;
+use std::convert::TryFrom;
+use rust_decimal::Decimal;
 
 #[repr(C)]
 #[derive(Debug, Clone, Copy)]
@@ -13,6 +14,12 @@ pub enum Unpacked128 {
     NegInf,
     NaN,
     SNaN,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Error {
+    MantissaOverflow,
+    ExponentOverflow,
 }
 
 impl Decimal128 {
@@ -50,31 +57,31 @@ impl Decimal128 {
         Decimal128 { data: r }
     }
 
-    pub fn pack(u: Unpacked128) -> Option<Decimal128> {
+    pub fn pack(u: Unpacked128) -> Result<Decimal128, Error> {
         match u {
             Unpacked128::Value(s, m, e) => Decimal128::pack_value(s, m, e),
-            Unpacked128::Inf => Some(Decimal128::inf(false)),
-            Unpacked128::NegInf => Some(Decimal128::inf(true)),
-            Unpacked128::NaN => Some(Decimal128::nan()),
-            Unpacked128::SNaN => Some(Decimal128::snan()),
+            Unpacked128::Inf => Ok(Decimal128::inf(false)),
+            Unpacked128::NegInf => Ok(Decimal128::inf(true)),
+            Unpacked128::NaN => Ok(Decimal128::nan()),
+            Unpacked128::SNaN => Ok(Decimal128::snan()),
         }
     }
 
-    pub fn pack_value(sign: bool, mantissa: u128, exponent: i16) -> Option<Decimal128> {
+    pub fn pack_value(sign: bool, mantissa: u128, exponent: i16) -> Result<Decimal128, Error> {
         if exponent > Decimal128::EXP_MAX {
-            return None;
+            return Err(Error::ExponentOverflow);
         } else if exponent < Decimal128::EXP_MIN {
-            return None;
+            return Err(Error::ExponentOverflow);
         }
         if mantissa > Decimal128::MANTISSA_MAX {
-            return None;
+            return Err(Error::MantissaOverflow);
         }
         let mut r = mantissa;
         r |= ((exponent - Decimal128::EXP_MIN) as u128) << Decimal128::EXP_SHIFT;
         if sign {
             r |= 1u128 << 127
         }
-        Some(Decimal128 { data: r })
+        Ok(Decimal128 { data: r })
     }
 
     pub fn unpack(&self) -> Unpacked128 {
@@ -102,6 +109,10 @@ impl Decimal128 {
             (combination & 0x3fff) as i16 + Decimal128::EXP_MIN,
         )
     }
+
+    pub fn to_decimal(&self) -> Result<Decimal, rust_decimal::Error> {
+        Decimal::try_from(self)
+    }
 }
 
 impl std::fmt::Display for Decimal128 {
@@ -116,18 +127,63 @@ impl std::fmt::Display for Decimal128 {
     }
 }
 
+impl TryFrom<&Decimal> for Decimal128 {
+    type Error = Error;
+
+    fn try_from(v: &Decimal) -> Result<Decimal128, Error> {
+        let m = v.mantissa();
+        Decimal128::pack_value(m < 0, if m > 0 { m as u128 } else { (-m) as u128 }, v.scale() as i16) // scale is in range [0, 28]
+    }
+}
+
+impl TryFrom<&Decimal128> for Decimal {
+    type Error = rust_decimal::Error;
+
+    fn try_from(v: &Decimal128) -> Result<Decimal, Self::Error> {
+        match v.unpack() {
+            Unpacked128::Inf => Err(Self::Error::ExceedsMaximumPossibleValue),
+            Unpacked128::NegInf => Err(Self::Error::LessThanMinimumPossibleValue),
+            Unpacked128::NaN => Err(Self::Error::ErrorString("Cannot convert from NaN".to_string())),
+            Unpacked128::SNaN => Err(Self::Error::ErrorString("Cannot convert from sNaN".to_string())),
+            Unpacked128::Value(s, um, e) => {
+                let im = um as i128; // Always possible, mantissa uses ~110 bits
+                let m = if s { -im } else { im };
+
+                if e < 0 {
+                    if m == 0 { return Ok(Decimal::ZERO); }
+                    Err(Self::Error::ErrorString("Negative exponent".to_string()))
+                } else {
+                    Decimal::try_from_i128_with_scale(m, e as u32)
+                }
+            }
+        }
+    }
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
 
     fn check_d128(s: &str, bin: &[u8; 16], u: Unpacked128) {
         let r = Decimal128::pack(u);
-        assert!(r.is_some());
+        assert!(r.is_ok());
         let d = r.unwrap();
         assert_eq!(*bin, d.data.to_ne_bytes());
         let u1 = d.unpack();
         assert_eq!(u, u1);
         assert_eq!(s, format!("{}", d));
+
+        match u {
+            Unpacked128::Value(s, m, e) => {
+                if e > 28 || e < 0 { return; }
+                let r1 = Decimal::try_from(&d);
+                assert!(r1.is_ok());
+                let d1 = r1.unwrap();
+                assert_eq!(d1.scale(), e as u32);
+                assert_eq!(d1.mantissa(), if s { -(m as i128) } else { m as i128 });
+            },
+            _ => {},
+        }
     }
 
     #[test]

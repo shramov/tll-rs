@@ -9,6 +9,7 @@ license = "MIT"
 tll-sys = { path = "tll-sys", version = "0.1.0" }
 bitflags = ">= 1.2"
 memchr = ">= 2.3"
+rust_decimal = ">= 1.23"
 
 [profile.dev]
 debug-assertions = true
