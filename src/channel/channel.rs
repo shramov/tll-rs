@@ -159,6 +159,7 @@ impl Context {
 impl Drop for Context {
     fn drop(&mut self) {
         unsafe { tll_channel_context_free(self.ptr); }
+        self.ptr = std::ptr::null_mut();
     }
 }
 
@@ -173,11 +174,14 @@ pub struct OwnedChannel(Channel);
 impl OwnedChannel {
     pub fn get(&self) -> &Channel { &self.0 }
     pub fn get_mut(&mut self) -> &mut Channel { &mut self.0 }
+
+    pub unsafe fn from_null() -> Self { OwnedChannel( Channel { ptr: std::ptr::null_mut() } ) }
 }
 
 impl Drop for OwnedChannel {
     fn drop(&mut self) {
         unsafe { tll_channel_free(self.0.ptr); }
+        self.0.ptr = std::ptr::null_mut();
     }
 }
 
