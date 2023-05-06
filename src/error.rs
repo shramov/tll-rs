@@ -10,6 +10,15 @@ pub struct Error
     pub msg: String,
 }
 
+impl std::fmt::Display for Error {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match self.code {
+            Some(code) => write!(f, "{}, code: {}", self.msg, code),
+            None => write!(f, "{}", self.msg),
+        }
+    }
+}
+
 pub type Result<T> = std::result::Result<T, Error>;
 
 impl From<&mut Error> for Error {
