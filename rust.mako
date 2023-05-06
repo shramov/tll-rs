@@ -20,6 +20,7 @@ NUMERIC = {
     S.Type.UInt8: 'u8',
     S.Type.UInt16: 'u16',
     S.Type.UInt32: 'u32',
+    S.Type.UInt64: 'u64',
     S.Type.Double: 'f64',
 }
 

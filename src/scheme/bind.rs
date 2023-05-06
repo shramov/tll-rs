@@ -25,6 +25,7 @@ impl Binder for u16 {}
 impl Binder for i32 {}
 impl Binder for u32 {}
 impl Binder for i64 {}
+impl Binder for u64 {}
 impl Binder for f64 {}
 impl Binder for Decimal128 {}
 
