@@ -17,11 +17,11 @@ impl From<&mut Error> for Error {
 }
 
 impl From<String> for Error {
-    fn from(e: String) -> Self { Into::<Error>::into(&e as &str) }
+    fn from(e: String) -> Self { Error::from(&e as &str) }
 }
 
 impl From<std::str::Utf8Error> for Error {
-    fn from(_: std::str::Utf8Error) -> Self { Error { code: None, msg: String::from("Invalid utf-8 string") } }
+    fn from(_: std::str::Utf8Error) -> Self { Error::from("Invalid utf-8 string") }
 }
 
 impl From<&str> for Error {
