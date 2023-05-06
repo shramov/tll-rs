@@ -1,5 +1,6 @@
 use std::convert::TryFrom;
 use rust_decimal::Decimal;
+use crate::error;
 
 #[repr(C)]
 #[derive(Debug, Clone, Copy)]
@@ -20,6 +21,16 @@ pub enum Unpacked128 {
 pub enum Error {
     MantissaOverflow,
     ExponentOverflow,
+}
+
+impl From<Error> for error::Error
+{
+    fn from(e: Error) -> Self { Self::from(format!("Failed to convert Decimal128: {:?}", e)) }
+}
+
+impl From<rust_decimal::Error> for error::Error
+{
+    fn from(e: rust_decimal::Error) -> Self { Self::from(format!("Failed to convert Decimal: {:?}", e)) }
 }
 
 impl Decimal128 {
@@ -110,7 +121,7 @@ impl Decimal128 {
         )
     }
 
-    pub fn to_decimal(&self) -> Result<Decimal, rust_decimal::Error> {
+    pub fn to_decimal(self) -> Result<Decimal, rust_decimal::Error> {
         Decimal::try_from(self)
     }
 }
@@ -136,10 +147,10 @@ impl TryFrom<&Decimal> for Decimal128 {
     }
 }
 
-impl TryFrom<&Decimal128> for Decimal {
+impl TryFrom<Decimal128> for Decimal {
     type Error = rust_decimal::Error;
 
-    fn try_from(v: &Decimal128) -> Result<Decimal, Self::Error> {
+    fn try_from(v: Decimal128) -> Result<Decimal, Self::Error> {
         match v.unpack() {
             Unpacked128::Inf => Err(Self::Error::ExceedsMaximumPossibleValue),
             Unpacked128::NegInf => Err(Self::Error::LessThanMinimumPossibleValue),
@@ -176,7 +187,7 @@ mod test {
         match u {
             Unpacked128::Value(s, m, e) => {
                 if e > 28 || e < 0 { return; }
-                let r1 = Decimal::try_from(&d);
+                let r1 = Decimal::try_from(d);
                 assert!(r1.is_ok());
                 let d1 = r1.unwrap();
                 assert_eq!(d1.scale(), e as u32);
