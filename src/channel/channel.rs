@@ -7,6 +7,7 @@ use crate::error::*;
 pub use crate::channel::message::*;
 pub use crate::channel::caps::*;
 
+use std::convert::TryFrom;
 use std::ops::Deref;
 
 use std::ffi::CStr;
@@ -21,6 +22,22 @@ pub enum State {
     Closing = TLL_STATE_CLOSING as isize,
     Error = TLL_STATE_ERROR as isize,
     Destroy = TLL_STATE_DESTROY as isize,
+}
+
+impl TryFrom<i32> for State {
+    type Error = crate::error::Error;
+    fn try_from(s: i32) -> std::result::Result<Self, crate::error::Error>
+    {
+        match s as u32 {
+            TLL_STATE_CLOSED => Ok(State::Closed),
+            TLL_STATE_OPENING => Ok(State::Opening),
+            TLL_STATE_ACTIVE => Ok(State::Active),
+            TLL_STATE_CLOSING => Ok(State::Closing),
+            TLL_STATE_ERROR => Ok(State::Error),
+            TLL_STATE_DESTROY => Ok(State::Destroy),
+            _ => Err(Error::from(format!("Invalid state {:?}", s))),
+        }
+    }
 }
 
 impl From<tll_state_t> for State {
