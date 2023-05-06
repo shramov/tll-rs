@@ -19,4 +19,8 @@
     - {name: arr4, type: 'int32[4]'}
     - {name: ptr, type: '*int64'}
     - {name: sub, type: sub}
+    - {name: duration_us, type: int32, options.type: duration, options.resolution: us}
+    - {name: duration_ns, type: uint64, options.type: duration, options.resolution: ns}
+    - {name: timepoint_days, type: int32, options.type: time_point, options.resolution: day}
+    - {name: timepoint_ns, type: uint64, options.type: time_point, options.resolution: ns}
 # vim: sts=2 sw=2 et

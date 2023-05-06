@@ -2,7 +2,7 @@ pub mod bind;
 pub mod chrono;
 
 pub use bind::*;
-pub use chrono::*;
+pub use self::chrono::*;
 
 pub trait MsgId {
     const MSGID: i32;

@@ -48,7 +48,7 @@ impl Ratio for RatioDay {
     fn num() -> u64 { 86400 }
 }
 
-pub trait Integer: Num + CheckedMul + std::convert::TryFrom<u64> {}
+pub trait Integer: Num + CheckedMul + std::convert::TryFrom<u64> + std::fmt::Display {}
 impl Integer for i8 {}
 impl Integer for u8 {}
 impl Integer for i16 {}
@@ -77,6 +77,7 @@ fn convert<T>(value: T, mul: u64, div: u64) -> Result<T, Error>
 where
     T : Integer,
 {
+    println!("Convert {} * {} / {}", value, mul, div);
     if mul > div {
         let v = T::try_from(mul / div).map_err(|_| Error::Overflow)?;
         value.checked_mul(&v).ok_or(Error::Overflow)
@@ -104,11 +105,11 @@ where
     {
         let value = if std::mem::size_of::<T>() > std::mem::size_of::<T1>() {
             let v0 = T::try_from(value.value).map_err(|_| Error::Overflow)?;
-            let v1 = convert(v0, P::num(), P1::num())?;
-            convert(v1, P1::denom(), P::denom())?
+            let v1 = convert(v0, P1::num(), P::num())?;
+            convert(v1, P::denom(), P1::denom())?
         } else {
-            let v0 = convert(value.value, P::num(), P1::num())?;
-            let v1 = convert(v0, P1::denom(), P::denom())?;
+            let v0 = convert(value.value, P1::num(), P::num())?;
+            let v1 = convert(v0, P::denom(), P1::denom())?;
             T::try_from(v1).map_err(|_| Error::Overflow)?
         };
         Ok(Self::new(value))
@@ -119,7 +120,7 @@ impl<T, P> TryFrom<Duration<T, P>> for std::time::Duration
 where
     T : Integer,
     P : Ratio,
-    u64: From<T>,
+    u64: TryFrom<T>,
 {
     type Error = Error;
     fn try_from(value: Duration<T, P>) -> Result<Self, Self::Error> {
