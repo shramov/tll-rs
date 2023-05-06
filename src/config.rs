@@ -33,16 +33,16 @@ impl Config {
         Config { ptr: ptr }
     }
 
-    pub fn load(url: &str) -> Option<Config>
+    pub fn load(url: &str) -> Result<Config>
     {
         let ptr = unsafe { tll_config_load(url.as_ptr() as *const c_char, url.len() as c_int) };
-        if ptr.is_null() { None } else { Some(Config {ptr: ptr}) }
+        if ptr.is_null() { Err(Error::from("Invalid config data")) } else { Ok(Config {ptr: ptr}) }
     }
 
-    pub fn load_data(proto: &str, data: &str) -> Option<Config>
+    pub fn load_data(proto: &str, data: &str) -> Result<Config>
     {
         let ptr = unsafe { tll_config_load_data(proto.as_ptr() as *const c_char, proto.len() as c_int, data.as_ptr() as *const c_char, data.len() as c_int) };
-        if ptr.is_null() { None } else { Some(Config {ptr: ptr}) }
+        if ptr.is_null() { Err(Error::from("Invalid config data")) } else { Ok(Config {ptr: ptr}) }
     }
 
     pub fn copy(&self) -> Self

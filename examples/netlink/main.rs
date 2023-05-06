@@ -209,8 +209,8 @@ impl CallbackMut<PowerCallback> for SystemState {
 pub fn main() -> tll::error::Result<()> {
     let mut state = SystemState::default();
 
-    let cfg = Config::load_data("yamls", "{type: spdlog}").unwrap();
-    Logger::config(&cfg).unwrap();
+    let cfg = Config::load_data("yamls", "{type: spdlog}")?;
+    Logger::config(&cfg)?;
 
     let ctx = Context::new();
     ctx.load("/home/psha/src/tll-netlink/build/tll-netlink")?;
