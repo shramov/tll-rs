@@ -142,11 +142,25 @@ impl Context {
         error_check(unsafe { tll_channel_impl_unregister(self.ptr, impl_.as_ptr(), impl_.name().as_ptr()) })
     }
 
-    pub fn load(&self, module : &str, symbol : &str) -> Result<()>
+    pub fn load(&self, module : &str) -> Result<()>
+    {
+        let cmodule = CString::new(module).map_err(|_| Error::from("Internal null byte in module string"))?;
+        if unsafe { tll_channel_module_load(self.ptr, cmodule.as_ptr(), std::ptr::null()) } != 0 {
+            Err(Error::from(format!("Failed to load module '{}'", module)))
+        } else {
+            Ok(())
+        }
+    }
+
+    pub fn load_symbol(&self, module : &str, symbol: &str) -> Result<()>
     {
         let cmodule = CString::new(module).map_err(|_| Error::from("Internal null byte in module string"))?;
         let csymbol = CString::new(symbol).map_err(|_| Error::from("Internal null byte in symbol string"))?;
-        error_check(unsafe { tll_channel_module_load(self.ptr, cmodule.as_ptr(), csymbol.as_ptr()) })
+        if unsafe { tll_channel_module_load(self.ptr, cmodule.as_ptr(), csymbol.as_ptr()) } != 0 {
+            Err(Error::from(format!("Failed to load module '{}' symbol '{}'", module, symbol)))
+        } else {
+            Ok(())
+        }
     }
 
     pub fn get(&self, name: &str) -> Option<Channel>
