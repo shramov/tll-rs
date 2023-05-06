@@ -72,6 +72,8 @@ impl Logger {
     pub fn error(&self, msg: &str) { self.log(Level::Error, msg) }
     pub fn critical(&self, msg: &str) { self.log(Level::Critical, msg) }
 
+    pub fn fail<T>(&self, err: T, msg: &str) -> T { self.error(msg); err }
+
     pub fn config(cfg: &Config) -> Result<()>
     {
         let r = unsafe { tll_logger_config(cfg.as_ptr()) };
