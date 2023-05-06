@@ -94,6 +94,13 @@ impl Message {
         self.0.seq = seq;
         self
     }
+
+    pub fn addr(&self) -> u64 { unsafe { self.0.addr.u64_ } }
+    pub fn set_addr(&mut self, addr : u64) -> &mut Self
+    {
+        self.0.addr.u64_ = addr;
+        self
+    }
 }
 
 #[test]
