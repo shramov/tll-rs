@@ -2,9 +2,11 @@ use tll::channel::*;
 use tll::config::Config;
 use tll::logger::Logger;
 use tll::processor::Loop;
+use tll::error::EINVAL;
 
-use std::convert::TryInto;
-use std::time::Duration;
+use std::fs::File;
+use std::io::{Read, Seek, SeekFrom};
+use ::chrono::{DateTime, Local};
 
 mod netlink_scheme;
 use crate::netlink_scheme::*;
@@ -12,12 +14,20 @@ mod udev_scheme;
 mod timer_scheme;
 use crate::timer_scheme::*;
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 struct SystemState {
-    time: Duration,
+    time: DateTime<Local>,
     link: Option<String>,
-    battery: i32,
+    battery_file: File,
+    battery_buf: [u8; 16],
+    battery: u8, // Percentage
     ac: bool,
+}
+
+impl Default for SystemState {
+    fn default() -> Self {
+        SystemState { time: Local::now(), link: None, battery: 0, ac: false, battery_buf: [0; 16], battery_file: File::open("/sys/class/power_supply/BAT0/capacity").unwrap() }
+    }
 }
 
 enum TimerBind<'a> {
@@ -68,29 +78,27 @@ fn netlink_bind(m: &Message) -> NetlinkBind {
 }
 
 impl SystemState {
-    pub fn on_timer(&mut self, m: &Message) -> i32 {
+    fn update_battery(&mut self) -> tll::error::Result<()> {
+        self.battery_file.seek(SeekFrom::Start(0))?;
+        let size = self.battery_file.read(&mut self.battery_buf)?;
+        let string = std::str::from_utf8(&self.battery_buf[0..size])?.trim();
+        self.battery = u8::from_str_radix(string, 10).map_err(|x| format!("Failed to convert '{string}': {x}"))?;
+        Ok(())
+    }
+
+    pub fn on_timer(&mut self, m: &Message) -> tll::error::Result<()> {
         if m.get_type() != MsgType::Data {
-            return 0;
+            return Ok(());
         }
         match timer_bind(m) {
             TimerBind::RefAbsolute(msg) => {
-                println!("Timer: {:?}", { msg.ts });
-                if let Ok (ts) = TryInto::<Duration>::try_into(msg.ts.value) {
-                    self.time = ts;
-                } else {
-                    println!("Negative timestamp")
-                }
+                self.time = msg.ts.as_local_datetime()?;
             }
             _ => {}
         }
-        /*
-        match m.data().try_into().map(|a| u64::from_ne_bytes(a)) {
-            Ok(r) => self.time = Duration::from_nanos(r),
-            _ => (),
-        }
-        */
+        self.update_battery()?;
         self.dump();
-        0
+        Ok(())
     }
 
     pub fn on_route(&mut self, m: &Message) -> i32 {
@@ -166,7 +174,7 @@ impl SystemState {
     }
 
     pub fn dump(&self) {
-        println!("Time: {:?}, Link: {:?}, AC: {:?}", self.time, self.link, self.ac);
+        println!("Time: {}, Link: {:?}, AC: {:?}, Battery: {:02}", self.time.format("%Y-%m-%d %H:%M:%S"), self.link, self.ac, self.battery);
     }
 }
 
@@ -176,7 +184,13 @@ enum PowerCallback {}
 
 impl CallbackMut<TimerCallback> for SystemState {
     fn message_callback_mut(&mut self, _c: &Channel, m: &Message) -> i32 {
-        self.on_timer(m)
+        match self.on_timer(m) {
+            Ok(_) => 0,
+            Err(e) => {
+                println!("Timer callback failed: {e}");
+                EINVAL
+            }
+        }
     }
 }
 
@@ -192,26 +206,18 @@ impl CallbackMut<PowerCallback> for SystemState {
     }
 }
 
-pub fn main() {
+pub fn main() -> tll::error::Result<()> {
     let mut state = SystemState::default();
 
     let cfg = Config::load_data("yamls", "{type: spdlog}").unwrap();
     Logger::config(&cfg).unwrap();
 
     let ctx = Context::new();
-    ctx.load(
-        "/home/psha/src/tll-netlink/build/tll-netlink",
-        "channel_module",
-    )
-    .expect("Failed to load module");
-    ctx.load(
-        "/home/psha/src/tll-udev/build/tll-udev",
-        "channel_module",
-    )
-    .expect("Failed to load module");
+    ctx.load("/home/psha/src/tll-netlink/build/tll-netlink")?;
+    ctx.load("/home/psha/src/tll-udev/build/tll-udev")?;
 
     let mut netlink = ctx
-        .channel("netlink://;name=netlink;dump=scheme")
+        .channel("netlink://;name=netlink;dump=no")
         .expect("Failed to create channel");
     //netlink.callback_add(&|_, m| state.on_route(m), None).expect("Failed to add callback");
     netlink.callback_add_mut::<SystemState, RouteCallback>(&mut state, None)
