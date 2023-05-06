@@ -77,7 +77,6 @@ fn convert<T>(value: T, mul: u64, div: u64) -> Result<T, Error>
 where
     T : Integer,
 {
-    println!("Convert {} * {} / {}", value, mul, div);
     if mul > div {
         let v = T::try_from(mul / div).map_err(|_| Error::Overflow)?;
         value.checked_mul(&v).ok_or(Error::Overflow)
