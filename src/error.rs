@@ -29,16 +29,21 @@ impl From<String> for Error {
     fn from(e: String) -> Self { Error::from(&e as &str) }
 }
 
-impl From<std::str::Utf8Error> for Error {
-    fn from(_: std::str::Utf8Error) -> Self { Error::from("Invalid utf-8 string") }
-}
-
 impl From<&str> for Error {
     fn from(s: &str) -> Self { Error { code: None, msg: String::from(s) } }
 }
 
 impl From<i32> for Error {
     fn from(e: i32) -> Self { Error { code: Some(e), msg: format!("Error code {}", e) } }
+}
+
+impl From<std::str::Utf8Error> for Error {
+    fn from(_: std::str::Utf8Error) -> Self { Error::from("Invalid utf-8 string") }
+}
+
+impl From<std::io::Error> for Error
+{
+    fn from(e: std::io::Error) -> Self { Self::from(format!("IO error: {}", e)) }
 }
 
 pub fn error_check(r: i32) -> Result<()>
