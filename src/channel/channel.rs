@@ -295,7 +295,12 @@ impl Channel {
 
     pub fn close(&mut self) -> ()
     {
-        unsafe { tll_channel_close(self.ptr, 0) };
+        self.close_force(false)
+    }
+
+    pub fn close_force(&mut self, force: bool) -> ()
+    {
+        unsafe { tll_channel_close(self.ptr, force as i32) };
         ()
     }
 
