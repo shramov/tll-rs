@@ -63,6 +63,10 @@ pub enum Error {
     Overflow,
 }
 
+impl From<Error> for crate::error::Error {
+    fn from(_: Error) -> Self { crate::error::Error::from("Time value overflow") }
+}
+
 #[repr(C)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Duration<T, P>
