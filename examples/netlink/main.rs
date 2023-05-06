@@ -108,8 +108,8 @@ impl SystemState {
         match netlink_bind(m) {
             NetlinkBind::RefLink(msg) => {
                 let name = unsafe { msg.name.as_str_unchecked() };
-                println!("Link: {:?} {} {}", msg.action, name, msg.up);
-                if msg.action == Action::New || msg.up == 1 {
+                //println!("Link: {:?} {} {}", msg.action, name, msg.up);
+                if msg.up == 1 {
                     return 0;
                 }
                 if self.link.as_ref().map(|s| s.as_str()) == Some(name) {
@@ -118,6 +118,7 @@ impl SystemState {
             }
             NetlinkBind::RefRoute4(r4) => {
                 let name = unsafe { r4.oif.as_str_unchecked() };
+                /*
                 println!(
                     "Route4: {:?} {}/{} -> {}",
                     r4.action,
@@ -125,10 +126,11 @@ impl SystemState {
                     r4.dst_mask,
                     name
                 );
+                */
                 if r4.dst_mask != 0 {
                     return 0;
                 }
-                println!("Default route");
+                //println!("Default route");
                 match r4.action {
                     Action::New => self.link = Some(name.to_string()),
                     Action::Delete => self.link = None,
@@ -137,7 +139,7 @@ impl SystemState {
             }
             _ => (),
         }
-        self.dump();
+        //self.dump();
         0
     }
 
@@ -169,12 +171,14 @@ impl SystemState {
                 }
             }
         }
-        self.dump();
+        //self.dump();
         0
     }
 
     pub fn dump(&self) {
-        println!("Time: {}, Link: {:?}, AC: {:?}, Battery: {:02}", self.time.format("%Y-%m-%d %H:%M:%S"), self.link, self.ac, self.battery);
+        let link : &str = self.link.as_ref().map(String::as_str).unwrap_or("-");
+        let ac_sym = if self.ac { "🗲" } else { "" };
+        println!("{} {} {}{:02}%", self.time.format("%Y-%m-%d %H:%M:%S"), link, ac_sym, self.battery);
     }
 }
 
@@ -209,7 +213,7 @@ impl CallbackMut<PowerCallback> for SystemState {
 pub fn main() -> tll::error::Result<()> {
     let mut state = SystemState::default();
 
-    let cfg = Config::load_data("yamls", "{type: spdlog}")?;
+    let cfg = Config::load_data("yamls", "{type: spdlog, levels.tll: error}")?;
     Logger::config(&cfg)?;
 
     let ctx = Context::new();
@@ -217,7 +221,7 @@ pub fn main() -> tll::error::Result<()> {
     ctx.load("/home/psha/src/tll-udev/build/tll-udev")?;
 
     let mut netlink = ctx
-        .channel("netlink://;name=netlink;dump=no")
+        .channel("netlink://;name=netlink;dump=scheme;addr=no;neigh=no")
         .expect("Failed to create channel");
     //netlink.callback_add(&|_, m| state.on_route(m), None).expect("Failed to add callback");
     netlink.callback_add_mut::<SystemState, RouteCallback>(&mut state, None)

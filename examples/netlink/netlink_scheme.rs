@@ -37,7 +37,10 @@ impl Binder for RType {}
 #[repr(C, packed(1))]
 #[derive(Debug, Clone, Copy)]
 pub struct Link {
+    pub pmap: u16,
     pub action: Action,
+    pub type_: u16,
+    pub type_raw: u16,
     pub index: i32,
     pub name: tll::scheme::ByteString<16>,
     pub up: u8,
