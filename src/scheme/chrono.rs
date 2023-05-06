@@ -8,41 +8,41 @@ pub trait Ratio {
     fn denom() -> u64 { 1 }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Nano {}
 impl Ratio for Nano {
     fn denom() -> u64 { 1000000000 }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Micro {}
 impl Ratio for Micro {
     fn denom() -> u64 { 1000000 }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Milli {}
 impl Ratio for Milli {
     fn denom() -> u64 { 1000 }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Ratio1 {}
 impl Ratio for Ratio1 {}
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct RatioMinute {}
 impl Ratio for RatioMinute {
     fn num() -> u64 { 60 }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct RatioHour {}
 impl Ratio for RatioHour {
     fn num() -> u64 { 3600 }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct RatioDay {}
 impl Ratio for RatioDay {
     fn num() -> u64 { 86400 }
@@ -64,7 +64,7 @@ pub enum Error {
 }
 
 #[repr(C)]
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Duration<T, P>
 where
     P: Ratio, //, T : Clone + Copy
@@ -129,7 +129,7 @@ where
 }
 
 #[repr(C)]
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct TimePoint<T, P>
 where
     P: Ratio,
@@ -196,3 +196,17 @@ where
 
 impl<T, P> Binder for Duration<T, P> where P: Ratio {}
 impl<T, P> Binder for TimePoint<T, P> where P: Ratio {}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn bench() {
+        let u32s = Duration::<u32, Ratio1>::new(1234);
+        assert_eq!(Duration::<u32, Milli>::from_duration(u32s), Ok(Duration::<u32, Milli>::new(1234 * 1000)));
+        assert_eq!(Duration::<u32, Nano>::from_duration(u32s), Err(Error::Overflow));
+        assert_eq!(Duration::<i16, RatioMinute>::from_duration(u32s), Ok(Duration::<i16, RatioMinute>::new(20)));
+        assert_eq!(Duration::<i64, Nano>::from_duration(u32s), Ok(Duration::<i64, Nano>::new(1234 * 1000000000)));
+    }
+}
