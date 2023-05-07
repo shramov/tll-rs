@@ -48,7 +48,7 @@ config:
         timepoint_days: 2023-05-06
         timepoint_ns: 2023-05-06T12:34:56.0000000789
 scheme: {}
-", SCHEME_STRING)).ok_or("Failed to load config")?;
+", SCHEME_STRING))?;
 
     let mut c = ctx.channel_url(&url)?;
     let mut r = Err(Error::from("No message received"));
