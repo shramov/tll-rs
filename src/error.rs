@@ -53,3 +53,21 @@ pub fn error_check(r: i32) -> Result<()>
         e => Err(Error::from(e))
     }
 }
+
+pub fn error_check_str(r: i32, message: &str) -> Result<()>
+{
+    match r {
+        0 => Ok(()),
+        e => Err(Error { code: Some(e), msg: message.to_string() })
+    }
+}
+
+pub fn error_check_fn<F>(r: i32, func: F) -> Result<()>
+where
+    F : FnOnce() -> String,
+{
+    match r {
+        0 => Ok(()),
+        e => Err(Error { code: Some(e), msg: func() })
+    }
+}

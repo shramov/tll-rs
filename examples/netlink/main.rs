@@ -220,35 +220,26 @@ pub fn main() -> tll::error::Result<()> {
     ctx.load("/home/psha/src/tll-netlink/build/tll-netlink")?;
     ctx.load("/home/psha/src/tll-udev/build/tll-udev")?;
 
-    let mut netlink = ctx
-        .channel("netlink://;name=netlink;dump=scheme;addr=no;neigh=no")
-        .expect("Failed to create channel");
+    let mut netlink = ctx.channel("netlink://;name=netlink;dump=scheme;addr=no;neigh=no")?;
     //netlink.callback_add(&|_, m| state.on_route(m), None).expect("Failed to add callback");
-    netlink.callback_add_mut::<SystemState, RouteCallback>(&mut state, None)
-        .expect("Failed to add callback");
+    netlink.callback_add_mut::<SystemState, RouteCallback>(&mut state, None)?;
 
-    let mut udev = ctx
-        .channel("udev://;name=udev;dump=scheme;subsystem=power_supply")
-        .expect("Failed to create channel");
-    netlink.callback_add_mut::<SystemState, PowerCallback>(&mut state, None)
-        .expect("Failed to add callback");
+    let mut udev = ctx.channel("udev://;name=udev;dump=scheme;subsystem=power_supply")?;
+    netlink.callback_add_mut::<SystemState, PowerCallback>(&mut state, None)?;
 
-    let mut tc = ctx
-        .channel("timer://;interval=1s;clock=realtime;dump=frame;name=timer;skip-old=yes")
-        .expect("Failed to create channel");
+    let mut tc = ctx.channel("timer://;interval=1s;clock=realtime;dump=frame;name=timer;skip-old=yes")?;
 
     //tc.callback_add_mut(&|_, m| state.on_timer(m), None).expect("Failed to add callback");
-    tc.callback_add_mut::<SystemState, TimerCallback>(&mut state, None)
-        .expect("Failed to add callback");
+    tc.callback_add_mut::<SystemState, TimerCallback>(&mut state, None)?;
 
-    let mut l = Loop::new("rust");
-    l.add(&mut netlink).expect("Failed to add channel to loop");
-    l.add(&mut udev).expect("Failed to add channel to loop");
-    l.add(&mut tc).expect("Failed to add channel to loop");
-    tc.open("").expect("Failed to open channel");
-    netlink.open("").expect("Failed to open channel");
-    udev.open("").expect("Failed to open channel");
+    let mut l = Loop::new("rust")?;
+    l.add(&mut netlink)?;
+    l.add(&mut udev)?;
+    l.add(&mut tc)?;
+    tc.open("")?;
+    netlink.open("")?;
+    udev.open("")?;
     loop {
-        l.step(1000).expect("Step failed");
+        l.step(1000)?;
     }
 }

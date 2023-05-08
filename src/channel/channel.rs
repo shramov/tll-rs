@@ -117,29 +117,27 @@ impl Context {
     pub fn channel(&self, url: &str) -> Result<OwnedChannel>
     {
         let ptr = unsafe { tll_channel_new(self.ptr, url.as_ptr() as *const c_char, url.len(), std::ptr::null_mut::<tll_channel_t>(), std::ptr::null::<tll_channel_impl_t>()) };
-        if ptr.is_null() { Err(Error::from("Invalid argument")) } else { Ok(OwnedChannel(Channel {ptr: ptr})) }
+        if ptr.is_null() { Err(Error::from("Failed to create channel")) } else { Ok(OwnedChannel(Channel {ptr: ptr})) }
     }
 
     pub fn channel_url(&self, url: &Config) -> Result<OwnedChannel>
     {
         let ptr = unsafe { tll_channel_new_url(self.ptr, url.as_ptr(), std::ptr::null_mut::<tll_channel_t>(), std::ptr::null::<tll_channel_impl_t>()) };
-        if ptr.is_null() { Err(Error::from("Invalid argument")) } else { Ok(OwnedChannel(Channel {ptr: ptr})) }
+        if ptr.is_null() { Err(Error::from("Failed to create channel")) } else { Ok(OwnedChannel(Channel {ptr: ptr})) }
     }
 
     pub fn register<T>(&self, impl_ : &'static CImpl::<T>) -> Result<()>
     where
         T : ChannelImpl
     {
-        println!("Impl {:?} {:?}", impl_.name(), impl_.as_ptr());
-        error_check(unsafe { tll_channel_impl_register(self.ptr, impl_.as_ptr(), impl_.name().as_ptr()) })
+        error_check_str(unsafe { tll_channel_impl_register(self.ptr, impl_.as_ptr(), impl_.name().as_ptr()) }, "Failed to register impl")
     }
 
     pub fn unregister<T>(&self, impl_ : &'static CImpl::<T>) -> Result<()>
     where
         T : ChannelImpl
     {
-        println!("Unreg Impl {:?} {:?}", impl_.name(), impl_.as_ptr());
-        error_check(unsafe { tll_channel_impl_unregister(self.ptr, impl_.as_ptr(), impl_.name().as_ptr()) })
+        error_check_str(unsafe { tll_channel_impl_unregister(self.ptr, impl_.as_ptr(), impl_.name().as_ptr()) }, "Failed to unregister impl")
     }
 
     pub fn load(&self, module : &str) -> Result<()>
@@ -303,12 +301,12 @@ impl Channel {
 
     pub fn open(&mut self, props: &str) -> Result<()>
     {
-        error_check(unsafe { tll_channel_open(self.ptr, props.as_ptr() as *const c_char, props.len()) })
+        error_check_str(unsafe { tll_channel_open(self.ptr, props.as_ptr() as *const c_char, props.len()) }, "Failed to open channel")
     }
 
     pub fn open_cfg(&mut self, cfg: &Config) -> Result<()>
     {
-        error_check(unsafe { tll_channel_open_cfg(self.ptr, cfg.as_ptr()) })
+        error_check_str(unsafe { tll_channel_open_cfg(self.ptr, cfg.as_ptr()) }, "Failed to open channel")
     }
 
     pub fn close(&mut self) -> ()
@@ -326,16 +324,16 @@ impl Channel {
         where F : Callback<T>
     {
         let fptr = f as * const F as * mut F;
-        println!("Callback add {:?}", fptr);
-        error_check(unsafe { tll_channel_callback_add(self.ptr, Some(callback_wrap::<F, T>), fptr as * mut c_void, mask.unwrap_or(MsgMask::All as u32)) })
+        let r = unsafe { tll_channel_callback_add(self.ptr, Some(callback_wrap::<F, T>), fptr as * mut c_void, mask.unwrap_or(MsgMask::All as u32)) };
+        error_check_str(r, "Failed to add callback")
     }
 
     pub fn callback_add_mut<F, T>(&mut self, f: &mut F, mask: Option<u32>) -> Result<()>
         where F : CallbackMut<T>
     {
         let fptr = f as * mut F;
-        //println!("Callback add {:?}", fptr);
-        error_check(unsafe { tll_channel_callback_add(self.ptr, Some(callback_wrap_mut::<F, T>), fptr as * mut c_void, mask.unwrap_or(MsgMask::All as u32)) })
+        let r = unsafe { tll_channel_callback_add(self.ptr, Some(callback_wrap_mut::<F, T>), fptr as * mut c_void, mask.unwrap_or(MsgMask::All as u32)) };
+        error_check_str(r, "Failed to add callback")
     }
 
     pub fn process(&mut self) -> Result<i32>
@@ -349,6 +347,6 @@ impl Channel {
 
     pub fn post(&mut self, msg : &Message) -> Result<()>
     {
-        error_check(unsafe { tll_channel_post(self.ptr, msg.deref(), 0) })
+        error_check_str(unsafe { tll_channel_post(self.ptr, msg.deref(), 0) }, "Post failed")
     }
 }
