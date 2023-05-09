@@ -25,15 +25,15 @@ impl From<c_short> for MsgType {
     }
 }
 
-impl Into<c_short> for MsgType {
-    fn into(self) -> i16
+impl From<MsgType> for c_short {
+    fn from(value: MsgType) -> c_short
     {
-        match self {
-            MsgType::Data => TLL_MESSAGE_DATA as i16,
-            MsgType::Control => TLL_MESSAGE_CONTROL as i16,
-            MsgType::State => TLL_MESSAGE_STATE as i16,
-            MsgType::Channel => TLL_MESSAGE_CHANNEL as i16,
-            MsgType::Unknown(r) => r as i16
+        match value {
+            MsgType::Data => TLL_MESSAGE_DATA as c_short,
+            MsgType::Control => TLL_MESSAGE_CONTROL as c_short,
+            MsgType::State => TLL_MESSAGE_STATE as c_short,
+            MsgType::Channel => TLL_MESSAGE_CHANNEL as c_short,
+            MsgType::Unknown(r) => r as c_short
         }
     }
 }
