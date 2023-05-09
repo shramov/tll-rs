@@ -7,7 +7,7 @@
 
 pub use tll::scheme::*;
 
-pub const SCHEME_STRING : &str = "yamls+gz://eJylktuKgzAQhu/7FHMXKCusrRTxVZZFYpOWAY2Sw4WUvvtmBN0c7LLL3mXMl2/yZyxA8UE2wIzr2AHghrIXpvErgAIe62bN3sDOE61R2Zo9D8V6cDB3OoiigfL9pQFzQwy4AHC7BJaXyOHLTBIibp/B8ynS+DLThIjbZ/BSRRpfpsgtRMToul5mjChPQXAhrzjwnr6l4DWM1s1WLvU4WRyVaeDBaIvRrKxGdWfPVNDV8fm8Bde6Sp7mo/rMsMnqb+q4H53+po2hIsvtNKert86k04hSaWnG3lFJ2RZ4S7o68qybXZl4kMtEXurVL/UWBzmNXtcKPv/l/h4PO5CnXUQ/9fhPhrjDF/4MKXc=";
+pub const SCHEME_STRING : &str = "yamls+gz://eJylkt2KgzAQRu/7FLkLlBXWVor4KssisUnLgEbJz4WUvvtmBN3EyZZd9i5jTs7ky1gwLQbVMG59xw+M3UD10jZhxVjBHutmzd+Ymydcg3Y1fx6K9eBg73gQZMPK9x8NQA0p4CPAZwkoL4kjlEQSIz7PwPmUaEJJNDHi8wxcqkQTSqKJEZ9nbjEjR9/1ijCyPEWPI9UVBtHjtz14jeN3s1NLPU4ORm0b9uC4xXGezoC+8+de0NXpedpCGFPtnu+j+iTY5Mw3dcxHxz9uY7Agub0RePXW2/3EklRG2bH3WGK2Bd6Srg6adbNrS6b0Qq9/qXcwqGkMulaK+S/3D3jcAT3tInrV4z8Z0g5fMvYzTg==";
 
 #[repr(C, packed(1))]
 #[derive(Debug, Clone, Copy)]
@@ -33,6 +33,7 @@ pub struct msg {
     pub i32: i32,
     pub u32: u32,
     pub i64: i64,
+    pub u64: u64,
     pub f64: f64,
     pub d128: tll::decimal128::Decimal128,
     pub c16: tll::scheme::ByteString<16>,
@@ -60,17 +61,18 @@ impl Binder for msg {
         <i32 as Binder>::bind(&data[6..])?; // i32
         <u32 as Binder>::bind(&data[10..])?; // u32
         <i64 as Binder>::bind(&data[14..])?; // i64
-        <f64 as Binder>::bind(&data[22..])?; // f64
-        <tll::decimal128::Decimal128 as Binder>::bind(&data[30..])?; // d128
-        <tll::scheme::ByteString<16> as Binder>::bind(&data[46..])?; // c16
-        <[u8; 8] as Binder>::bind(&data[62..])?; // b8
-        <tll::scheme::Array<i32, i8, 4> as Binder>::bind(&data[70..])?; // arr4
-        <tll::scheme::OffsetPtr<i64> as Binder>::bind(&data[87..])?; // ptr
-        <sub as Binder>::bind(&data[95..])?; // sub
-        <tll::scheme::Duration<i32, tll::scheme::Micro> as Binder>::bind(&data[96..])?; // duration_us
-        <tll::scheme::Duration<u64, tll::scheme::Nano> as Binder>::bind(&data[100..])?; // duration_ns
-        <tll::scheme::TimePoint<i32, tll::scheme::RatioDay> as Binder>::bind(&data[108..])?; // timepoint_days
-        <tll::scheme::TimePoint<u64, tll::scheme::Nano> as Binder>::bind(&data[112..])?; // timepoint_ns
+        <u64 as Binder>::bind(&data[22..])?; // u64
+        <f64 as Binder>::bind(&data[30..])?; // f64
+        <tll::decimal128::Decimal128 as Binder>::bind(&data[38..])?; // d128
+        <tll::scheme::ByteString<16> as Binder>::bind(&data[54..])?; // c16
+        <[u8; 8] as Binder>::bind(&data[70..])?; // b8
+        <tll::scheme::Array<i32, i8, 4> as Binder>::bind(&data[78..])?; // arr4
+        <tll::scheme::OffsetPtr<i64> as Binder>::bind(&data[95..])?; // ptr
+        <sub as Binder>::bind(&data[103..])?; // sub
+        <tll::scheme::Duration<i32, tll::scheme::Micro> as Binder>::bind(&data[104..])?; // duration_us
+        <tll::scheme::Duration<u64, tll::scheme::Nano> as Binder>::bind(&data[108..])?; // duration_ns
+        <tll::scheme::TimePoint<i32, tll::scheme::RatioDay> as Binder>::bind(&data[116..])?; // timepoint_days
+        <tll::scheme::TimePoint<u64, tll::scheme::Nano> as Binder>::bind(&data[120..])?; // timepoint_ns
         Some(unsafe { bind_unchecked::<Self>(data) })
     }
 }

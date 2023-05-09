@@ -3,6 +3,7 @@ use tll_sys::channel::*;
 use crate::config::Config;
 use crate::channel::impl_::{ChannelImpl, CImpl};
 use crate::error::*;
+use crate::scheme::Scheme;
 
 pub use crate::channel::message::*;
 pub use crate::channel::caps::*;
@@ -12,7 +13,7 @@ use std::ops::Deref;
 
 use std::ffi::CStr;
 use std::ffi::CString;
-use std::os::raw::{c_char, c_int, c_void};
+use std::os::raw::{c_char, c_short, c_int, c_void};
 
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum State {
@@ -297,6 +298,17 @@ impl Channel {
     pub fn config(&self) -> Config
     {
         Config::consume(unsafe { tll_channel_config(self.ptr) })
+    }
+
+    pub fn scheme(&self) -> Option<Scheme> { self.scheme_type(MsgType::Data) }
+    pub fn scheme_control(&self) -> Option<Scheme> { self.scheme_type(MsgType::Control) }
+    pub fn scheme_type(&self, type_: MsgType) -> Option<Scheme> {
+        let ptr = unsafe { tll_channel_scheme(self.ptr, c_short::from(type_) as c_int) };
+        if ptr.is_null() {
+            None
+        } else {
+            Some(Scheme::from(ptr))
+        }
     }
 
     pub fn open(&mut self, props: &str) -> Result<()>

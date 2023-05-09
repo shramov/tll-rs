@@ -2,9 +2,11 @@ use std::cmp::max;
 
 pub mod bind;
 pub mod chrono;
+pub mod scheme;
 
 pub use bind::*;
 pub use self::chrono::*;
+pub use self::scheme::Scheme;
 
 pub trait MsgId {
     const MSGID: i32;
