@@ -56,10 +56,10 @@ impl From<tll_state_t> for State {
     }
 }
 
-impl Into<tll_state_t> for State {
-    fn into(self) -> tll_state_t
+impl From<State> for tll_state_t {
+    fn from(v: State) -> Self
     {
-        self as tll_state_t
+        v as tll_state_t
     }
 }
 
