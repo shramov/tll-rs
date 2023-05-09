@@ -98,6 +98,8 @@ scheme: {}
 
     {
         assert_eq!(msg.name(), "sub");
+        assert_eq!(msg.size(), 1);
+        assert_eq!(msg.msgid(), 0);
         let names = msg.fields().map(|x| x.name()).collect::<Vec<&str>>();
         assert_eq!(names, ["s8"]);
     }
@@ -106,6 +108,8 @@ scheme: {}
     assert!(omsg.is_some());
     msg = omsg.unwrap();
     assert_eq!(msg.name(), "msg");
+    assert_eq!(msg.size(), 128);
+    assert_eq!(msg.msgid(), 10);
     {
         use tll::scheme::scheme::{TypeRaw, Type, SubType, TimeResolution, PointerVersion};
 

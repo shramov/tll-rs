@@ -307,6 +307,14 @@ impl<'a> Message<'a> {
         }
     }
 
+    pub fn size(&self) -> usize {
+        unsafe { (*self.data.ptr).size }
+    }
+
+    pub fn msgid(&self) -> i32 {
+        unsafe { (*self.data.ptr).msgid }
+    }
+
     pub fn fields(&self) -> FieldIter 
     {
         FieldIter { data: Pointer::new(unsafe { (*self.data.ptr).fields }) }
