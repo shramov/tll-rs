@@ -8,7 +8,7 @@ use tll_sys::channel::tll_state_t;
 #[derive(Debug)]
 struct TestPrefix {
     base: Base,
-    child: Option<OwnedChannel>,
+    child: OwnedChannel,
 }
 
 impl Default for TestPrefix
@@ -17,16 +17,8 @@ impl Default for TestPrefix
     {
         Self {
             base: Base::default(),
-            child: None,
+            child: unsafe { OwnedChannel::new_null() },
         }
-    }
-}
-
-impl Drop for TestPrefix
-{
-    fn drop(&mut self)
-    {
-        self.child = None;
     }
 }
 
@@ -90,7 +82,7 @@ impl ChannelImpl for TestPrefix {
             }
             Ok(mut c) => {
                 c.callback_add_mut(self, None)?;
-                self.child = Some(c)
+                self.child = c
             }
         }
         Ok(())
@@ -98,23 +90,19 @@ impl ChannelImpl for TestPrefix {
 
     fn free(&mut self)
     {
-        self.child = None;
+        self.child = unsafe { OwnedChannel::new_null() }
     }
 
     fn open(&mut self, url: &Config) -> Result<()> {
-        if let Some(c) = &mut self.child {
-            c.open_cfg(&url)
-        } else {
-            Err(Error::from(EINVAL))
-        }
+        self.child.open_cfg(&url)
+    }
+
+    fn close(&mut self, force: bool) -> () {
+        self.child.close_force(force)
     }
 
     fn post(&mut self, msg: &Message) -> Result<()> {
-        if let Some(c) = &mut self.child {
-            c.post(msg)
-        } else {
-            Err(Error::from(EINVAL))
-        }
+        self.child.post(msg)
     }
 }
 

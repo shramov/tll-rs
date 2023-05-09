@@ -188,7 +188,7 @@ impl OwnedChannel {
     pub fn get(&self) -> &Channel { &self.0 }
     pub fn get_mut(&mut self) -> &mut Channel { &mut self.0 }
 
-    pub unsafe fn from_null() -> Self { OwnedChannel( Channel { ptr: std::ptr::null_mut() } ) }
+    pub unsafe fn new_null() -> Self { OwnedChannel( Channel { ptr: std::ptr::null_mut() } ) }
 }
 
 impl Drop for OwnedChannel {

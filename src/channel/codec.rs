@@ -5,11 +5,20 @@ use crate::config::Config;
 use crate::error::*;
 use tll_sys::channel::tll_state_t;
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Codec<T: CodecImpl> {
     base: Base,
     codec: T,
-    child: Option<OwnedChannel>,
+    child: OwnedChannel,
+}
+
+impl<T> Default for Codec<T>
+where
+    T : CodecImpl
+{
+    fn default() -> Self {
+        Codec { base: Base::default(), codec: T::default(), child: unsafe { OwnedChannel::new_null() } }
+    }
 }
 
 pub trait CodecImpl: Default {
@@ -19,7 +28,7 @@ pub trait CodecImpl: Default {
 
 impl<T: CodecImpl> Drop for Codec<T> {
     fn drop(&mut self) {
-        self.child = None
+        self.child = unsafe { OwnedChannel::new_null() };
     }
 }
 
@@ -75,7 +84,7 @@ impl<T: CodecImpl> ChannelImpl for Codec<T> {
             }
             Ok(mut c) => {
                 c.callback_add_mut(self, None)?;
-                self.child = Some(c);
+                self.child = c;
             }
         }
         self.inner_mut().init(url, master, ctx)
@@ -85,16 +94,16 @@ impl<T: CodecImpl> ChannelImpl for Codec<T> {
 
     fn open(&mut self, cfg: &Config) -> Result<()> {
         self.inner_mut().open(cfg)?;
-        self.child.as_mut().unwrap().open_cfg(cfg)
+        self.child.open_cfg(cfg)
     }
 
-    fn close(&mut self, _force: bool) {
-        self.child.as_mut().unwrap().close()
+    fn close(&mut self, force: bool) {
+        self.child.close_force(force)
     }
 
     fn post(&mut self, msg: &Message) -> Result<()> {
         let m = self.codec.encode(msg)?;
-        self.child.as_mut().unwrap().post(&m)
+        self.child.post(&m)
     }
 
     fn process(&mut self) -> Result<i32> {
@@ -157,7 +166,7 @@ impl<T: CodecImpl> Codec<T> {
             _ => self.on_other(msg),
         };
         if let Err(e) = r {
-            self.logger().error(&format!("Failed to handle message {:?}: {:?}", msg, e));
+            self.logger().error(&format!("Failed to handle message {:?}: {}", msg, e));
             if self.state() != State::Closed { self.set_state(State::Error); }
             return EINVAL;
         }
