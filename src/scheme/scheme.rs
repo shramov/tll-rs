@@ -350,7 +350,7 @@ impl<'a> Field<'a> {
         TypeRaw::from(unsafe { (*self.data.ptr).type_ })
     }
 
-    pub fn type_(&self) -> Type {
+    pub fn get_type(&self) -> Type {
         match self.type_raw() {
             TypeRaw::Int8 => Type::Int8,
             TypeRaw::Int16 => Type::Int16,

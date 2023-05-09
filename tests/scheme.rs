@@ -144,29 +144,29 @@ scheme: {}
         assert_eq!(sub.type_ptr(), None);
         assert_eq!(sub.type_msg().map(|x| x.name()), Some("sub"));
         assert_eq!(sub.type_msg(), scheme.messages().find(|x| x.name() == "sub"));
-        assert_eq!(sub.type_(), Type::Message(sub.type_msg().unwrap()));
+        assert_eq!(sub.get_type(), Type::Message(sub.type_msg().unwrap()));
 
-        assert_eq!(msg.fields().find(|x| x.name() == "b8").as_ref().map(|x| x.type_()), Some(Type::Bytes(8)));
+        assert_eq!(msg.fields().find(|x| x.name() == "b8").as_ref().map(|x| x.get_type()), Some(Type::Bytes(8)));
 
         let mut f = msg.fields().find(|x| x.name() == "arr4").unwrap();
-        match f.type_() {
+        match f.get_type() {
             Type::Array {capacity, counter, data} => {
                 assert_eq!(capacity, 4);
                 assert_eq!(counter.name(), "arr4_count");
-                assert_eq!(counter.type_(), Type::Int8);
+                assert_eq!(counter.get_type(), Type::Int8);
                 assert_eq!(data.name(), "arr4");
-                assert_eq!(data.type_(), Type::Int32);
+                assert_eq!(data.get_type(), Type::Int32);
                 assert_eq!(data.offset(), counter.size());
             },
             t => panic!("Invalid array type: {:?}", t),
         }
 
         f = msg.fields().find(|x| x.name() == "ptr").unwrap();
-        match f.type_() {
+        match f.get_type() {
             Type::Pointer {version, data} => {
                 assert_eq!(version, PointerVersion::Default);
                 assert_eq!(data.name(), "ptr");
-                assert_eq!(data.type_(), Type::Int64);
+                assert_eq!(data.get_type(), Type::Int64);
             },
             t => panic!("Invalid array type: {:?}", t),
         }
