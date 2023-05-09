@@ -5,7 +5,7 @@ BINDGEN_OPTIONS += --raw-line "\#![allow(dead_code, non_camel_case_types, non_up
 TLL := $(HOME)/src/tll
 INCLUDE := -I$(TLL)/src
 
-all: src/logger.rs src/config.rs src/channel.rs src/processor.rs src/processor_loop.rs
+all: src/logger.rs src/config.rs src/channel.rs src/processor.rs src/processor_loop.rs src/scheme.rs
 
 src/logger.rs: $(TLL)/src/tll/logger.h
 	bindgen -o $@ $(BINDGEN_OPTIONS) \
@@ -17,8 +17,8 @@ src/logger.rs: $(TLL)/src/tll/logger.h
 src/config.rs: $(TLL)/src/tll/config.h
 	bindgen -o $@ $(BINDGEN_OPTIONS) --allowlist-type tll_config.* --allowlist-function tll_config.* $< -- $(INCLUDE)
 
-src/channel/msg.rs: $(TLL)/src/tll/channel.h
-	bindgen -o $@ $(BINDGEN_OPTIONS) --allowlist-type 'tll_(msg|message).*' --allowlist-function tll_msg.* $< -- $(INCLUDE)
+src/scheme.rs: $(TLL)/src/tll/scheme.h
+	bindgen -o $@ $(BINDGEN_OPTIONS) --allowlist-type 'tll_scheme.*' --allowlist-function tll_scheme.* $< -- $(INCLUDE)
 
 src/channel.rs: $(TLL)/src/tll/channel/module.h
 	bindgen -o $@ $(BINDGEN_OPTIONS) \
