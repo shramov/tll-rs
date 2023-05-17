@@ -178,7 +178,7 @@ impl SystemState {
     pub fn dump(&self) {
         let link : &str = self.link.as_ref().map(String::as_str).unwrap_or("-");
         let ac_sym = if self.ac { "🗲" } else { "" };
-        println!("{} {} {}{:02}%", self.time.format("%Y-%m-%d %H:%M:%S"), link, ac_sym, self.battery);
+        println!("{} {} {}{:2}%", self.time.format("%Y-%m-%d %H:%M:%S"), link, ac_sym, self.battery);
     }
 }
 
@@ -225,7 +225,7 @@ pub fn main() -> tll::error::Result<()> {
     netlink.callback_add_mut::<SystemState, RouteCallback>(&mut state, None)?;
 
     let mut udev = ctx.channel("udev://;name=udev;dump=scheme;subsystem=power_supply")?;
-    netlink.callback_add_mut::<SystemState, PowerCallback>(&mut state, None)?;
+    udev.callback_add_mut::<SystemState, PowerCallback>(&mut state, None)?;
 
     let mut tc = ctx.channel("timer://;interval=1s;clock=realtime;dump=frame;name=timer;skip-old=yes")?;
 
