@@ -92,7 +92,7 @@ impl std::fmt::Debug for OffsetString {
 impl OffsetString {
     pub fn size(&self) -> usize { max(self.ptr.size(), 1) - 1 }
     pub fn as_str(&self) -> Result<&str, std::str::Utf8Error> {
-        unsafe { std::str::from_utf8(self.ptr.data()) }
+        unsafe { std::str::from_utf8(&self.ptr.data()[..self.size()]) }
     }
     pub unsafe fn as_str_unchecked(&self) -> &str {
         std::str::from_utf8_unchecked(self.ptr.data())
