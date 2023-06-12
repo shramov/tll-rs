@@ -146,6 +146,13 @@ extern "C" {
     ) -> *mut ::std::os::raw::c_char;
 }
 extern "C" {
+    pub fn tll_config_get_url(
+        arg1: *const tll_config_t,
+        path: *const ::std::os::raw::c_char,
+        plen: ::std::os::raw::c_int,
+    ) -> *mut tll_config_t;
+}
+extern "C" {
     pub fn tll_config_list(
         arg1: *const tll_config_t,
         cb: tll_config_callback_t,
