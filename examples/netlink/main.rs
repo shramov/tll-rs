@@ -10,6 +10,7 @@ use ::chrono::{DateTime, Local};
 
 mod netlink_scheme;
 use crate::netlink_scheme::*;
+mod nl80211_scheme;
 mod udev_scheme;
 mod timer_scheme;
 use crate::timer_scheme::*;
@@ -18,6 +19,7 @@ use crate::timer_scheme::*;
 struct SystemState {
     time: DateTime<Local>,
     link: Option<String>,
+    ssid: Option<String>,
     battery_file: File,
     battery_buf: [u8; 16],
     battery: u8, // Percentage
@@ -26,7 +28,7 @@ struct SystemState {
 
 impl Default for SystemState {
     fn default() -> Self {
-        SystemState { time: Local::now(), link: None, battery: 0, ac: false, battery_buf: [0; 16], battery_file: File::open("/sys/class/power_supply/BAT0/capacity").unwrap() }
+        SystemState { time: Local::now(), link: None, ssid: None, battery: 0, ac: false, battery_buf: [0; 16], battery_file: File::open("/sys/class/power_supply/BAT0/capacity").unwrap() }
     }
 }
 
@@ -143,6 +145,24 @@ impl SystemState {
         0
     }
 
+    pub fn on_nl80211(&mut self, m: &Message) -> i32 {
+        if m.get_type() != MsgType::Data {
+            return 0;
+        }
+        if m.msgid != nl80211_scheme::Interface::MSGID {
+            return 0;
+        }
+        if let Some (data) = nl80211_scheme::Interface::bind(m.data()) {
+            match data.ssid.as_str() {
+                Ok("") => self.ssid = None,
+                Ok(ssid) => self.ssid = Some(ssid.into()),
+                Err(_) => self.ssid = None,
+            }
+        }
+        //self.dump();
+        0
+    }
+
     pub fn on_power(&mut self, m: &Message) -> i32 {
         if m.get_type() != MsgType::Data {
             return 0;
@@ -176,7 +196,7 @@ impl SystemState {
     }
 
     pub fn dump(&self) {
-        let link : &str = self.link.as_ref().map(String::as_str).unwrap_or("-");
+        let link : &str = self.ssid.as_ref().or(self.link.as_ref()).map(String::as_str).unwrap_or("-");
         let ac_sym = if self.ac { "🗲" } else { "" };
         println!("{} {} {}{:2}%", self.time.format("%Y-%m-%d %H:%M:%S"), link, ac_sym, self.battery);
     }
@@ -184,6 +204,7 @@ impl SystemState {
 
 enum TimerCallback {}
 enum RouteCallback {}
+enum NL80211Callback {}
 enum PowerCallback {}
 
 impl CallbackMut<TimerCallback> for SystemState {
@@ -201,6 +222,12 @@ impl CallbackMut<TimerCallback> for SystemState {
 impl CallbackMut<RouteCallback> for SystemState {
     fn message_callback_mut(&mut self, _c: &Channel, m: &Message) -> i32 {
         self.on_route(m)
+    }
+}
+
+impl CallbackMut<NL80211Callback> for SystemState {
+    fn message_callback_mut(&mut self, _c: &Channel, m: &Message) -> i32 {
+        self.on_nl80211(m)
     }
 }
 
@@ -224,6 +251,9 @@ pub fn main() -> tll::error::Result<()> {
     //netlink.callback_add(&|_, m| state.on_route(m), None).expect("Failed to add callback");
     netlink.callback_add_mut::<SystemState, RouteCallback>(&mut state, None)?;
 
+    let mut nl80211 = ctx.channel("nl80211://;name=nl80211;dump=scheme;addr=no;neigh=no")?;
+    nl80211.callback_add_mut::<SystemState, NL80211Callback>(&mut state, None)?;
+
     let mut udev = ctx.channel("udev://;name=udev;dump=scheme;subsystem=power_supply")?;
     udev.callback_add_mut::<SystemState, PowerCallback>(&mut state, None)?;
 
@@ -234,10 +264,12 @@ pub fn main() -> tll::error::Result<()> {
 
     let mut l = Loop::new("rust")?;
     l.add(&mut netlink)?;
+    l.add(&mut nl80211)?;
     l.add(&mut udev)?;
     l.add(&mut tc)?;
     tc.open("")?;
     netlink.open("")?;
+    nl80211.open("")?;
     udev.open("")?;
     loop {
         l.step(1000)?;
