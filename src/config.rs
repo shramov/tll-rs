@@ -79,9 +79,10 @@ impl Config {
         }
     }
 
-    pub fn set(&self, key: &str, value: &str)
+    pub fn set(&mut self, key: &str, value: &str) -> &mut Self
     {
         unsafe { tll_config_set(self.ptr, key.as_ptr() as *const c_char, key.len() as c_int, value.as_ptr() as *const c_char, value.len() as c_int) };
+        self
     }
 
     pub fn remove(&self, key: &str)

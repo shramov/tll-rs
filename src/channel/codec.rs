@@ -56,7 +56,7 @@ impl<T: CodecImpl> ChannelImpl for Codec<T> {
 
     fn init(&mut self, url: &Config, master: Option<Channel>, ctx: &Context) -> Result<()> {
         let log = self.logger();
-        let curl = url.copy();
+        let mut curl = url.copy();
         curl.set("internal", "yes");
         match url.get("tll.proto") {
             Some(proto) => {
