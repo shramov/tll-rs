@@ -1,6 +1,7 @@
 use tll_sys::processor_loop::*;
 
 use crate::channel::*;
+use crate::config::Config;
 use crate::error::*;
 
 use std::os::raw::{c_char, c_int, c_long};
@@ -19,6 +20,16 @@ impl Loop {
     pub fn new(name: &str) -> Result<Self>
     {
         let ptr = unsafe { tll_processor_loop_new(name.as_ptr() as *const c_char, name.len() as i32) };
+        if ptr.is_null() {
+            Err(Error::from("Failed to create new Loop"))
+        } else {
+            Ok(Loop { ptr: ptr })
+        }
+    }
+
+    pub fn new_cfg(cfg: &Config) -> Result<Self>
+    {
+        let ptr = unsafe { tll_processor_loop_new_cfg(cfg.as_ptr()) };
         if ptr.is_null() {
             Err(Error::from("Failed to create new Loop"))
         } else {
