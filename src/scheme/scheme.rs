@@ -268,21 +268,17 @@ impl Scheme {
         Scheme { ptr: ptr }
     }
 
-    /*
-    pub fn messages(&self) -> Option<Message>
-    {
-        let ptr = unsafe { (*self.ptr).messages };
-        if ptr.is_null() {
-            None
-        } else {
-            Some(Message { data: Pointer::<tll_scheme_message_t>::new(ptr) })
-        }
-    }
-    */
-
     pub fn messages(&self) -> MessageIter
     {
         MessageIter { data: Pointer::new(unsafe { (*self.ptr).messages }) }
+    }
+
+    pub fn message(&self, id: i32) -> Option<Message>
+    {
+        for m in self.messages() {
+            if m.msgid() == id { return Some (m) };
+        }
+        None
     }
 }
 
