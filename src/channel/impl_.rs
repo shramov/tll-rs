@@ -1,9 +1,9 @@
 use tll_sys::channel::*;
 use tll_sys::channel_callback::*;
-use tll_sys::config::tll_config_t;
+pub use tll_sys::config::tll_config_t;
 
 // Reexport for using in macro
-pub use tll_sys::channel::{tll_channel_module_t, tll_channel_context_t};
+pub use tll_sys::channel::{tll_channel_module_t, tll_channel_context_t, TLL_CHANNEL_MODULE_VERSION};
 
 use crate::channel::*;
 use crate::config::*;
@@ -392,7 +392,7 @@ impl<T> CImpl<T>
 #[macro_export]
 macro_rules! declare_channel_module {
     ( $( $impl0:ident ), * ) => {
-unsafe extern "C" fn _channel_module_init(_m: *mut tll_channel_module_t, ctx: *mut tll_channel_context_t) -> std::os::raw::c_int
+unsafe extern "C" fn _channel_module_init(_m: *mut tll_channel_module_t, ctx: *mut tll_channel_context_t, _cfg: *const tll_config_t) -> std::os::raw::c_int
 {
     $(
     if let Err(e) = Context::from(ctx).register($impl0()) { return e.code.unwrap_or(EINVAL); };
@@ -415,7 +415,7 @@ unsafe extern "C" fn channel_module() -> *const tll_channel_module_t
 {
     static mut MODULE : tll_channel_module_t =
         tll_channel_module_t {
-                version: 1,
+                version: TLL_CHANNEL_MODULE_VERSION as i32,
                 flags: 0,
                 init: Some(_channel_module_init),
                 free: Some(_channel_module_free),
