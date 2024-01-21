@@ -23,6 +23,7 @@ src/scheme.rs: $(TLL)/src/tll/scheme.h
 src/channel.rs: $(TLL)/src/tll/channel/module.h
 	bindgen -o $@ $(BINDGEN_OPTIONS) \
 		--allowlist-type 'tll_channel.*' --allowlist-function tll_channel.* \
+		--allowlist-var 'TLL_CHANNEL_.*' \
 		--allowlist-type 'tll_msg_.*' \
 		--allowlist-type 'tll_message_.*' \
 		--blocklist-type 'tll_(config|scheme|stat)_.*' \
