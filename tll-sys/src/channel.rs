@@ -5,6 +5,7 @@ use crate::config::tll_config_t;
 use crate::scheme::tll_scheme_t;
 use crate::stat::*;
 
+pub const TLL_CHANNEL_MODULE_VERSION: u32 = 2;
 pub type __int64_t = ::std::os::raw::c_long;
 pub type __uint64_t = ::std::os::raw::c_ulong;
 pub const TLL_STATE_CLOSED: tll_state_t = 0;
@@ -449,11 +450,11 @@ fn bindgen_test_layout_tll_channel_t() {
     }
     test_field_parent();
 }
-pub const TLL_MESSAGE_MASK_ALL: tll_message_mask_t = 4294967295;
 pub const TLL_MESSAGE_MASK_DATA: tll_message_mask_t = 1;
 pub const TLL_MESSAGE_MASK_CONTROL: tll_message_mask_t = 2;
 pub const TLL_MESSAGE_MASK_STATE: tll_message_mask_t = 4;
 pub const TLL_MESSAGE_MASK_CHANNEL: tll_message_mask_t = 8;
+pub const TLL_MESSAGE_MASK_ALL: tll_message_mask_t = 4294967287;
 pub type tll_message_mask_t = ::std::os::raw::c_uint;
 pub type tll_channel_callback_t = ::std::option::Option<
     unsafe extern "C" fn(
@@ -655,6 +656,14 @@ extern "C" {
         name: *const ::std::os::raw::c_char,
         url: *const ::std::os::raw::c_char,
         len: ::std::os::raw::c_int,
+    ) -> ::std::os::raw::c_int;
+}
+extern "C" {
+    pub fn tll_channel_module_load_cfg(
+        ctx: *mut tll_channel_context_t,
+        module: *const ::std::os::raw::c_char,
+        symbol: *const ::std::os::raw::c_char,
+        cfg: *const tll_config_t,
     ) -> ::std::os::raw::c_int;
 }
 extern "C" {
@@ -1365,6 +1374,7 @@ pub const TLL_MESSAGE_LOG_FRAME: tll_channel_log_msg_format_t = 1;
 pub const TLL_MESSAGE_LOG_TEXT: tll_channel_log_msg_format_t = 2;
 pub const TLL_MESSAGE_LOG_TEXT_HEX: tll_channel_log_msg_format_t = 3;
 pub const TLL_MESSAGE_LOG_SCHEME: tll_channel_log_msg_format_t = 4;
+pub const TLL_MESSAGE_LOG_AUTO: tll_channel_log_msg_format_t = 5;
 pub type tll_channel_log_msg_format_t = ::std::os::raw::c_uint;
 extern "C" {
     pub fn tll_channel_log_msg(
@@ -1388,6 +1398,7 @@ pub struct tll_channel_module_t {
         unsafe extern "C" fn(
             m: *mut tll_channel_module_t,
             ctx: *mut tll_channel_context_t,
+            cfg: *const tll_config_t,
         ) -> ::std::os::raw::c_int,
     >,
     pub free: ::std::option::Option<
@@ -1496,5 +1507,11 @@ fn bindgen_test_layout_tll_channel_module_t() {
     }
     test_field_flags();
 }
+pub type tll_channel_module_init_v1_t = ::std::option::Option<
+    unsafe extern "C" fn(
+        m: *mut tll_channel_module_t,
+        ctx: *mut tll_channel_context_t,
+    ) -> ::std::os::raw::c_int,
+>;
 pub type tll_channel_module_func_t =
     ::std::option::Option<unsafe extern "C" fn() -> *mut tll_channel_module_t>;

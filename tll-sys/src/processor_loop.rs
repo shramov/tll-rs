@@ -64,6 +64,14 @@ extern "C" {
     ) -> ::std::os::raw::c_int;
 }
 extern "C" {
+    pub fn tll_processor_loop_run_signal(
+        arg1: *mut tll_processor_loop_t,
+        timeout: ::std::os::raw::c_long,
+        signals: *const ::std::os::raw::c_int,
+        sigsize: usize,
+    ) -> ::std::os::raw::c_int;
+}
+extern "C" {
     pub fn tll_processor_loop_step(
         arg1: *mut tll_processor_loop_t,
         timeout: ::std::os::raw::c_long,

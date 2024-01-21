@@ -228,10 +228,10 @@ extern "C" {
     pub fn tll_config_unref(arg1: *const tll_config_t);
 }
 extern "C" {
-    pub fn tll_config_parent(arg1: *mut tll_config_t) -> *mut tll_config_t;
+    pub fn tll_config_parent(arg1: *const tll_config_t) -> *const tll_config_t;
 }
 extern "C" {
-    pub fn tll_config_root(arg1: *mut tll_config_t) -> *mut tll_config_t;
+    pub fn tll_config_root(arg1: *const tll_config_t) -> *const tll_config_t;
 }
 extern "C" {
     pub fn tll_config_detach(

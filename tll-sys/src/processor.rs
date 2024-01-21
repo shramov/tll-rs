@@ -10,7 +10,7 @@ extern "C" {
     pub fn tll_processor_init(cctx: *mut tll_channel_context_t) -> ::std::os::raw::c_int;
 }
 extern "C" {
-    pub fn tll_processor_workers(p: *mut tll_processor_t) -> *mut tll_channel_list_t;
+    pub fn tll_processor_workers(p: *mut tll_processor_t) -> *const tll_channel_list_t;
 }
 extern "C" {
     pub fn tll_processor_loop(p: *mut tll_processor_t) -> *mut tll_processor_loop_t;

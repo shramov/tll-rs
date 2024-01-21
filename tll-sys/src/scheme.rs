@@ -17,6 +17,12 @@ extern "C" {
 extern "C" {
     pub fn tll_scheme_unref(arg1: *const tll_scheme_t);
 }
+extern "C" {
+    pub fn tll_scheme_dump(
+        s: *const tll_scheme_t,
+        format: *const ::std::os::raw::c_char,
+    ) -> *mut ::std::os::raw::c_char;
+}
 pub const TLL_SCHEME_FIELD_INT8: tll_scheme_field_type_t = 0;
 pub const TLL_SCHEME_FIELD_INT16: tll_scheme_field_type_t = 1;
 pub const TLL_SCHEME_FIELD_INT32: tll_scheme_field_type_t = 2;
@@ -1712,12 +1718,6 @@ extern "C" {
 }
 extern "C" {
     pub fn tll_scheme_union_free(arg1: *mut tll_scheme_union_t);
-}
-extern "C" {
-    pub fn tll_scheme_dump(
-        s: *const tll_scheme_t,
-        format: *const ::std::os::raw::c_char,
-    ) -> *mut ::std::os::raw::c_char;
 }
 extern "C" {
     pub fn tll_scheme_fix(arg1: *mut tll_scheme_t) -> ::std::os::raw::c_int;
