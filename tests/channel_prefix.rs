@@ -56,7 +56,7 @@ impl ChannelImpl for TestPrefix {
     }
 
     fn init(&mut self, url: &Config, _parent: Option<Channel>, ctx: &Context) -> Result<()> {
-        let curl = url.copy();
+        let mut curl = url.copy();
         curl.set("internal", "yes");
         match url.get("tll.proto") {
             Some(proto) => {
