@@ -21,6 +21,8 @@ impl Extension for Echo {
 }
 
 impl ChannelImpl for Echo {
+    fn channel_protocol() -> &'static str { "echo" }
+
     fn open_policy() -> OpenPolicy {
         OpenPolicy::Manual
     }
@@ -49,5 +51,5 @@ impl ChannelImpl for Echo {
     }
 }
 
-tll::declare_channel_impl!(echo_impl, Echo, "echo");
+tll::declare_channel_impl!(echo_impl, Echo);
 tll::declare_channel_module!(echo_impl);

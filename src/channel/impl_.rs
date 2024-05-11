@@ -168,6 +168,9 @@ impl Base {
 }
 
 pub trait ChannelImpl : Extension {
+    fn channel_protocol() -> &'static str;
+    fn param_prefix() -> &'static str { let p = Self::channel_protocol(); p.strip_suffix("+").unwrap_or(p) }
+
     fn process_policy() -> ProcessPolicy { <Self::Inner as ChannelImpl>::process_policy() }
     fn open_policy() -> OpenPolicy { <Self::Inner as ChannelImpl>::open_policy() }
     fn child_policy() -> ChildPolicy { <Self::Inner as ChannelImpl>::child_policy() }
@@ -206,6 +209,7 @@ impl Extension for Base {
 }
 
 impl ChannelImpl for Base {
+    fn channel_protocol() -> &'static str { "rust" }
     fn process_policy() -> ProcessPolicy { ProcessPolicy::Normal }
     fn open_policy() -> OpenPolicy { OpenPolicy::Normal }
     fn child_policy() -> ChildPolicy { ChildPolicy::Never }
@@ -232,7 +236,7 @@ pub struct CImpl<T : ChannelImpl> {
 
 #[macro_export]
 macro_rules! declare_channel_impl {
-    ($var:ident, $klass:ident, $name:expr) => {
+    ($var:ident, $klass:ident) => {
 #[allow(dead_code, non_camel_case_types)]
 #[doc(hidden)]
 fn $var() -> &'static CImpl::<$klass>
@@ -242,7 +246,7 @@ fn $var() -> &'static CImpl::<$klass>
 
     unsafe {
         ONCE.call_once(|| {
-            POINTER = std::mem::transmute(Box::new(CImpl::<$klass>::new($name)));
+            POINTER = std::mem::transmute(Box::new(CImpl::<$klass>::new(<$klass as ChannelImpl>::channel_protocol())));
         });
         &*POINTER
     }

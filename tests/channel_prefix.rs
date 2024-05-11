@@ -41,6 +41,8 @@ impl Extension for TestPrefix {
 }
 
 impl ChannelImpl for TestPrefix {
+    fn channel_protocol() -> &'static str { "prefix+" }
+
     fn open_policy() -> OpenPolicy {
         OpenPolicy::Manual
     }
@@ -162,7 +164,7 @@ impl TestPrefix {
     }
 }
 
-tll::declare_channel_impl!(test_prefix_impl, TestPrefix, "prefix+");
+tll::declare_channel_impl!(test_prefix_impl, TestPrefix);
 tll::declare_channel_module!(test_prefix_impl);
 
 #[test]
