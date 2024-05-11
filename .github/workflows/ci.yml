@@ -1,0 +1,24 @@
+name: Rust CI
+on: [push, pull_request]
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 1
+    - name: update
+      run: |
+        echo deb https://psha.org.ru/debian/ `echo ubuntu-22.04 | tr -d -` contrib backports | sudo tee /etc/apt/sources.list.d/psha.org.ru.list
+        sudo wget -O/etc/apt/trusted.gpg.d/psha.org.ru.gpg https://psha.org.ru/debian/pubkey.gpg
+        sudo apt update
+    - name: install deps
+      run: sudo apt install pkg-config libfmt-dev libtll-dev
+    - name: Build
+      run: cargo build --verbose
+    - name: Test
+      run: cargo test --verbose
