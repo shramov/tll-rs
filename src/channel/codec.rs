@@ -22,6 +22,7 @@ where
 }
 
 pub trait CodecImpl: Default {
+    fn channel_protocol() -> &'static str;
     fn encode(&mut self, m: &Message) -> Result<Message>;
     fn decode(&mut self, m: &Message) -> Result<Message>;
 }
@@ -44,6 +45,7 @@ impl<T: CodecImpl> Extension for Codec<T> {
 }
 
 impl<T: CodecImpl> ChannelImpl for Codec<T> {
+    fn channel_protocol() -> &'static str { <T as CodecImpl>::channel_protocol() }
     fn open_policy() -> OpenPolicy {
         OpenPolicy::Manual
     }

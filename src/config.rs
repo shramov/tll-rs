@@ -33,6 +33,15 @@ impl Config {
         Config { ptr: ptr }
     }
 
+    pub fn from_values(values: &[(&str, &str)]) -> Self
+    {
+        let mut cfg = Self::new();
+        for (k, v) in values {
+            cfg.set(k, v);
+        }
+        cfg
+    }
+
     pub fn load(url: &str) -> Result<Config>
     {
         let ptr = unsafe { tll_config_load(url.as_ptr() as *const c_char, url.len() as c_int) };
