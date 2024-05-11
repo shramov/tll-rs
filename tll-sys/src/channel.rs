@@ -2,6 +2,7 @@
 
 #![allow(dead_code, non_camel_case_types, non_upper_case_globals, non_snake_case)]
 use crate::config::tll_config_t;
+use crate::logger::{tll_logger_t, tll_logger_level_t};
 use crate::scheme::tll_scheme_t;
 use crate::stat::*;
 
@@ -112,12 +113,13 @@ pub struct tll_msg_t {
     pub size: usize,
     pub addr: tll_addr_t,
     pub time: ::std::os::raw::c_longlong,
+    pub reserved: ::std::os::raw::c_longlong,
 }
 #[test]
 fn bindgen_test_layout_tll_msg_t() {
     assert_eq!(
         ::std::mem::size_of::<tll_msg_t>(),
-        56usize,
+        64usize,
         concat!("Size of: ", stringify!(tll_msg_t))
     );
     assert_eq!(
@@ -261,10 +263,27 @@ fn bindgen_test_layout_tll_msg_t() {
         );
     }
     test_field_time();
+    fn test_field_reserved() {
+        assert_eq!(
+            unsafe {
+                let uninit = ::std::mem::MaybeUninit::<tll_msg_t>::uninit();
+                let ptr = uninit.as_ptr();
+                ::std::ptr::addr_of!((*ptr).reserved) as usize - ptr as usize
+            },
+            56usize,
+            concat!(
+                "Offset of field: ",
+                stringify!(tll_msg_t),
+                "::",
+                stringify!(reserved)
+            )
+        );
+    }
+    test_field_reserved();
 }
 impl ::std::fmt::Debug for tll_msg_t {
     fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
-        write ! (f , "tll_msg_t {{ type: {:?}, msgid: {:?}, seq: {:?}, flags: {:?}, data: {:?}, size: {:?}, addr: {:?}, time: {:?} }}" , self . type_ , self . msgid , self . seq , self . flags , self . data , self . size , self . addr , self . time)
+        write ! (f , "tll_msg_t {{ type: {:?}, msgid: {:?}, seq: {:?}, flags: {:?}, data: {:?}, size: {:?}, addr: {:?}, time: {:?}, reserved: {:?} }}" , self . type_ , self . msgid , self . seq , self . flags , self . data , self . size , self . addr , self . time , self . reserved)
     }
 }
 #[repr(C)]
@@ -679,13 +698,6 @@ extern "C" {
         module: *const ::std::os::raw::c_char,
     ) -> ::std::os::raw::c_int;
 }
-pub const TLL_LOGGER_TRACE: tll_logger_level_t = 0;
-pub const TLL_LOGGER_DEBUG: tll_logger_level_t = 1;
-pub const TLL_LOGGER_INFO: tll_logger_level_t = 2;
-pub const TLL_LOGGER_WARNING: tll_logger_level_t = 3;
-pub const TLL_LOGGER_ERROR: tll_logger_level_t = 4;
-pub const TLL_LOGGER_CRITICAL: tll_logger_level_t = 5;
-pub type tll_logger_level_t = ::std::os::raw::c_uint;
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct tll_channel_impl_t {
@@ -1081,15 +1093,39 @@ fn bindgen_test_layout_tll_channel_callback_pair_t() {
     }
     test_field_mask();
 }
+pub const TLL_MESSAGE_LOG_DISABLE: tll_channel_log_msg_format_t = 0;
+pub const TLL_MESSAGE_LOG_FRAME: tll_channel_log_msg_format_t = 1;
+pub const TLL_MESSAGE_LOG_TEXT: tll_channel_log_msg_format_t = 2;
+pub const TLL_MESSAGE_LOG_TEXT_HEX: tll_channel_log_msg_format_t = 3;
+pub const TLL_MESSAGE_LOG_SCHEME: tll_channel_log_msg_format_t = 4;
+pub const TLL_MESSAGE_LOG_AUTO: tll_channel_log_msg_format_t = 5;
+pub type tll_channel_log_msg_format_t = ::std::os::raw::c_uint;
+extern "C" {
+    pub fn tll_channel_log_msg(
+        c: *const tll_channel_t,
+        log: *const ::std::os::raw::c_char,
+        level: tll_logger_level_t,
+        format: tll_channel_log_msg_format_t,
+        msg: *const tll_msg_t,
+        text: *const ::std::os::raw::c_char,
+        tlen: ::std::os::raw::c_int,
+    ) -> ::std::os::raw::c_int;
+}
+pub const TLL_CHANNEL_INTERNAL_V0: tll_channel_internal_version_t = 0;
+pub const TLL_CHANNEL_INTERNAL_V1: tll_channel_internal_version_t = 1;
+pub const TLL_CHANNEL_INTERNAL_VERSION_CURRENT: tll_channel_internal_version_t = 1;
+pub type tll_channel_internal_version_t = ::std::os::raw::c_uint;
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct tll_channel_internal_t {
     pub state: tll_state_t,
+    pub version: ::std::os::raw::c_int,
     pub self_: *mut tll_channel_t,
     pub name: *const ::std::os::raw::c_char,
     pub caps: ::std::os::raw::c_uint,
     pub dcaps: ::std::os::raw::c_uint,
     pub fd: ::std::os::raw::c_int,
+    pub dump: tll_channel_log_msg_format_t,
     pub config: *mut tll_config_t,
     pub children: *mut tll_channel_list_t,
     pub data_cb_size: ::std::os::raw::c_uint,
@@ -1097,12 +1133,14 @@ pub struct tll_channel_internal_t {
     pub cb_size: ::std::os::raw::c_uint,
     pub cb: *mut tll_channel_callback_pair_t,
     pub stat: *mut tll_stat_block_t,
+    pub logger: *mut tll_logger_t,
+    pub reserved: [isize; 4usize],
 }
 #[test]
 fn bindgen_test_layout_tll_channel_internal_t() {
     assert_eq!(
         ::std::mem::size_of::<tll_channel_internal_t>(),
-        96usize,
+        136usize,
         concat!("Size of: ", stringify!(tll_channel_internal_t))
     );
     assert_eq!(
@@ -1127,6 +1165,23 @@ fn bindgen_test_layout_tll_channel_internal_t() {
         );
     }
     test_field_state();
+    fn test_field_version() {
+        assert_eq!(
+            unsafe {
+                let uninit = ::std::mem::MaybeUninit::<tll_channel_internal_t>::uninit();
+                let ptr = uninit.as_ptr();
+                ::std::ptr::addr_of!((*ptr).version) as usize - ptr as usize
+            },
+            4usize,
+            concat!(
+                "Offset of field: ",
+                stringify!(tll_channel_internal_t),
+                "::",
+                stringify!(version)
+            )
+        );
+    }
+    test_field_version();
     fn test_field_self() {
         assert_eq!(
             unsafe {
@@ -1212,6 +1267,23 @@ fn bindgen_test_layout_tll_channel_internal_t() {
         );
     }
     test_field_fd();
+    fn test_field_dump() {
+        assert_eq!(
+            unsafe {
+                let uninit = ::std::mem::MaybeUninit::<tll_channel_internal_t>::uninit();
+                let ptr = uninit.as_ptr();
+                ::std::ptr::addr_of!((*ptr).dump) as usize - ptr as usize
+            },
+            36usize,
+            concat!(
+                "Offset of field: ",
+                stringify!(tll_channel_internal_t),
+                "::",
+                stringify!(dump)
+            )
+        );
+    }
+    test_field_dump();
     fn test_field_config() {
         assert_eq!(
             unsafe {
@@ -1331,6 +1403,40 @@ fn bindgen_test_layout_tll_channel_internal_t() {
         );
     }
     test_field_stat();
+    fn test_field_logger() {
+        assert_eq!(
+            unsafe {
+                let uninit = ::std::mem::MaybeUninit::<tll_channel_internal_t>::uninit();
+                let ptr = uninit.as_ptr();
+                ::std::ptr::addr_of!((*ptr).logger) as usize - ptr as usize
+            },
+            96usize,
+            concat!(
+                "Offset of field: ",
+                stringify!(tll_channel_internal_t),
+                "::",
+                stringify!(logger)
+            )
+        );
+    }
+    test_field_logger();
+    fn test_field_reserved() {
+        assert_eq!(
+            unsafe {
+                let uninit = ::std::mem::MaybeUninit::<tll_channel_internal_t>::uninit();
+                let ptr = uninit.as_ptr();
+                ::std::ptr::addr_of!((*ptr).reserved) as usize - ptr as usize
+            },
+            104usize,
+            concat!(
+                "Offset of field: ",
+                stringify!(tll_channel_internal_t),
+                "::",
+                stringify!(reserved)
+            )
+        );
+    }
+    test_field_reserved();
 }
 extern "C" {
     pub fn tll_channel_list_free(l: *mut tll_channel_list_t);
@@ -1367,24 +1473,6 @@ extern "C" {
         c: *const tll_channel_t,
         tag: *const ::std::os::raw::c_char,
         len: ::std::os::raw::c_int,
-    ) -> ::std::os::raw::c_int;
-}
-pub const TLL_MESSAGE_LOG_DISABLE: tll_channel_log_msg_format_t = 0;
-pub const TLL_MESSAGE_LOG_FRAME: tll_channel_log_msg_format_t = 1;
-pub const TLL_MESSAGE_LOG_TEXT: tll_channel_log_msg_format_t = 2;
-pub const TLL_MESSAGE_LOG_TEXT_HEX: tll_channel_log_msg_format_t = 3;
-pub const TLL_MESSAGE_LOG_SCHEME: tll_channel_log_msg_format_t = 4;
-pub const TLL_MESSAGE_LOG_AUTO: tll_channel_log_msg_format_t = 5;
-pub type tll_channel_log_msg_format_t = ::std::os::raw::c_uint;
-extern "C" {
-    pub fn tll_channel_log_msg(
-        c: *const tll_channel_t,
-        log: *const ::std::os::raw::c_char,
-        level: tll_logger_level_t,
-        format: tll_channel_log_msg_format_t,
-        msg: *const tll_msg_t,
-        text: *const ::std::os::raw::c_char,
-        tlen: ::std::os::raw::c_int,
     ) -> ::std::os::raw::c_int;
 }
 pub const TLL_CHANNEL_MODULE_DLOPEN_GLOBAL: tll_channel_module_flags_t = 1;

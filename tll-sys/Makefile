@@ -30,8 +30,9 @@ src/channel.rs: $(TLL)/src/tll/channel/module.h
 		--allowlist-var 'TLL_CHANNEL_.*' \
 		--allowlist-type 'tll_msg_.*' \
 		--allowlist-type 'tll_message_.*' \
-		--blocklist-type 'tll_(config|scheme|stat)_.*' \
+		--blocklist-type 'tll_(config|scheme|stat|logger)_.*' \
 		--raw-line 'use crate::config::tll_config_t;' \
+		--raw-line 'use crate::logger::{tll_logger_t, tll_logger_level_t};' \
 		--raw-line 'use crate::scheme::tll_scheme_t;' \
 		--raw-line 'use crate::stat::*;' \
 		$< -- $(INCLUDE)
