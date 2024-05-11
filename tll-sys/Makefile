@@ -1,6 +1,10 @@
-BINDGEN_OPTIONS := --size_t-is-usize --no-doc-comments --no-prepend-enum-name
+BINDGEN_OPTIONS := --no-doc-comments --no-prepend-enum-name
 BINDGEN_OPTIONS += --impl-debug
 BINDGEN_OPTIONS += --raw-line "\#![allow(dead_code, non_camel_case_types, non_upper_case_globals, non_snake_case)]"
+
+ifeq ($(strip $(shell bindgen --help | grep -- --size_t-is-usize)), --size_t-is-usize)
+	BINDGEN_OPTIONS += --size_t-is-usize
+endif
 
 TLL := $(HOME)/src/tll
 INCLUDE := -I$(TLL)/src
