@@ -2,7 +2,7 @@ use tll::config::*;
 
 #[test]
 fn test() {
-    let cfg = Config::new();
+    let mut cfg = Config::new();
     let mut v = cfg.get("a.b.c");
     assert!(v.is_none());
     cfg.set("a.b.c", "xxx");
@@ -23,7 +23,7 @@ fn load() {
 
 #[test]
 fn browse() {
-    let cfg = Config::new();
+    let mut cfg = Config::new();
     let mut v = cfg.get("a.b.c");
     assert!(v.is_none());
     cfg.set("a.b.c", "xxx");
