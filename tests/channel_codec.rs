@@ -4,7 +4,7 @@ use tll::channel::*;
 use tll::error::*;
 //use tll::config::{Config};
 //use tll::props::{Props};
-use tll::channel::impl_::*;
+use tll::channel::base::*;
 
 #[derive(Debug, Default)]
 struct Xor {

@@ -1,5 +1,5 @@
 use crate::channel::channel::*;
-use crate::channel::impl_::*;
+use crate::channel::base::*;
 
 use crate::config::Config;
 use crate::error::*;

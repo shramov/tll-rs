@@ -2,7 +2,7 @@ use tll::channel::*;
 
 use tll::error::*;
 use tll::config::{Config};
-use tll::channel::impl_::*;
+use tll::channel::base::*;
 
 fn callback(c: &Channel, m: &Message) -> i32
 {

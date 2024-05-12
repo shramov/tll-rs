@@ -1,6 +1,6 @@
 use tll::channel::*;
 
-use tll::channel::impl_::*;
+use tll::channel::base::*;
 use tll::config::Config;
 use tll::error::*;
 use tll_sys::channel::tll_state_t;

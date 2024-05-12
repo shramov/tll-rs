@@ -1,7 +1,7 @@
 use tll_sys::channel::*;
 
 use crate::config::Config;
-use crate::channel::impl_::{ChannelImpl, CImpl};
+use crate::channel::base::{ChannelImpl, CImpl};
 use crate::error::*;
 use crate::scheme::Scheme;
 
