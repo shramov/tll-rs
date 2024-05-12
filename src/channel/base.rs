@@ -93,7 +93,7 @@ impl Base {
     pub fn set_name(&mut self, n: &str) -> Result<()>
     {
         self.name = String::from(n);
-        self.c_name = CString::new(n).ok().ok_or(Error::from("Name with internal NUL"))?;
+        self.c_name = CString::new(n).map_err(|_| Error::from("Name with internal NUL"))?;
         self.data.name = self.c_name.as_ptr();
         Ok(())
     }
