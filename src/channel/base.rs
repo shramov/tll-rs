@@ -1,6 +1,7 @@
 use tll_sys::channel::*;
 use tll_sys::channel_callback::*;
 pub use tll_sys::config::tll_config_t;
+use tll_sys::scheme::tll_scheme_t;
 
 // Reexport for using in macro
 pub use tll_sys::channel::{tll_channel_module_t, tll_channel_context_t, TLL_CHANNEL_MODULE_VERSION};
@@ -10,6 +11,8 @@ use crate::config::*;
 
 use crate::error::*;
 use crate::logger::*;
+
+use crate::scheme::Scheme;
 
 use std::ffi::CString;
 use std::os::raw::{c_int, c_long, c_void};
@@ -32,6 +35,12 @@ pub enum ChildPolicy {
     Never,
     Single,
     Many,
+}
+
+#[ derive(Debug, Eq, PartialEq) ]
+pub enum SchemePolicy {
+    Normal,
+    Manual,
 }
 
 #[repr(C)]
@@ -61,7 +70,10 @@ pub struct Base {
     c_name : CString,
     name : String,
     pub logger : Logger,
-    stat : Option<crate::stat::Base<Stat>>
+    stat : Option<crate::stat::Base<Stat>>,
+    pub scheme_url : Option<String>,
+    pub scheme_data : Option<Scheme>,
+    pub scheme_control : Option<Scheme>,
 }
 
 impl Drop for Base {
@@ -74,7 +86,16 @@ impl Drop for Base {
 impl Default for Base {
     fn default() -> Self
     {
-        let mut r = Base { c_name: CString::default(), name: String::default(), logger: Logger::new("rust.channel"), data: unsafe { std::mem::zeroed::<tll_channel_internal_t>() }, stat: None };
+        let mut r = Base {
+            c_name: CString::default(),
+            name: String::default(),
+            logger: Logger::new("tll.channel"),
+            data: unsafe { std::mem::zeroed::<tll_channel_internal_t>() },
+            stat: None,
+            scheme_url: None,
+            scheme_data: None,
+            scheme_control: None,
+        };
         unsafe {
             tll_channel_internal_init(&mut r.data);
             r.data.name = r.c_name.as_ptr();
@@ -103,7 +124,7 @@ impl Base {
     {
         let old = self.state();
         if old == state { return old; }
-        println!("State change: {:?} -> {:?}", old, state);
+        self.logger().info(&format!("State change: {:?} -> {:?}", old, state));
         self.data.state = state.into();
         self.callback_simple(MsgType::State, self.data.state as i32);
         old
@@ -127,13 +148,13 @@ impl Base {
     pub fn init_base(&mut self, url: &Config) -> Result<()>
     {
         self.set_name(&url.get("name").unwrap_or("noname".to_string()))?;
-        self.logger = Logger::new(&format!("rust.channel.{}", self.name));
-        println!("New name: '{}' ({:?})", self.name(), self.c_name);
+        self.logger = Logger::new(&format!("tll.channel.{}", self.name));
         if url.get_typed("stat", false)? {
             let mut stat = crate::stat::Base::<Stat>::new(self.name());
             self.data.stat = stat.as_ptr();
             self.stat = Some(stat);
         }
+        self.scheme_url = url.get("scheme");
         Ok(())
     }
 
@@ -150,7 +171,7 @@ impl Base {
     pub fn update_dcaps(&mut self, caps: DCaps, mask: DCaps)
     {
         let old = self.data.dcaps;
-        println!("Update dcaps: {} -> {:?}", old, caps);
+        self.logger().debug(&format!("Update dcaps: {} -> {:?}", old, caps));
         if old & mask.bits() == caps.bits() { return; }
         self.data.dcaps ^= (old & mask.bits()) ^ caps.bits();
         let mut msg = Message::new();
@@ -174,6 +195,7 @@ pub trait ChannelImpl : Extension {
     fn process_policy() -> ProcessPolicy { <Self::Inner as ChannelImpl>::process_policy() }
     fn open_policy() -> OpenPolicy { <Self::Inner as ChannelImpl>::open_policy() }
     fn child_policy() -> ChildPolicy { <Self::Inner as ChannelImpl>::child_policy() }
+    fn scheme_policy() -> SchemePolicy { <Self::Inner as ChannelImpl>::scheme_policy() }
 
     fn init(&mut self, url: &Config, master: Option<Channel>, context: &Context) -> Result<()> { self.inner_mut().init(url, master, context) }
     fn open(&mut self, url: &Config) -> Result<()> { self.inner_mut().open(url) }
@@ -182,6 +204,7 @@ pub trait ChannelImpl : Extension {
 
     fn post(&mut self, msg: &Message) -> Result<()> { self.inner_mut().post(msg) }
     fn process(&mut self) -> Result<i32> { self.inner_mut().process() }
+    fn scheme(&self, typ: MsgType) -> Option<&Scheme> { self.inner().scheme(typ) }
 
     fn logger(&self) -> &Logger { self.base().logger() }
     fn state(&self) -> State { self.base().state() }
@@ -213,6 +236,7 @@ impl ChannelImpl for Base {
     fn process_policy() -> ProcessPolicy { ProcessPolicy::Normal }
     fn open_policy() -> OpenPolicy { OpenPolicy::Normal }
     fn child_policy() -> ChildPolicy { ChildPolicy::Never }
+    fn scheme_policy() -> SchemePolicy { SchemePolicy::Normal }
 
     fn init(&mut self, _url: &Config, _master: Option<Channel>, _context: &Context) -> Result<()> { Ok(()) }
     fn open(&mut self, _url: &Config) -> Result<()> { Ok(()) }
@@ -221,6 +245,13 @@ impl ChannelImpl for Base {
 
     fn post(&mut self, _: &Message) -> Result<()> { Ok(()) }
     fn process(&mut self) -> Result<i32> { Ok(EAGAIN) }
+    fn scheme(&self, typ: MsgType) -> Option<&Scheme> {
+        match typ {
+        MsgType::Data => self.scheme_data.as_ref(),
+        MsgType::Control => self.scheme_control.as_ref(),
+        _ => None,
+        }
+    }
 
     fn logger(&self) -> &Logger { &self.logger }
     fn state(&self) -> State { self.state() }
@@ -268,6 +299,7 @@ impl<T> CImpl<T>
         i.data.close = Some(Self::c_close);
         i.data.post = Some(Self::c_post);
         i.data.process = Some(Self::c_process);
+        i.data.scheme = Some(Self::c_scheme);
         i
     }
 
@@ -307,6 +339,18 @@ impl<T> CImpl<T>
         match <T>::process_policy() {
             ProcessPolicy::Normal => channel.update_dcaps(DCaps::Process, DCaps::Process),
             ProcessPolicy::Never => ()
+        }
+
+        match <T>::scheme_policy() {
+            SchemePolicy::Normal => {
+                match &channel.base().scheme_url {
+                    Some(url) => {
+                        channel.base_mut().scheme_data = Some(Scheme::new(url)?);
+                    },
+                    None => ()
+                }
+            }
+            SchemePolicy::Manual => ()
         }
 
         let r = channel.open(cfg);
@@ -367,8 +411,19 @@ impl<T> CImpl<T>
         let channel = unsafe { &mut *((*c).data as * mut T) };
         channel.close(force != 0);
         channel.base_mut().update_dcaps(DCaps::empty(), DCaps::Process | DCaps::POLLMASK);
+        channel.base_mut().scheme_data = None;
         channel.set_state(State::Closed);
         0
+    }
+
+    extern "C" fn c_scheme(c : * const tll_channel_t, typ : c_int) -> * const tll_scheme_t
+    {
+        if c.is_null() || unsafe { (*c).data.is_null() } { return std::ptr::null(); }
+        let channel = unsafe { & *((*c).data as * const T) };
+        match channel.scheme(MsgType::from(typ as i16)) {
+            Some(s) => s.as_ptr(),
+            None => std::ptr::null()
+        }
     }
 
     extern "C" fn c_post(c : * mut tll_channel_t, m : * const tll_msg_t, _ : c_int ) -> c_int

@@ -67,10 +67,12 @@ fn test() -> Result<()> {
     ctx.register(custom_impl())?;
 
     {
-        let mut r = ctx.channel("echo://host;name=custom");
+        let mut r = ctx.channel("echo://host;name=custom;scheme=yamls://[{name: Data, id: 10}]");
         assert!(r.is_ok());
         println!("Created channel");
         let c = r.as_mut()?.get_mut();
+
+        assert_eq!(c.scheme(), None);
 
         assert!(c.callback_add(&callback, None).is_ok());
 
@@ -82,6 +84,14 @@ fn test() -> Result<()> {
 
         assert_eq!(c.process(), Ok(0));
         assert_eq!(c.state(), State::Active);
+
+        let scheme = c.scheme();
+
+        assert!(scheme.is_some());
+
+        let names: Vec<&str> = scheme.as_ref().unwrap().messages().map(|x| x.name()).collect();
+        assert_eq!(names, ["Data"]);
+
 
         assert!(c.post(Message::new().set_msgid(100).set_seq(100).set_data(b"abcd")).is_ok())
     }
