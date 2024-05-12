@@ -28,6 +28,8 @@ impl Xor {
 }
 
 impl CodecImpl for Xor {
+    fn channel_protocol() -> &'static str { "xor+" }
+
     fn encode(&mut self, msg: &Message) -> Result<Message> {
         let mut m = Message::new();
         m.set_data(Xor::convert(msg.data(), &mut self.encbuf));
@@ -41,7 +43,7 @@ impl CodecImpl for Xor {
     }
 }
 
-tll::declare_channel_impl!(custom_impl, XorCodec, "xor+");
+tll::declare_channel_impl!(custom_impl, XorCodec);
 
 #[test]
 fn test() -> Result<()> {
