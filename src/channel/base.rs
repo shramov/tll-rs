@@ -317,7 +317,7 @@ impl<T> CImpl<T>
         let internal = channel.base_mut();
         internal.data.self_ = c;
         c.internal = &mut internal.data;
-        println!("Call init on boxed object {:?}", c.data);
+        //println!("Call init on boxed object {:?}", c.data);
         if let Err(e) = internal.init_base(url) {
             log.error(&format!("Base init failed: {:?}", e));
             return Err(e);
@@ -327,9 +327,11 @@ impl<T> CImpl<T>
             ChildPolicy::Single => Caps::Parent | Caps::Proxy,
             ChildPolicy::Many => Caps::Parent,
         });
-        let r = channel.init(&url, master, ctx);
-        println!("Init result: {:?}", r);
-        if r.is_err() { Self::dealloc(c); return r; };
+        if let Err(e) = channel.init(&url, master, ctx) {
+            log.error(&format!("Init failed: {}", e));
+            Self::dealloc(c);
+            return Err(e);
+        }
         Ok(())
     }
 
@@ -409,6 +411,8 @@ impl<T> CImpl<T>
     {
         if c.is_null() || unsafe { (*c).data.is_null() } { return EINVAL }
         let channel = unsafe { &mut *((*c).data as * mut T) };
+        if channel.state() == State::Closed { return 0; }
+        channel.set_state(State::Closing);
         channel.close(force != 0);
         channel.base_mut().update_dcaps(DCaps::empty(), DCaps::Process | DCaps::POLLMASK);
         channel.base_mut().scheme_data = None;
@@ -433,7 +437,10 @@ impl<T> CImpl<T>
         let channel = unsafe { &mut *((*c).data as * mut T) };
         match channel.post(unsafe { &*(m as * const Message) }) {
             Ok(_) => 0,
-            Err(_) => EINVAL,
+            Err(e) => {
+                channel.logger().error(&format!("Post failed: {}", e));
+                EINVAL
+            },
         }
     }
 
