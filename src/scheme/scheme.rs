@@ -289,6 +289,8 @@ pub struct Message<'a> {
 
 impl<'a> Message<'a> {
     fn from_pointer(ptr: Pointer<'a, tll_scheme_message_t>) -> Self { Self { data: ptr } }
+    pub fn as_ptr(&self) -> * const tll_scheme_message_t { self.data.ptr }
+
     pub fn next(&self) -> Option<Message<'a>>
     {
         self.data.next_opt().map(Self::from_pointer)
@@ -314,6 +316,22 @@ impl<'a> Message<'a> {
     pub fn fields(&self) -> FieldIter 
     {
         FieldIter { data: Pointer::new(unsafe { (*self.data.ptr).fields }) }
+    }
+}
+
+#[ derive(Debug) ]
+pub struct DetachedMessage {
+    _scheme : std::rc::Rc<Scheme>,
+    ptr : * const tll_scheme_message_t,
+}
+
+impl DetachedMessage {
+    pub fn new<'a>(scheme: std::rc::Rc<Scheme>, msg: &Message<'a>) -> Self {
+        Self { _scheme : scheme, ptr : msg.as_ptr() }
+    }
+
+    pub fn message<'a>(&'a self) -> Message<'a> {
+        Message::from_pointer(Pointer::new(self.ptr))
     }
 }
 
