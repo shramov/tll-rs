@@ -44,6 +44,33 @@ pub enum SchemePolicy {
     Manual,
 }
 
+#[ derive(Debug, Eq, PartialEq) ]
+enum DumpMode {
+    Disable = TLL_MESSAGE_LOG_DISABLE as isize,
+    Frame = TLL_MESSAGE_LOG_FRAME as isize,
+    Text = TLL_MESSAGE_LOG_TEXT as isize,
+    TextHex = TLL_MESSAGE_LOG_TEXT_HEX as isize,
+    Scheme = TLL_MESSAGE_LOG_SCHEME as isize,
+    Auto = TLL_MESSAGE_LOG_AUTO as isize,
+}
+
+impl std::str::FromStr for DumpMode {
+    type Err = Error;
+
+    fn from_str(v: &str) -> Result<DumpMode> {
+        match v {
+            "no" => Ok(DumpMode::Disable),
+            "yes" => Ok(DumpMode::Auto),
+            "auto" => Ok(DumpMode::Auto),
+            "frame" => Ok(DumpMode::Frame),
+            "text" => Ok(DumpMode::Text),
+            "text+hex" => Ok(DumpMode::TextHex),
+            "scheme" => Ok(DumpMode::Scheme),
+            _ => Err(Error::from(format!("Invalid dump mode, expected one of no, yes, frame, text, text+hex"))),
+        }
+    }
+}
+
 #[repr(C)]
 #[ derive(Debug) ]
 struct Stat {
@@ -155,6 +182,7 @@ impl Base {
             self.data.stat = stat.as_ptr();
             self.stat = Some(stat);
         }
+        self.data.dump = url.get_typed("dump", DumpMode::Disable)? as u32;
         self.scheme_url = url.get("scheme");
         Ok(())
     }
