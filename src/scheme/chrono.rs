@@ -187,6 +187,14 @@ where
     T: Integer,
     i64: TryFrom<T>,
 {
+    pub fn new(value: Duration<T, P>) -> Self {
+        Self { value }
+    }
+
+    pub fn new_raw(value: T) -> Self {
+        Self { value : Duration::<T, P>::new(value) }
+    }
+
     pub fn as_datetime(self) -> Result<::chrono::DateTime<Utc>, Error>
     {
         let v = Duration::<i64, Nano>::from_duration(self.value)?;
