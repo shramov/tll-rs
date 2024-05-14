@@ -5,6 +5,7 @@ use tll_sys::scheme::tll_scheme_t;
 
 // Reexport for using in macro
 pub use tll_sys::channel::{tll_channel_module_t, tll_channel_context_t, TLL_CHANNEL_MODULE_VERSION};
+pub use crate::error::EINVAL;
 
 use crate::channel::*;
 use crate::config::*;
