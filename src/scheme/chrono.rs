@@ -3,7 +3,7 @@ use num_traits::{Num, CheckedMul};
 use ::chrono::{Utc, Local, TimeZone};
 use std::convert::TryFrom;
 
-pub trait Ratio {
+pub trait Ratio : Copy {
     fn num() -> u64 { 1 }
     fn denom() -> u64 { 1 }
 }
@@ -48,7 +48,7 @@ impl Ratio for RatioDay {
     fn num() -> u64 { 86400 }
 }
 
-pub trait Integer: Num + CheckedMul + std::convert::TryFrom<u64> + std::fmt::Display {}
+pub trait Integer: Num + CheckedMul + std::convert::TryFrom<u64> + std::fmt::Display + Copy {}
 impl Integer for i8 {}
 impl Integer for u8 {}
 impl Integer for i16 {}
@@ -71,6 +71,7 @@ impl From<Error> for crate::error::Error {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Duration<T, P>
 where
+    T: Copy,
     P: Ratio, //, T : Clone + Copy
 {
     pub value: T,
@@ -137,6 +138,7 @@ where
 pub struct TimePoint<T, P>
 where
     P: Ratio,
+    T: Copy,
 {
     pub value: Duration<T, P>,
 }
@@ -198,8 +200,8 @@ where
     }
 }
 
-impl<T, P> Binder for Duration<T, P> where P: Ratio {}
-impl<T, P> Binder for TimePoint<T, P> where P: Ratio {}
+impl<T, P> Binder for Duration<T, P> where P: Ratio, T: Copy {}
+impl<T, P> Binder for TimePoint<T, P> where P: Ratio, T: Copy {}
 
 #[cfg(test)]
 mod tests {
