@@ -182,6 +182,8 @@ impl Drop for Scheme {
 
 trait WithNext {
     unsafe fn get_next_unchecked(value: *const Self) -> *const Self;
+
+    #[inline(always)]
     fn get_next(value: *const Self) -> *const Self {
         if value.is_null() {
             value
@@ -192,12 +194,14 @@ trait WithNext {
 }
 
 impl WithNext for tll_scheme_message_t {
+    #[inline(always)]
     unsafe fn get_next_unchecked(value: *const Self) -> *const Self {
         (*value).next
     }
 }
 
 impl WithNext for tll_scheme_field_t {
+    #[inline(always)]
     unsafe fn get_next_unchecked(value: *const Self) -> *const Self {
         (*value).next
     }
@@ -237,6 +241,7 @@ where
         }
     }
 
+    #[inline(always)]
     fn next_opt(&self) -> Option<Pointer<'a, T>> {
         let next = T::get_next(self.ptr);
         if next.is_null() {
@@ -246,6 +251,7 @@ where
         }
     }
 
+    #[inline(always)]
     fn next_iter(&mut self) -> Option<Self> {
         if self.ptr.is_null() {
             None
@@ -299,6 +305,7 @@ pub struct Message<'a> {
 }
 
 impl<'a> Message<'a> {
+    #[inline(always)]
     fn from_pointer(ptr: Pointer<'a, tll_scheme_message_t>) -> Self {
         Self { data: ptr }
     }
@@ -306,11 +313,11 @@ impl<'a> Message<'a> {
         self.data.ptr
     }
 
+    #[inline(always)]
     pub fn next(&self) -> Option<Message<'a>> {
         self.data.next_opt().map(Self::from_pointer)
     }
 
-    //pub fn name<'a>(&'a self) -> &'a str
     pub fn name(&self) -> &'a str {
         let name = unsafe { (*self.data.ptr).name };
         if name.is_null() {
@@ -320,14 +327,17 @@ impl<'a> Message<'a> {
         }
     }
 
+    #[inline(always)]
     pub fn size(&self) -> usize {
         unsafe { (*self.data.ptr).size }
     }
 
+    #[inline(always)]
     pub fn msgid(&self) -> i32 {
         unsafe { (*self.data.ptr).msgid }
     }
 
+    #[inline(always)]
     pub fn fields(&self) -> FieldIter {
         FieldIter {
             data: Pointer::new(unsafe { (*self.data.ptr).fields }),
@@ -362,6 +372,7 @@ pub struct MessageIter<'a> {
 impl<'a> std::iter::Iterator for MessageIter<'a> {
     type Item = Message<'a>;
 
+    #[inline(always)]
     fn next(&mut self) -> Option<Self::Item> {
         self.data.next_iter().map(Self::Item::from_pointer)
     }
@@ -373,9 +384,12 @@ pub struct Field<'a> {
 }
 
 impl<'a> Field<'a> {
+    #[inline(always)]
     fn from_pointer(ptr: Pointer<'a, tll_scheme_field_t>) -> Self {
         Self { data: ptr }
     }
+
+    #[inline(always)]
     pub fn next(&self) -> Option<Field<'a>> {
         self.data.next_opt().map(Self::from_pointer)
     }
@@ -389,10 +403,12 @@ impl<'a> Field<'a> {
         }
     }
 
+    #[inline(always)]
     pub fn type_raw(&self) -> TypeRaw {
         TypeRaw::from(unsafe { (*self.data.ptr).type_ })
     }
 
+    #[inline(always)]
     pub fn get_type(&self) -> Type {
         match self.type_raw() {
             TypeRaw::Int8 => Type::Int8,
@@ -436,18 +452,22 @@ impl<'a> Field<'a> {
         }
     }
 
+    #[inline(always)]
     pub fn offset(&self) -> usize {
         unsafe { (*self.data.ptr).offset }
     }
 
+    #[inline(always)]
     pub fn size(&self) -> usize {
         unsafe { (*self.data.ptr).size }
     }
 
+    #[inline(always)]
     pub fn sub_type_raw(&self) -> SubTypeRaw {
         SubTypeRaw::from(unsafe { (*self.data.ptr).sub_type })
     }
 
+    #[inline(always)]
     pub fn sub_type(&self) -> SubType {
         match self.sub_type_raw() {
             SubTypeRaw::Unknown(v) => SubType::Unknown(v),
@@ -508,6 +528,7 @@ pub struct FieldIter<'a> {
 impl<'a> std::iter::Iterator for FieldIter<'a> {
     type Item = Field<'a>;
 
+    #[inline(always)]
     fn next(&mut self) -> Option<Self::Item> {
         self.data.next_iter().map(Self::Item::from_pointer)
     }
