@@ -13,6 +13,7 @@ pub enum MsgType {
 }
 
 impl From<c_short> for MsgType {
+    #[inline(always)]
     fn from(x: i16) -> Self
     {
         match x as tll_msg_type_t {
@@ -26,6 +27,7 @@ impl From<c_short> for MsgType {
 }
 
 impl From<MsgType> for c_short {
+    #[inline(always)]
     fn from(value: MsgType) -> c_short
     {
         match value {
@@ -43,23 +45,28 @@ impl From<MsgType> for c_short {
 pub struct Message(tll_msg_t);
 
 impl Default for Message {
+    #[inline(always)]
     fn default() -> Self { Message (unsafe { std::mem::zeroed() }) }
 }
 
 impl Deref for Message {
     type Target = tll_msg_t;
+    #[inline(always)]
     fn deref(&self) -> &tll_msg_t { &self.0 }
 }
 
 impl Message {
+    #[inline(always)]
     pub fn new() -> Self { Message::default() }
 
+    #[inline(always)]
     pub fn data(&self) -> &[u8]
     {
         if self.data.is_null() { return b"" }
         unsafe { std::slice::from_raw_parts(self.data as * const u8, self.size) }
     }
 
+    #[inline(always)]
     pub fn set_data(&mut self, data : &[u8]) -> &mut Self
     {
         self.0.size = data.len();
@@ -67,6 +74,7 @@ impl Message {
         self
     }
 
+    #[inline(always)]
     pub fn set_data_from_ref<T : Sized>(&mut self, data : &T) -> &mut Self
     {
         self.0.size = std::mem::size_of::<T>();
@@ -74,28 +82,36 @@ impl Message {
         self
     }
 
+    #[inline(always)]
     pub fn get_type(&self) -> MsgType { MsgType::from(self.0.type_) }
+    #[inline(always)]
     pub fn set_type(&mut self, t : MsgType) -> &mut Self
     {
         self.0.type_ = t.into();
         self
     }
 
+    #[inline(always)]
     pub fn msgid(&self) -> i32 { self.0.msgid }
+    #[inline(always)]
     pub fn set_msgid(&mut self, id : i32) -> &mut Self
     {
         self.0.msgid = id;
         self
     }
 
+    #[inline(always)]
     pub fn seq(&self) -> i64 { self.0.seq }
+    #[inline(always)]
     pub fn set_seq(&mut self, seq : i64) -> &mut Self
     {
         self.0.seq = seq;
         self
     }
 
+    #[inline(always)]
     pub fn addr(&self) -> u64 { unsafe { self.0.addr.u64_ } }
+    #[inline(always)]
     pub fn set_addr(&mut self, addr : u64) -> &mut Self
     {
         self.0.addr.u64_ = addr;
