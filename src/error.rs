@@ -46,6 +46,11 @@ impl From<std::io::Error> for Error
     fn from(e: std::io::Error) -> Self { Self::from(format!("IO error: {}", e)) }
 }
 
+impl From<std::fmt::Error> for Error
+{
+    fn from(_: std::fmt::Error) -> Self { Self::from("Formatting error") }
+}
+
 pub fn error_check(r: i32) -> Result<()>
 {
     match r {
