@@ -3,6 +3,7 @@ use std::cmp::max;
 pub mod bind;
 pub mod chrono;
 pub mod scheme;
+pub mod mem;
 
 pub use bind::*;
 pub use self::chrono::*;
