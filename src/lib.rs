@@ -10,5 +10,6 @@ pub mod props;
 pub mod error;
 pub mod scheme;
 pub mod decimal128;
+pub mod mem;
 
 pub use crate::error::*;
