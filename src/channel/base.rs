@@ -429,7 +429,7 @@ impl<T> CImpl<T>
         let cfg = if url.is_null() { Config::new() } else { Config::from(url as * mut tll_config_t) };
         match Self::open(channel, &cfg) {
             Err(e) => {
-                println!("Open failed: {:?}", e);
+                channel.logger().error(&format!("Open failed: {:?}", e));
                 EINVAL
             },
             Ok(_) => 0,
