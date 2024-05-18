@@ -5,6 +5,20 @@ use std::os::raw::{c_int, c_char};
 
 use crate::error::*;
 
+pub trait FromStrCustom : Sized {
+    fn from_str_custom(s: &str) -> Result<Self>;
+}
+
+impl FromStrCustom for bool {
+    fn from_str_custom(s: &str) -> Result<Self> {
+        match s {
+            "true" | "yes" | "1" => Ok(true),
+            "false" | "no" | "0" => Ok(false),
+            _ => Err(Error::from("invalid bool value")),
+        }
+    }
+}
+
 pub struct Config {
     ptr: *mut tll_config_t
 }
@@ -83,6 +97,16 @@ impl Config {
             Some(s) => {
                 if s.len() == 0 { return Ok(default); }
                 T::from_str(&s).map_err(|e| Error::from(format!("{:?}", e).as_str()))
+            },
+            None => Ok(default)
+        }
+    }
+
+    pub fn get_bool(&self, key: &str, default: bool) -> Result<bool> {
+        match self.get(key) {
+            Some(s) => {
+                if s.len() == 0 { return Ok(default); }
+                bool::from_str_custom(&s)
             },
             None => Ok(default)
         }
