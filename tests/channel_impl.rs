@@ -67,7 +67,7 @@ fn test() -> Result<()> {
     ctx.register(custom_impl())?;
 
     {
-        let mut r = ctx.channel("echo://host;name=custom;scheme=yamls://[{name: Data, id: 10}]");
+        let mut r = ctx.channel("echo://host;name=custom;echo.scheme=yamls://[{name: Data, id: 10}]");
         assert!(r.is_ok());
         println!("Created channel");
         let c = r.as_mut()?.get_mut();

@@ -5,6 +5,7 @@ use tll_sys::scheme::tll_scheme_t;
 
 // Reexport for using in macro
 pub use tll_sys::channel::{tll_channel_module_t, tll_channel_context_t, TLL_CHANNEL_MODULE_VERSION};
+pub use crate::config::ConfigChainBuilder;
 pub use crate::error::EINVAL;
 
 use crate::channel::*;
@@ -92,6 +93,12 @@ impl Default for Stat {
     }
 }
 
+impl<T: ChannelImpl> ConfigChainBuilder for T {
+    fn config_chain(&self, cfg: &Config) -> ConfigChain {
+        ConfigChain::new(cfg.sub(T::param_prefix()), Some(cfg.copy()), None)
+    }
+}
+
 #[ derive(Debug) ]
 pub struct Base {
     pub data : tll_channel_internal_t,
@@ -173,7 +180,7 @@ impl Base {
         self.callback(Message::new().set_type(t).set_msgid(msgid))
     }
 
-    pub fn init_base(&mut self, url: &Config) -> Result<()>
+    pub fn init_base(&mut self, url: &ConfigChain) -> Result<()>
     {
         self.set_name(&url.get("name").unwrap_or("noname".to_string()))?;
         self.logger = Logger::new(&format!("tll.channel.{}", self.name));
@@ -343,14 +350,16 @@ impl<T> CImpl<T>
         //println!("Call init on boxed object {:?}", c.data);
         //let mut channel = unsafe { std::ptr::NonNull::new_unchecked((*c).data as * mut T) };
         let channel = unsafe { &mut *((*c).data as * mut T) };
+        let chain = &channel.config_chain(url);
         let internal = channel.base_mut();
         internal.data.self_ = c;
         c.internal = &mut internal.data;
         //println!("Call init on boxed object {:?}", c.data);
-        if let Err(e) = internal.init_base(url) {
+        if let Err(e) = internal.init_base(&chain) {
             log.error(&format!("Base init failed: {:?}", e));
             return Err(e);
         }
+
         internal.set_caps(match <T>::child_policy() {
             ChildPolicy::Never => Caps::empty(),
             ChildPolicy::Single => Caps::Parent | Caps::Proxy,
