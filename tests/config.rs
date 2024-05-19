@@ -45,3 +45,21 @@ bool: true
     assert_eq!(true, cfg.get_typed::<bool>("bool", false).unwrap());
 }
 
+#[test]
+fn test_chain() {
+    let mut c0 = Config::new();
+    c0.set("a", "10");
+    c0.set("b", "10");
+    c0.set("d", "");
+    let mut c1 = Config::new();
+    c1.set("a", "20");
+    c1.set("c", "20");
+
+    let chain = ConfigChain::new(Some(c0), None, Some(c1));
+
+    assert_eq!(chain.get("a"), Some("10".into()));
+    assert_eq!(chain.get("b"), Some("10".into()));
+    assert_eq!(chain.get("c"), Some("20".into()));
+    assert_eq!(chain.get("d"), Some("".into()));
+    assert_eq!(chain.get("e"), None);
+}

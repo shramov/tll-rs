@@ -144,3 +144,56 @@ impl Drop for Config {
         unsafe { tll_config_unref(self.ptr); }
     }
 }
+
+#[derive(Default)]
+pub struct ConfigChain {
+    chain: [Option<Config>; 3],
+}
+
+impl ConfigChain {
+    pub fn new(c0: Option<Config>, c1: Option<Config>, c2: Option<Config>) -> Self {
+        Self { chain: [c0, c1, c2] }
+    }
+
+    pub fn get(&self, key: &str) -> Option<String> {
+        let mut r = Option::<String>::default();
+        for oc in &self.chain {
+            if let Some(c) = oc {
+                if let Some(s) = c.get(key) {
+                    if s.len() == 0 {
+                        r = Some(s);
+                    } else {
+                        return Some(s)
+                    }
+                }
+            }
+        }
+        r
+    }
+
+    pub fn get_typed<T : FromStr>(&self, key: &str, default: T) -> Result<T> where <T as FromStr>::Err : std::fmt::Debug {
+        if let Some(s) = self.get(key) {
+            if s.len() != 0 {
+                return T::from_str(&s).map_err(|e| Error::from(format!("invalid '{}' value '{}': {:?}", key, s, e)));
+            }
+        }
+        Ok(default)
+    }
+
+    pub fn get_typed_custom<T : FromStrCustom>(&self, key: &str, default: T) -> Result<T> {
+        if let Some(s) = self.get(key) {
+            if s.len() != 0 {
+                return T::from_str_custom(&s).map_err(|e| Error::from(format!("invalid '{}' value '{}': {}", key, s, e)));
+            }
+        }
+        Ok(default)
+    }
+
+    pub fn get_bool(&self, key: &str, default: bool) -> Result<bool> {
+        self.get_typed_custom(key, default)
+    }
+}
+
+pub trait ConfigChainBuilder {
+    fn config_chain(&self, cfg: &Config) -> ConfigChain;
+}
