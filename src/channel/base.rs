@@ -95,7 +95,7 @@ impl Default for Stat {
 
 impl<T: ChannelImpl> ConfigChainBuilder for T {
     fn config_chain(&self, cfg: &Config) -> ConfigChain {
-        ConfigChain::new(cfg.sub(T::param_prefix()), Some(cfg.copy()), None)
+        ConfigChain::new(cfg.sub(T::param_prefix()), Some(cfg.clone()), None)
     }
 }
 

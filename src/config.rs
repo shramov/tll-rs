@@ -19,6 +19,7 @@ impl FromStrCustom for bool {
     }
 }
 
+#[derive(Debug)]
 pub struct Config {
     ptr: *mut tll_config_t
 }
@@ -30,7 +31,12 @@ impl From<* mut tll_config_t> for Config {
         unsafe { tll_config_ref(ptr) };
         Config { ptr: ptr }
     }
+}
 
+impl Clone for Config {
+    fn clone(&self) -> Self {
+        Config::from(self.as_ptr() as * mut tll_config_t)
+    }
 }
 
 impl Config {
