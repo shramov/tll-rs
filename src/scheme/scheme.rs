@@ -343,6 +343,16 @@ impl<'a> Message<'a> {
             data: Pointer::new(unsafe { (*self.data.ptr).fields }),
         }
     }
+
+    #[inline(always)]
+    pub fn pmap(&'a self) -> Option<Field<'a>> {
+        let pmap = unsafe { (*self.data.ptr).pmap };
+        if pmap.is_null() {
+            None
+        } else {
+            Some(Field::from_pointer(Pointer::new(pmap)))
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -460,6 +470,11 @@ impl<'a> Field<'a> {
     #[inline(always)]
     pub fn size(&self) -> usize {
         unsafe { (*self.data.ptr).size }
+    }
+
+    #[inline(always)]
+    pub fn index(&self) -> i32 {
+        unsafe { (*self.data.ptr).index }
     }
 
     #[inline(always)]
