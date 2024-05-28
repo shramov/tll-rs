@@ -182,6 +182,7 @@ impl Drop for Scheme {
 
 trait WithNext {
     unsafe fn get_next_unchecked(value: *const Self) -> *const Self;
+    unsafe fn get_name_unchecked(value: *const Self) -> *const i8;
 
     #[inline(always)]
     fn get_next(value: *const Self) -> *const Self {
@@ -191,6 +192,16 @@ trait WithNext {
             unsafe { Self::get_next_unchecked(value) }
         }
     }
+
+    #[inline(always)]
+    fn get_name<'a>(value: *const Self) -> &'a str {
+        let name = unsafe { Self::get_name_unchecked(value) };
+        if name.is_null() {
+            ""
+        } else {
+            unsafe { CStr::from_ptr(name) }.to_str().unwrap()
+        }
+    }
 }
 
 impl WithNext for tll_scheme_message_t {
@@ -198,12 +209,22 @@ impl WithNext for tll_scheme_message_t {
     unsafe fn get_next_unchecked(value: *const Self) -> *const Self {
         (*value).next
     }
+
+    #[inline(always)]
+    unsafe fn get_name_unchecked(value: *const Self) -> *const i8 {
+        (*value).name
+    }
 }
 
 impl WithNext for tll_scheme_field_t {
     #[inline(always)]
     unsafe fn get_next_unchecked(value: *const Self) -> *const Self {
         (*value).next
+    }
+
+    #[inline(always)]
+    unsafe fn get_name_unchecked(value: *const Self) -> *const i8 {
+        (*value).name
     }
 }
 
@@ -318,13 +339,9 @@ impl<'a> Message<'a> {
         self.data.next_opt().map(Self::from_pointer)
     }
 
+    #[inline(always)]
     pub fn name(&self) -> &'a str {
-        let name = unsafe { (*self.data.ptr).name };
-        if name.is_null() {
-            ""
-        } else {
-            unsafe { CStr::from_ptr(name) }.to_str().unwrap()
-        }
+        WithNext::get_name(self.data.ptr)
     }
 
     #[inline(always)]
@@ -404,13 +421,9 @@ impl<'a> Field<'a> {
         self.data.next_opt().map(Self::from_pointer)
     }
 
+    #[inline(always)]
     pub fn name(&self) -> &'a str {
-        let name = unsafe { (*self.data.ptr).name };
-        if name.is_null() {
-            ""
-        } else {
-            unsafe { CStr::from_ptr(name) }.to_str().unwrap()
-        }
+        WithNext::get_name(self.data.ptr)
     }
 
     #[inline(always)]
