@@ -149,9 +149,9 @@ impl From<tll_scheme_sub_type_t> for SubTypeRaw {
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
-pub enum SubType {
+pub enum SubType<'a> {
     None,
-    Enum,
+    Enum(Enum<'a>),
     ByteString,
     TimePoint(TimeResolution),
     Duration(TimeResolution),
@@ -217,6 +217,30 @@ impl WithNext for tll_scheme_message_t {
 }
 
 impl WithNext for tll_scheme_field_t {
+    #[inline(always)]
+    unsafe fn get_next_unchecked(value: *const Self) -> *const Self {
+        (*value).next
+    }
+
+    #[inline(always)]
+    unsafe fn get_name_unchecked(value: *const Self) -> *const i8 {
+        (*value).name
+    }
+}
+
+impl WithNext for tll_scheme_enum_t {
+    #[inline(always)]
+    unsafe fn get_next_unchecked(value: *const Self) -> *const Self {
+        (*value).next
+    }
+
+    #[inline(always)]
+    unsafe fn get_name_unchecked(value: *const Self) -> *const i8 {
+        (*value).name
+    }
+}
+
+impl WithNext for tll_scheme_enum_value_t {
     #[inline(always)]
     unsafe fn get_next_unchecked(value: *const Self) -> *const Self {
         (*value).next
@@ -496,11 +520,15 @@ impl<'a> Field<'a> {
     }
 
     #[inline(always)]
-    pub fn sub_type(&self) -> SubType {
+    pub fn sub_type(&self) -> SubType<'a> {
         match self.sub_type_raw() {
             SubTypeRaw::Unknown(v) => SubType::Unknown(v),
             SubTypeRaw::None => SubType::None,
-            SubTypeRaw::Enum => SubType::Enum,
+            SubTypeRaw::Enum => SubType::Enum(
+                Enum::from_pointer(Pointer::new(
+                    unsafe { (*self.data.ptr).__bindgen_anon_1.type_enum }
+                ))
+            ),
             SubTypeRaw::Bits => SubType::Bits,
             SubTypeRaw::ByteString => SubType::ByteString,
             SubTypeRaw::Fixed => SubType::Fixed(unsafe { (*self.data.ptr).__bindgen_anon_1.fixed_precision as usize }),
@@ -555,6 +583,116 @@ pub struct FieldIter<'a> {
 
 impl<'a> std::iter::Iterator for FieldIter<'a> {
     type Item = Field<'a>;
+
+    #[inline(always)]
+    fn next(&mut self) -> Option<Self::Item> {
+        self.data.next_iter().map(Self::Item::from_pointer)
+    }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub struct Enum<'a> {
+    data: Pointer<'a, tll_scheme_enum_t>,
+}
+
+impl<'a> Enum<'a> {
+    #[inline(always)]
+    fn from_pointer(ptr: Pointer<'a, tll_scheme_enum_t>) -> Self {
+        Self { data: ptr }
+    }
+
+    #[inline(always)]
+    pub fn next(&self) -> Option<Enum<'a>> {
+        self.data.next_opt().map(Self::from_pointer)
+    }
+
+    #[inline(always)]
+    pub fn name(&self) -> &'a str {
+        WithNext::get_name(self.data.ptr)
+    }
+
+    #[inline(always)]
+    pub fn type_raw(&self) -> TypeRaw {
+        TypeRaw::from(unsafe { (*self.data.ptr).type_ })
+    }
+
+    #[inline(always)]
+    pub fn get_type(&self) -> Type {
+        match self.type_raw() {
+            TypeRaw::Int8 => Type::Int8,
+            TypeRaw::Int16 => Type::Int16,
+            TypeRaw::Int32 => Type::Int32,
+            TypeRaw::Int64 => Type::Int64,
+            TypeRaw::UInt8 => Type::UInt8,
+            TypeRaw::UInt16 => Type::UInt16,
+            TypeRaw::UInt32 => Type::UInt32,
+            TypeRaw::UInt64 => Type::UInt64,
+            t @ _ => panic!("Invalid enum type: {:?}", t),
+        }
+    }
+
+    #[inline(always)]
+    pub fn size(&self) -> usize {
+        unsafe { (*self.data.ptr).size }
+    }
+
+    #[inline(always)]
+    pub fn values(&self) -> EnumValueIter<'a> {
+        EnumValueIter {
+            data: Pointer::new(unsafe { (*self.data.ptr).values }),
+        }
+    }
+
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub struct EnumIter<'a> {
+    data: Pointer<'a, tll_scheme_enum_t>,
+}
+
+impl<'a> std::iter::Iterator for EnumIter<'a> {
+    type Item = Enum<'a>;
+
+    #[inline(always)]
+    fn next(&mut self) -> Option<Self::Item> {
+        self.data.next_iter().map(Self::Item::from_pointer)
+    }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub struct EnumValue<'a> {
+    data: Pointer<'a, tll_scheme_enum_value_t>,
+}
+
+impl<'a> EnumValue<'a> {
+    #[inline(always)]
+    fn from_pointer(ptr: Pointer<'a, tll_scheme_enum_value_t>) -> Self {
+        Self { data: ptr }
+    }
+
+    #[inline(always)]
+    pub fn next(&self) -> Option<EnumValue<'a>> {
+        self.data.next_opt().map(Self::from_pointer)
+    }
+
+    #[inline(always)]
+    pub fn name(&self) -> &'a str {
+        WithNext::get_name(self.data.ptr)
+    }
+
+    #[inline(always)]
+    pub fn value(&self) -> i64 {
+        unsafe { (*self.data.ptr).value }
+    }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub struct EnumValueIter<'a> {
+    data: Pointer<'a, tll_scheme_enum_value_t>,
+}
+
+impl<'a> std::iter::Iterator for EnumValueIter<'a> {
+    type Item = EnumValue<'a>;
 
     #[inline(always)]
     fn next(&mut self) -> Option<Self::Item> {
