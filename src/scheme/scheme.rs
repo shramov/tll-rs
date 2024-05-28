@@ -379,7 +379,7 @@ impl<'a> Message<'a> {
     }
 
     #[inline(always)]
-    pub fn fields(&self) -> FieldIter {
+    pub fn fields(&self) -> FieldIter<'a> {
         FieldIter {
             data: Pointer::new(unsafe { (*self.data.ptr).fields }),
         }
