@@ -17,6 +17,7 @@ use crate::logger::*;
 use crate::scheme::Scheme;
 
 use std::ffi::CString;
+use std::mem::MaybeUninit;
 use std::os::raw::{c_int, c_long, c_void};
 //use std::option::Option;
 
@@ -95,7 +96,11 @@ impl Default for Stat {
 
 impl<T: ChannelImpl> ConfigChainBuilder for T {
     fn config_chain(&self, cfg: &Config) -> ConfigChain {
-        ConfigChain::new(cfg.sub(T::param_prefix()), Some(cfg.clone()), None)
+        ConfigChain::new(
+            cfg.sub(T::param_prefix()),
+            Some(cfg.clone()),
+            self.base().context().config_defaults().sub(T::param_prefix())
+        )
     }
 }
 
@@ -106,6 +111,7 @@ pub struct Base {
     name : String,
     pub logger : Logger,
     stat : Option<crate::stat::Base<Stat>>,
+    context : MaybeUninit<Context>,
     pub scheme_url : Option<String>,
     pub scheme_data : Option<Scheme>,
     pub scheme_control : Option<Scheme>,
@@ -115,6 +121,8 @@ impl Drop for Base {
     fn drop(&mut self)
     {
         unsafe { tll_channel_internal_clear(&mut self.data) }
+        // It is safe to call drop on zeroed Context
+        unsafe { self.context.assume_init_drop() }
     }
 }
 
@@ -127,6 +135,7 @@ impl Default for Base {
             logger: Logger::new("tll.channel"),
             data: unsafe { std::mem::zeroed::<tll_channel_internal_t>() },
             stat: None,
+            context: MaybeUninit::zeroed(),
             scheme_url: None,
             scheme_data: None,
             scheme_control: None,
@@ -163,6 +172,10 @@ impl Base {
         self.data.state = state.into();
         self.callback_simple(MsgType::State, self.data.state as i32);
         old
+    }
+
+    pub fn context(&self) -> &Context {
+        unsafe { self.context.assume_init_ref() }
     }
 
     pub fn callback(&self, msg: &tll_msg_t)
@@ -346,10 +359,13 @@ impl<T> CImpl<T>
     fn init(c : &mut tll_channel_t, url: &Config, master: Option<Channel>, ctx: &Context) -> Result<()>
     {
         c.data = Box::into_raw(Box::new(<T>::default())) as * mut c_void;
+        let channel = unsafe { &mut *((*c).data as * mut T) };
+        channel.base_mut().context.write(ctx.clone());
+
         let log = Logger::new(&format!("tll.channel.{}", url.get("name").unwrap_or(String::from("noname"))));
         //println!("Call init on boxed object {:?}", c.data);
         //let mut channel = unsafe { std::ptr::NonNull::new_unchecked((*c).data as * mut T) };
-        let channel = unsafe { &mut *((*c).data as * mut T) };
+
         let chain = &channel.config_chain(url);
         let internal = channel.base_mut();
         internal.data.self_ = c;

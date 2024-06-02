@@ -88,10 +88,20 @@ impl From<* mut tll_channel_context_t> for Context
     }
 }
 
+impl Clone for Context {
+    fn clone(&self) -> Self {
+        unsafe { tll_channel_context_ref(self.ptr) };
+        Context { ptr: self.ptr }
+    }
+}
+
 impl Context {
-    pub fn new() -> Self
+    pub fn new() -> Self {
+        Self::new_cfg(Config::new())
+    }
+
+    pub fn new_cfg(mut cfg: Config) -> Self
     {
-        let mut cfg = Config::new();
         let ptr = unsafe { tll_channel_context_new(cfg.as_mut_ptr()) };
         assert!(!ptr.is_null());
         Context { ptr: ptr }
