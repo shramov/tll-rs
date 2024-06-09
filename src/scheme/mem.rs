@@ -304,3 +304,20 @@ impl<Inner: Copy, Ptr: OffsetPtrImpl, Buf: MemRead + Copy> IntoIterator for Offs
         self.iter()
     }
 }
+
+pub struct PMap<Buf: MemRead>(Buf);
+
+impl<Buf: MemRead> PMap<Buf> {
+    #[inline(always)]
+    pub fn new(buf: Buf) -> Self {
+        Self (buf)
+    }
+
+    #[inline(always)]
+    pub fn get(&self, index: i32) -> bool {
+        if index < 0 {
+            return true;
+        }
+        self.0.mem_get_primitive::<u8>(index as usize / 8) & (1 << (index & 0xf)) != 0
+    }
+}
