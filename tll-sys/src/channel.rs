@@ -53,12 +53,7 @@ fn bindgen_test_layout_tll_addr_t() {
                 ::std::ptr::addr_of!((*ptr).u64_) as usize - ptr as usize
             },
             0usize,
-            concat!(
-                "Offset of field: ",
-                stringify!(tll_addr_t),
-                "::",
-                stringify!(u64_)
-            )
+            concat!("Offset of field: ", stringify!(tll_addr_t), "::", stringify!(u64_))
         );
     }
     test_field_u64();
@@ -70,12 +65,7 @@ fn bindgen_test_layout_tll_addr_t() {
                 ::std::ptr::addr_of!((*ptr).i64_) as usize - ptr as usize
             },
             0usize,
-            concat!(
-                "Offset of field: ",
-                stringify!(tll_addr_t),
-                "::",
-                stringify!(i64_)
-            )
+            concat!("Offset of field: ", stringify!(tll_addr_t), "::", stringify!(i64_))
         );
     }
     test_field_i64();
@@ -87,12 +77,7 @@ fn bindgen_test_layout_tll_addr_t() {
                 ::std::ptr::addr_of!((*ptr).ptr) as usize - ptr as usize
             },
             0usize,
-            concat!(
-                "Offset of field: ",
-                stringify!(tll_addr_t),
-                "::",
-                stringify!(ptr)
-            )
+            concat!("Offset of field: ", stringify!(tll_addr_t), "::", stringify!(ptr))
         );
     }
     test_field_ptr();
@@ -106,9 +91,10 @@ impl ::std::fmt::Debug for tll_addr_t {
 #[derive(Copy, Clone)]
 pub struct tll_msg_t {
     pub type_: ::std::os::raw::c_short,
+    pub flags: ::std::os::raw::c_short,
     pub msgid: ::std::os::raw::c_int,
     pub seq: ::std::os::raw::c_longlong,
-    pub flags: ::std::os::raw::c_short,
+    pub pad0: *const ::std::os::raw::c_void,
     pub data: *const ::std::os::raw::c_void,
     pub size: usize,
     pub addr: tll_addr_t,
@@ -135,15 +121,22 @@ fn bindgen_test_layout_tll_msg_t() {
                 ::std::ptr::addr_of!((*ptr).type_) as usize - ptr as usize
             },
             0usize,
-            concat!(
-                "Offset of field: ",
-                stringify!(tll_msg_t),
-                "::",
-                stringify!(type_)
-            )
+            concat!("Offset of field: ", stringify!(tll_msg_t), "::", stringify!(type_))
         );
     }
     test_field_type();
+    fn test_field_flags() {
+        assert_eq!(
+            unsafe {
+                let uninit = ::std::mem::MaybeUninit::<tll_msg_t>::uninit();
+                let ptr = uninit.as_ptr();
+                ::std::ptr::addr_of!((*ptr).flags) as usize - ptr as usize
+            },
+            2usize,
+            concat!("Offset of field: ", stringify!(tll_msg_t), "::", stringify!(flags))
+        );
+    }
+    test_field_flags();
     fn test_field_msgid() {
         assert_eq!(
             unsafe {
@@ -152,12 +145,7 @@ fn bindgen_test_layout_tll_msg_t() {
                 ::std::ptr::addr_of!((*ptr).msgid) as usize - ptr as usize
             },
             4usize,
-            concat!(
-                "Offset of field: ",
-                stringify!(tll_msg_t),
-                "::",
-                stringify!(msgid)
-            )
+            concat!("Offset of field: ", stringify!(tll_msg_t), "::", stringify!(msgid))
         );
     }
     test_field_msgid();
@@ -169,32 +157,22 @@ fn bindgen_test_layout_tll_msg_t() {
                 ::std::ptr::addr_of!((*ptr).seq) as usize - ptr as usize
             },
             8usize,
-            concat!(
-                "Offset of field: ",
-                stringify!(tll_msg_t),
-                "::",
-                stringify!(seq)
-            )
+            concat!("Offset of field: ", stringify!(tll_msg_t), "::", stringify!(seq))
         );
     }
     test_field_seq();
-    fn test_field_flags() {
+    fn test_field_pad0() {
         assert_eq!(
             unsafe {
                 let uninit = ::std::mem::MaybeUninit::<tll_msg_t>::uninit();
                 let ptr = uninit.as_ptr();
-                ::std::ptr::addr_of!((*ptr).flags) as usize - ptr as usize
+                ::std::ptr::addr_of!((*ptr).pad0) as usize - ptr as usize
             },
             16usize,
-            concat!(
-                "Offset of field: ",
-                stringify!(tll_msg_t),
-                "::",
-                stringify!(flags)
-            )
+            concat!("Offset of field: ", stringify!(tll_msg_t), "::", stringify!(pad0))
         );
     }
-    test_field_flags();
+    test_field_pad0();
     fn test_field_data() {
         assert_eq!(
             unsafe {
@@ -203,12 +181,7 @@ fn bindgen_test_layout_tll_msg_t() {
                 ::std::ptr::addr_of!((*ptr).data) as usize - ptr as usize
             },
             24usize,
-            concat!(
-                "Offset of field: ",
-                stringify!(tll_msg_t),
-                "::",
-                stringify!(data)
-            )
+            concat!("Offset of field: ", stringify!(tll_msg_t), "::", stringify!(data))
         );
     }
     test_field_data();
@@ -220,12 +193,7 @@ fn bindgen_test_layout_tll_msg_t() {
                 ::std::ptr::addr_of!((*ptr).size) as usize - ptr as usize
             },
             32usize,
-            concat!(
-                "Offset of field: ",
-                stringify!(tll_msg_t),
-                "::",
-                stringify!(size)
-            )
+            concat!("Offset of field: ", stringify!(tll_msg_t), "::", stringify!(size))
         );
     }
     test_field_size();
@@ -237,12 +205,7 @@ fn bindgen_test_layout_tll_msg_t() {
                 ::std::ptr::addr_of!((*ptr).addr) as usize - ptr as usize
             },
             40usize,
-            concat!(
-                "Offset of field: ",
-                stringify!(tll_msg_t),
-                "::",
-                stringify!(addr)
-            )
+            concat!("Offset of field: ", stringify!(tll_msg_t), "::", stringify!(addr))
         );
     }
     test_field_addr();
@@ -254,12 +217,7 @@ fn bindgen_test_layout_tll_msg_t() {
                 ::std::ptr::addr_of!((*ptr).time) as usize - ptr as usize
             },
             48usize,
-            concat!(
-                "Offset of field: ",
-                stringify!(tll_msg_t),
-                "::",
-                stringify!(time)
-            )
+            concat!("Offset of field: ", stringify!(tll_msg_t), "::", stringify!(time))
         );
     }
     test_field_time();
@@ -271,19 +229,14 @@ fn bindgen_test_layout_tll_msg_t() {
                 ::std::ptr::addr_of!((*ptr).reserved) as usize - ptr as usize
             },
             56usize,
-            concat!(
-                "Offset of field: ",
-                stringify!(tll_msg_t),
-                "::",
-                stringify!(reserved)
-            )
+            concat!("Offset of field: ", stringify!(tll_msg_t), "::", stringify!(reserved))
         );
     }
     test_field_reserved();
 }
 impl ::std::fmt::Debug for tll_msg_t {
     fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
-        write ! (f , "tll_msg_t {{ type: {:?}, msgid: {:?}, seq: {:?}, flags: {:?}, data: {:?}, size: {:?}, addr: {:?}, time: {:?}, reserved: {:?} }}" , self . type_ , self . msgid , self . seq , self . flags , self . data , self . size , self . addr , self . time , self . reserved)
+        write ! (f , "tll_msg_t {{ type: {:?}, flags: {:?}, msgid: {:?}, seq: {:?}, pad0: {:?}, data: {:?}, size: {:?}, addr: {:?}, time: {:?}, reserved: {:?} }}" , self . type_ , self . flags , self . msgid , self . seq , self . pad0 , self . data , self . size , self . addr , self . time , self . reserved)
     }
 }
 #[repr(C)]
@@ -391,12 +344,7 @@ fn bindgen_test_layout_tll_channel_t() {
                 ::std::ptr::addr_of!((*ptr).impl_) as usize - ptr as usize
             },
             0usize,
-            concat!(
-                "Offset of field: ",
-                stringify!(tll_channel_t),
-                "::",
-                stringify!(impl_)
-            )
+            concat!("Offset of field: ", stringify!(tll_channel_t), "::", stringify!(impl_))
         );
     }
     test_field_impl();
@@ -408,12 +356,7 @@ fn bindgen_test_layout_tll_channel_t() {
                 ::std::ptr::addr_of!((*ptr).data) as usize - ptr as usize
             },
             8usize,
-            concat!(
-                "Offset of field: ",
-                stringify!(tll_channel_t),
-                "::",
-                stringify!(data)
-            )
+            concat!("Offset of field: ", stringify!(tll_channel_t), "::", stringify!(data))
         );
     }
     test_field_data();
@@ -459,12 +402,7 @@ fn bindgen_test_layout_tll_channel_t() {
                 ::std::ptr::addr_of!((*ptr).parent) as usize - ptr as usize
             },
             32usize,
-            concat!(
-                "Offset of field: ",
-                stringify!(tll_channel_t),
-                "::",
-                stringify!(parent)
-            )
+            concat!("Offset of field: ", stringify!(tll_channel_t), "::", stringify!(parent))
         );
     }
     test_field_parent();
@@ -526,16 +464,10 @@ extern "C" {
     ) -> ::std::os::raw::c_int;
 }
 extern "C" {
-    pub fn tll_channel_open_cfg(
-        arg1: *mut tll_channel_t,
-        cfg: *const tll_config_t,
-    ) -> ::std::os::raw::c_int;
+    pub fn tll_channel_open_cfg(arg1: *mut tll_channel_t, cfg: *const tll_config_t) -> ::std::os::raw::c_int;
 }
 extern "C" {
-    pub fn tll_channel_close(
-        arg1: *mut tll_channel_t,
-        force: ::std::os::raw::c_int,
-    ) -> ::std::os::raw::c_int;
+    pub fn tll_channel_close(arg1: *mut tll_channel_t, force: ::std::os::raw::c_int) -> ::std::os::raw::c_int;
 }
 extern "C" {
     pub fn tll_channel_process(
@@ -584,10 +516,7 @@ extern "C" {
     pub fn tll_channel_children(c: *const tll_channel_t) -> *const tll_channel_list_t;
 }
 extern "C" {
-    pub fn tll_channel_scheme(
-        c: *const tll_channel_t,
-        type_: ::std::os::raw::c_int,
-    ) -> *const tll_scheme_t;
+    pub fn tll_channel_scheme(c: *const tll_channel_t, type_: ::std::os::raw::c_int) -> *const tll_scheme_t;
 }
 extern "C" {
     pub fn tll_channel_get(
@@ -612,9 +541,7 @@ extern "C" {
     pub fn tll_channel_context_config(arg1: *mut tll_channel_context_t) -> *mut tll_config_t;
 }
 extern "C" {
-    pub fn tll_channel_context_config_defaults(
-        arg1: *mut tll_channel_context_t,
-    ) -> *mut tll_config_t;
+    pub fn tll_channel_context_config_defaults(arg1: *mut tll_channel_context_t) -> *mut tll_config_t;
 }
 extern "C" {
     pub fn tll_channel_context_stat_list(arg1: *mut tll_channel_context_t) -> *mut tll_stat_list_t;
@@ -711,16 +638,10 @@ pub struct tll_channel_impl_t {
     >,
     pub free: ::std::option::Option<unsafe extern "C" fn(arg1: *mut tll_channel_t)>,
     pub open: ::std::option::Option<
-        unsafe extern "C" fn(
-            arg1: *mut tll_channel_t,
-            arg2: *const tll_config_t,
-        ) -> ::std::os::raw::c_int,
+        unsafe extern "C" fn(arg1: *mut tll_channel_t, arg2: *const tll_config_t) -> ::std::os::raw::c_int,
     >,
     pub close: ::std::option::Option<
-        unsafe extern "C" fn(
-            arg1: *mut tll_channel_t,
-            arg2: ::std::os::raw::c_int,
-        ) -> ::std::os::raw::c_int,
+        unsafe extern "C" fn(arg1: *mut tll_channel_t, arg2: ::std::os::raw::c_int) -> ::std::os::raw::c_int,
     >,
     pub process: ::std::option::Option<
         unsafe extern "C" fn(
@@ -737,10 +658,7 @@ pub struct tll_channel_impl_t {
         ) -> ::std::os::raw::c_int,
     >,
     pub scheme: ::std::option::Option<
-        unsafe extern "C" fn(
-            arg1: *const tll_channel_t,
-            arg2: ::std::os::raw::c_int,
-        ) -> *const tll_scheme_t,
+        unsafe extern "C" fn(arg1: *const tll_channel_t, arg2: ::std::os::raw::c_int) -> *const tll_scheme_t,
     >,
     pub name: *const ::std::os::raw::c_char,
     pub prefix: ::std::os::raw::c_int,
@@ -1442,16 +1360,10 @@ extern "C" {
     pub fn tll_channel_list_free(l: *mut tll_channel_list_t);
 }
 extern "C" {
-    pub fn tll_channel_list_add(
-        l: *mut *mut tll_channel_list_t,
-        c: *mut tll_channel_t,
-    ) -> ::std::os::raw::c_int;
+    pub fn tll_channel_list_add(l: *mut *mut tll_channel_list_t, c: *mut tll_channel_t) -> ::std::os::raw::c_int;
 }
 extern "C" {
-    pub fn tll_channel_list_del(
-        l: *mut *mut tll_channel_list_t,
-        c: *const tll_channel_t,
-    ) -> ::std::os::raw::c_int;
+    pub fn tll_channel_list_del(l: *mut *mut tll_channel_list_t, c: *const tll_channel_t) -> ::std::os::raw::c_int;
 }
 extern "C" {
     pub fn tll_channel_internal_init(ptr: *mut tll_channel_internal_t);
@@ -1490,10 +1402,7 @@ pub struct tll_channel_module_t {
         ) -> ::std::os::raw::c_int,
     >,
     pub free: ::std::option::Option<
-        unsafe extern "C" fn(
-            m: *mut tll_channel_module_t,
-            ctx: *mut tll_channel_context_t,
-        ) -> ::std::os::raw::c_int,
+        unsafe extern "C" fn(m: *mut tll_channel_module_t, ctx: *mut tll_channel_context_t) -> ::std::os::raw::c_int,
     >,
     pub flags: ::std::os::raw::c_uint,
 }
@@ -1596,10 +1505,6 @@ fn bindgen_test_layout_tll_channel_module_t() {
     test_field_flags();
 }
 pub type tll_channel_module_init_v1_t = ::std::option::Option<
-    unsafe extern "C" fn(
-        m: *mut tll_channel_module_t,
-        ctx: *mut tll_channel_context_t,
-    ) -> ::std::os::raw::c_int,
+    unsafe extern "C" fn(m: *mut tll_channel_module_t, ctx: *mut tll_channel_context_t) -> ::std::os::raw::c_int,
 >;
-pub type tll_channel_module_func_t =
-    ::std::option::Option<unsafe extern "C" fn() -> *mut tll_channel_module_t>;
+pub type tll_channel_module_func_t = ::std::option::Option<unsafe extern "C" fn() -> *mut tll_channel_module_t>;
