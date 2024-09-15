@@ -41,6 +41,8 @@ impl Logger {
         Logger { ptr: ptr }
     }
 
+    pub fn as_ptr(&self) -> * mut tll_logger_t { self.ptr }
+
     pub fn name<'a>(&'a self) -> &'a str
     {
         let n = unsafe { tll_logger_name(self.ptr) };

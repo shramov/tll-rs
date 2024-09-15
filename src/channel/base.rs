@@ -2,6 +2,7 @@ use tll_sys::channel::*;
 use tll_sys::channel_callback::*;
 pub use tll_sys::config::tll_config_t;
 use tll_sys::scheme::tll_scheme_t;
+use tll_sys::logger::{tll_logger_copy, tll_logger_free};
 
 // Reexport for using in macro
 pub use tll_sys::channel::{tll_channel_module_t, tll_channel_context_t, TLL_CHANNEL_MODULE_VERSION};
@@ -197,6 +198,10 @@ impl Base {
     {
         self.set_name(&url.get("name").unwrap_or("noname".to_string()))?;
         self.logger = Logger::new(&format!("tll.channel.{}", self.name));
+        unsafe {
+            tll_logger_free(self.data.logger);
+            self.data.logger = tll_logger_copy(self.logger.as_ptr());
+        }
         if url.get_typed("stat", false)? {
             let mut stat = crate::stat::Base::<Stat>::new(self.name());
             self.data.stat = stat.as_ptr();
