@@ -536,7 +536,7 @@ unsafe extern "C" fn _channel_module_free(_m: *mut tll_channel_module_t, ctx: *m
 }
 
 #[no_mangle]
-unsafe extern "C" fn channel_module() -> *const tll_channel_module_t
+unsafe extern "C" fn tll_channel_module() -> *const tll_channel_module_t
 {
     static mut MODULE : tll_channel_module_t =
         tll_channel_module_t {
