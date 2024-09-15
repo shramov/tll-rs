@@ -186,7 +186,7 @@ impl Drop for Context {
     }
 }
 
-#[ derive(Debug, PartialEq, Eq, PartialOrd, Ord) ]
+#[ derive(Debug, PartialEq, Eq, PartialOrd, Ord, Copy, Clone) ]
 pub struct Channel {
     ptr: *mut tll_channel_t
 }
