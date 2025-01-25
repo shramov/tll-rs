@@ -190,7 +190,12 @@ impl OffsetPtrImpl for OffsetPtrDefault {
     }
 
     fn entity<Buf: MemRead>(buf: &Buf) -> usize {
-        buf.mem_get_primitive::<u8>(7) as usize
+        let v = buf.mem_get_primitive::<u8>(7) as usize;
+        if v == 255 {
+            buf.mem_get_primitive::<u32>(Self::offset(buf)) as usize
+        } else {
+            v
+        }
     }
 }
 
