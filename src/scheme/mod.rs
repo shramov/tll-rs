@@ -60,12 +60,24 @@ impl<T> OffsetPtr<T> {
     pub fn size(&self) -> usize {
         (self.comb & 0xffffff) as usize
     }
-    pub fn entity(&self) -> usize {
+    fn entity_field(&self) -> usize {
         ((self.comb >> 24) & 0xf) as usize
     }
-    pub unsafe fn data(&self) -> &[T] {
+    pub fn entity(&self) -> usize {
+        let v = self.entity_field();
+        if v == 0xff {
+            unsafe { (self.data_ptr(self.offset as usize) as * const u32).read_unaligned() }
+        } else {
+            v
+        }
+    }
+    fn data_ptr(&self, offset: usize) -> *const u8 {
         let base = self as *const Self as *const u8;
-        std::slice::from_raw_parts(&*((base.add(self.offset as usize)) as *const T), self.size())
+        unsafe { base.add(offset) }
+    }
+    pub unsafe fn data(&self) -> &[T] {
+        let ptr = unsafe { self.data_ptr(self.offset) };
+        std::slice::from_raw_parts(&*(ptr as *const T), self.size())
     }
 }
 
