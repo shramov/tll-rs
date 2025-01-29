@@ -477,6 +477,7 @@ extern "C" {
     ) -> ::std::os::raw::c_int;
 }
 pub const TLL_POST_MORE: tll_channel_post_flag_t = 1;
+pub const TLL_POST_URGENT: tll_channel_post_flag_t = 2;
 pub type tll_channel_post_flag_t = ::std::os::raw::c_uint;
 extern "C" {
     pub fn tll_channel_post(
