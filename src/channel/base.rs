@@ -374,6 +374,7 @@ impl<T> CImpl<T>
         let chain = &channel.config_chain(url);
         let internal = channel.base_mut();
         internal.data.self_ = c;
+        internal.data.logger = unsafe { tll_logger_copy(log.as_ptr()) };
         c.internal = &mut internal.data;
         //println!("Call init on boxed object {:?}", c.data);
         if let Err(e) = internal.init_base(&chain) {
