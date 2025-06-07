@@ -403,14 +403,14 @@ pub struct DetachedMessage {
 }
 
 impl DetachedMessage {
-    pub fn new<'a>(scheme: std::rc::Rc<Scheme>, msg: &Message<'a>) -> Self {
+    pub fn new(scheme: std::rc::Rc<Scheme>, msg: &Message) -> Self {
         Self {
             _scheme: scheme,
             ptr: msg.as_ptr(),
         }
     }
 
-    pub fn message<'a>(&'a self) -> Message<'a> {
+    pub fn message(&self) -> Message {
         Message::from_pointer(Pointer::new(self.ptr))
     }
 }
