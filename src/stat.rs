@@ -180,7 +180,7 @@ pub struct Base<T> {
 
 impl<T> std::fmt::Debug for Base<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(&format!("stat::Base {{ name: {} }}", self.name))
+        f.write_str(&format!("stat::Base {{ name: {} }}", &self.name[..self.name.len() - 1]))
     }
 }
 
@@ -206,7 +206,7 @@ impl <T: Default> Base<T> {
         let mut b = unsafe { Base {
             block: std::mem::zeroed::<tll_stat_block_t>(),
             data: [BasePage::<T>::new(), BasePage::<T>::new()],
-            name: name.to_string(),
+            name: name.to_string() + "\0",
         }};
         b.block.name = b.name.as_bytes().as_ptr() as *const c_char;
         b.block.active = &mut b.data[0].page;
