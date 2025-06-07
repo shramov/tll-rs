@@ -28,17 +28,17 @@ impl ChannelImpl for Echo {
     }
 
     fn init(&mut self, url: &Config, master: Option<Channel>, context: &Context) -> Result<()> {
-        println!("Create channel, master {:?}", master);
+        self.logger().info(&format!("Create channel, master {:?}", master));
         self.inner_mut().init(url, master, context)
     }
 
     fn open(&mut self, url: &Config) -> Result<()> {
-        println!("Open channel");
+        self.logger().info("Begin channel open");
         self.inner_mut().open(url)
     }
 
     fn process(&mut self) -> Result<i32> {
-        println!("Called process");
+        self.logger().info("Called process, open channel");
         if self.state() == State::Opening {
             self.set_state(State::Active);
         }
