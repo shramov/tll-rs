@@ -662,7 +662,7 @@ pub struct tll_channel_impl_t {
         unsafe extern "C" fn(arg1: *const tll_channel_t, arg2: ::std::os::raw::c_int) -> *const tll_scheme_t,
     >,
     pub name: *const ::std::os::raw::c_char,
-    pub prefix: ::std::os::raw::c_int,
+    pub version: ::std::os::raw::c_int,
     pub data: *mut ::std::os::raw::c_void,
 }
 #[test]
@@ -813,23 +813,23 @@ fn bindgen_test_layout_tll_channel_impl_t() {
         );
     }
     test_field_name();
-    fn test_field_prefix() {
+    fn test_field_version() {
         assert_eq!(
             unsafe {
                 let uninit = ::std::mem::MaybeUninit::<tll_channel_impl_t>::uninit();
                 let ptr = uninit.as_ptr();
-                ::std::ptr::addr_of!((*ptr).prefix) as usize - ptr as usize
+                ::std::ptr::addr_of!((*ptr).version) as usize - ptr as usize
             },
             64usize,
             concat!(
                 "Offset of field: ",
                 stringify!(tll_channel_impl_t),
                 "::",
-                stringify!(prefix)
+                stringify!(version)
             )
         );
     }
-    test_field_prefix();
+    test_field_version();
     fn test_field_data() {
         assert_eq!(
             unsafe {
@@ -848,6 +848,9 @@ fn bindgen_test_layout_tll_channel_impl_t() {
     }
     test_field_data();
 }
+pub const TLL_CHANNEL_IMPL_V0: tll_channel_impl_version_t = 0;
+pub const TLL_CHANNEL_IMPL_VERSION_CURRENT: tll_channel_impl_version_t = 0;
+pub type tll_channel_impl_version_t = ::std::os::raw::c_uint;
 #[repr(C)]
 pub struct tll_channel_stat_t {
     pub rx: tll_stat_field_t,
@@ -1053,13 +1056,15 @@ pub struct tll_channel_internal_t {
     pub cb: *mut tll_channel_callback_pair_t,
     pub stat: *mut tll_stat_block_t,
     pub logger: *mut tll_logger_t,
-    pub reserved: [isize; 4usize],
+    pub state_count: ::std::os::raw::c_uint,
+    pub reserved: [isize; 3usize],
+    pub reserved2: [isize; 4usize],
 }
 #[test]
 fn bindgen_test_layout_tll_channel_internal_t() {
     assert_eq!(
         ::std::mem::size_of::<tll_channel_internal_t>(),
-        136usize,
+        168usize,
         concat!("Size of: ", stringify!(tll_channel_internal_t))
     );
     assert_eq!(
@@ -1339,6 +1344,23 @@ fn bindgen_test_layout_tll_channel_internal_t() {
         );
     }
     test_field_logger();
+    fn test_field_state_count() {
+        assert_eq!(
+            unsafe {
+                let uninit = ::std::mem::MaybeUninit::<tll_channel_internal_t>::uninit();
+                let ptr = uninit.as_ptr();
+                ::std::ptr::addr_of!((*ptr).state_count) as usize - ptr as usize
+            },
+            104usize,
+            concat!(
+                "Offset of field: ",
+                stringify!(tll_channel_internal_t),
+                "::",
+                stringify!(state_count)
+            )
+        );
+    }
+    test_field_state_count();
     fn test_field_reserved() {
         assert_eq!(
             unsafe {
@@ -1346,7 +1368,7 @@ fn bindgen_test_layout_tll_channel_internal_t() {
                 let ptr = uninit.as_ptr();
                 ::std::ptr::addr_of!((*ptr).reserved) as usize - ptr as usize
             },
-            104usize,
+            112usize,
             concat!(
                 "Offset of field: ",
                 stringify!(tll_channel_internal_t),
@@ -1356,6 +1378,23 @@ fn bindgen_test_layout_tll_channel_internal_t() {
         );
     }
     test_field_reserved();
+    fn test_field_reserved2() {
+        assert_eq!(
+            unsafe {
+                let uninit = ::std::mem::MaybeUninit::<tll_channel_internal_t>::uninit();
+                let ptr = uninit.as_ptr();
+                ::std::ptr::addr_of!((*ptr).reserved2) as usize - ptr as usize
+            },
+            136usize,
+            concat!(
+                "Offset of field: ",
+                stringify!(tll_channel_internal_t),
+                "::",
+                stringify!(reserved2)
+            )
+        );
+    }
+    test_field_reserved2();
 }
 extern "C" {
     pub fn tll_channel_list_free(l: *mut tll_channel_list_t);
@@ -1386,6 +1425,12 @@ extern "C" {
         c: *const tll_channel_t,
         tag: *const ::std::os::raw::c_char,
         len: ::std::os::raw::c_int,
+    ) -> ::std::os::raw::c_int;
+}
+extern "C" {
+    pub fn tll_channel_internal_set_state(
+        in_: *mut tll_channel_internal_t,
+        state: tll_state_t,
     ) -> ::std::os::raw::c_int;
 }
 pub const TLL_CHANNEL_MODULE_DLOPEN_GLOBAL: tll_channel_module_flags_t = 1;
