@@ -168,10 +168,7 @@ impl Base {
     pub fn set_state(&mut self, state: State) -> State
     {
         let old = self.state();
-        if old == state { return old; }
-        self.logger().info(&format!("State change: {:?} -> {:?}", old, state));
-        self.data.state = state.into();
-        self.callback_simple(MsgType::State, self.data.state as i32);
+        unsafe { tll_channel_internal_set_state(&mut self.data, state.into()) };
         old
     }
 
