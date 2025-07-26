@@ -6,7 +6,7 @@ use crate::error::*;
 use std::ffi::CStr;
 use std::os::raw::{c_int, c_char};
 
-#[derive(Debug, PartialEq, Clone, Copy)]
+#[derive(Debug, PartialEq, PartialOrd, Clone, Copy)]
 pub enum Level {
     Trace = TLL_LOGGER_TRACE as isize,
     Debug = TLL_LOGGER_DEBUG as isize,
@@ -16,9 +16,19 @@ pub enum Level {
     Critical = TLL_LOGGER_CRITICAL as isize,
 }
 
-//impl Level {
-//    pub const Crit : Level = Level::Critical;
-//}
+impl From<u32> for Level {
+    fn from(v: u32) -> Self {
+        match v {
+        TLL_LOGGER_TRACE => Level::Trace,
+        TLL_LOGGER_DEBUG => Level::Debug,
+        TLL_LOGGER_INFO => Level::Info,
+        TLL_LOGGER_WARNING => Level::Warning,
+        TLL_LOGGER_ERROR => Level::Error,
+        TLL_LOGGER_CRITICAL => Level::Critical,
+        _ => Level::Critical,
+        }
+    }
+}
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct Logger {
@@ -51,29 +61,49 @@ impl Logger {
         }
     }
 
-    fn level(&self) -> u32
+    #[inline(always)]
+    fn level_raw(&self) -> u32
     {
         unsafe { (*self.ptr).level }
     }
 
-    pub fn enabled(&self, level: Level) -> bool
+    pub fn level(&self) -> Level
     {
-        self.level() <= level as u32
+        Level::from(self.level_raw())
     }
 
+    pub fn set_level(&self, level: Level)
+    {
+        unsafe { (*self.ptr).level = level as u32 }
+    }
+
+    #[inline(always)]
+    pub fn enabled(&self, level: Level) -> bool
+    {
+        self.level_raw() <= level as u32
+    }
+
+    #[inline(always)]
     pub fn log(&self, level: Level, msg: &str)
     {
         if !self.enabled(level) { return; }
         unsafe { tll_logger_log(self.ptr, level as tll_logger_level_t, msg.as_ptr() as *const c_char, msg.len()) };
     }
 
+    #[inline(always)]
     pub fn trace(&self, msg: &str) { self.log(Level::Trace, msg) }
+    #[inline(always)]
     pub fn debug(&self, msg: &str) { self.log(Level::Debug, msg) }
+    #[inline(always)]
     pub fn info(&self, msg: &str) { self.log(Level::Info, msg) }
+    #[inline(always)]
     pub fn warning(&self, msg: &str) { self.log(Level::Warning, msg) }
+    #[inline(always)]
     pub fn error(&self, msg: &str) { self.log(Level::Error, msg) }
+    #[inline(always)]
     pub fn critical(&self, msg: &str) { self.log(Level::Critical, msg) }
 
+    #[inline(always)]
     pub fn fail<T>(&self, err: T, msg: &str) -> T { self.error(msg); err }
 
     pub fn config(cfg: &Config) -> Result<()>
