@@ -22,16 +22,11 @@ extern "C" {
     pub fn tll_processor_loop_free(arg1: *mut tll_processor_loop_t);
 }
 extern "C" {
-    pub fn tll_processor_loop_add(
-        arg1: *mut tll_processor_loop_t,
-        arg2: *mut tll_channel_t,
-    ) -> ::std::os::raw::c_int;
+    pub fn tll_processor_loop_add(arg1: *mut tll_processor_loop_t, arg2: *mut tll_channel_t) -> ::std::os::raw::c_int;
 }
 extern "C" {
-    pub fn tll_processor_loop_del(
-        arg1: *mut tll_processor_loop_t,
-        arg2: *const tll_channel_t,
-    ) -> ::std::os::raw::c_int;
+    pub fn tll_processor_loop_del(arg1: *mut tll_processor_loop_t, arg2: *const tll_channel_t)
+        -> ::std::os::raw::c_int;
 }
 extern "C" {
     pub fn tll_processor_loop_poll(
