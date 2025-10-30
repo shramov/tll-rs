@@ -21,7 +21,7 @@ impl Extension for Echo {
 }
 
 impl ChannelImpl for Echo {
-    fn channel_protocol() -> &'static str { "echo" }
+    fn channel_protocol() -> &'static str { "rs-echo" }
 
     fn open_policy() -> OpenPolicy {
         OpenPolicy::Manual
