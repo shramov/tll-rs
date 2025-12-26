@@ -63,7 +63,7 @@ impl Message {
     pub fn data(&self) -> &[u8]
     {
         if self.data.is_null() { return b"" }
-        unsafe { std::slice::from_raw_parts(self.data as * const u8, self.size) }
+        unsafe { std::slice::from_raw_parts(self.0.data as * const u8, self.size) }
     }
 
     #[inline(always)]
