@@ -24,11 +24,14 @@ fn load() {
 #[test]
 fn browse() {
     let mut cfg = Config::new();
-    let mut v = cfg.get("a.b.c");
-    assert!(v.is_none());
-    cfg.set("a.b.c", "xxx");
-    v = cfg.get("a.b.c");
-    assert!(v == Some ("xxx".to_string()));
+    assert!(cfg.get("a.b.0").is_none());
+    cfg.set("a.b.0", "xxx");
+    cfg.set("a.b.1", "yyy");
+    cfg.set("a.b.2", "zzz");
+    assert!(cfg.get("a.b.0") == Some ("xxx".to_string()));
+    assert_eq!(
+    cfg.browse("a.b.**").iter().map(|x| (x.0.clone(), x.1.get_self())).collect::<Vec<_>>(),
+    vec![("a.b.0", "xxx"),("a.b.1", "yyy"),("a.b.2", "zzz")].iter().map(|&x| (x.0.to_owned(), Some(x.1.to_owned()))).collect::<Vec<_>>());
 }
 
 #[test]

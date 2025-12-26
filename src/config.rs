@@ -1,7 +1,7 @@
 use tll_sys::config::*;
 use std::option::Option;
 use std::str::FromStr;
-use std::os::raw::{c_int, c_char};
+use std::os::raw::{c_int, c_char, c_void};
 
 use crate::error::*;
 
@@ -37,6 +37,30 @@ impl Clone for Config {
     fn clone(&self) -> Self {
         Config::from(self.as_ptr() as * mut tll_config_t)
     }
+}
+
+type BrowseVec = Vec<(String, Config)>;
+extern "C" fn browse_cb(key: * const c_char, klen: c_int, cfg: * const tll_config_t, user: * mut c_void) -> c_int
+{
+    let r = unsafe { &mut * (user as * mut BrowseVec) };
+    let v = unsafe { std::slice::from_raw_parts(key as *const u8, klen as usize) };
+    if let Ok(s) = String::from_utf8(v.to_vec()) {
+        r.push((s, Config::from(cfg as * mut tll_config_t)));
+        return 0;
+    }
+    return EINVAL;
+}
+
+fn value_to_option(ptr: * const c_char, len: c_int) -> Option<String>
+{
+        if ptr.is_null() {
+            return None
+        }
+
+        let v = unsafe { std::slice::from_raw_parts(ptr as *const u8, len as usize) };
+        let r = String::from_utf8(v.to_vec());
+        unsafe { tll_config_value_free(ptr) };
+        r.ok()
 }
 
 impl Config {
@@ -87,14 +111,14 @@ impl Config {
     {
         let mut len = 0 as c_int;
         let ptr = unsafe { tll_config_get_copy(self.ptr, key.as_ptr() as *const c_char, key.len() as c_int, &mut len as *mut c_int) };
-        if ptr.is_null() {
-            return None;
-        } else {
-            let v = unsafe { std::slice::from_raw_parts(ptr as *const u8, len as usize) };
-            let s = std::str::from_utf8(v).unwrap().to_owned();
-            unsafe { tll_config_value_free(ptr) };
-            Some(s)
-        }
+        value_to_option(ptr, len)
+    }
+
+    pub fn get_self(&self) -> Option<String>
+    {
+        let mut len = 0 as c_int;
+        let ptr = unsafe { tll_config_get_copy(self.ptr, std::ptr::null(), 0, &mut len as *mut c_int) };
+        value_to_option(ptr, len)
     }
 
     pub fn get_typed<T : FromStr>(&self, key: &str, default: T) -> Result<T> where <T as FromStr>::Err : std::fmt::Debug
@@ -142,6 +166,13 @@ impl Config {
         } else {
             return None;
         }
+    }
+
+    pub fn browse(&self, mask: &str) -> Vec<(String, Config)>
+    {
+        let mut r = BrowseVec::new();
+        unsafe { tll_config_browse(self.ptr, mask.as_ptr() as *const c_char, mask.len() as c_int, Some(browse_cb), &mut r as * mut BrowseVec as * mut c_void) };
+        return r;
     }
 }
 
