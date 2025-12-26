@@ -1,7 +1,7 @@
 use tll_sys::channel::*;
 use std::os::raw::c_void;
 use std::os::raw::c_short;
-use std::ops::Deref;
+use std::ops::{Deref, DerefMut};
 
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum MsgType {
@@ -116,6 +116,37 @@ impl Message {
     {
         self.0.addr.u64_ = addr;
         self
+    }
+}
+
+#[derive(Debug)]
+pub struct OwnedMessage {
+    message: Message,
+    data: Vec<u8>,
+}
+
+impl Deref for OwnedMessage {
+    type Target = Message;
+    #[inline(always)]
+    fn deref(&self) -> &Message { &self.message }
+}
+
+impl DerefMut for OwnedMessage {
+    #[inline(always)]
+    fn deref_mut(&mut self) -> &mut Message { &mut self.message }
+}
+
+impl Clone for OwnedMessage {
+    fn clone(&self) -> Self {
+        (&self.message).into()
+    }
+}
+
+impl From<&Message> for OwnedMessage {
+    fn from(msg: &Message) -> Self {
+        let mut r = OwnedMessage { message: Message ( msg.0 ), data: msg.data().to_vec() };
+        r.message.set_data(&r.data);
+        r
     }
 }
 
