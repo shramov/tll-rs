@@ -51,5 +51,5 @@ impl ChannelImpl for Echo {
     }
 }
 
-tll::declare_channel_impl!(echo_impl, Echo);
-tll::declare_channel_module!(echo_impl);
+tll::declare_channel_impl!(Echo);
+tll::declare_channel_module!(Echo);

@@ -58,13 +58,13 @@ impl ChannelImpl for Echo {
 }
 
 //#[test]
-tll::declare_channel_impl!(custom_impl, Echo);
+tll::declare_channel_impl!(Echo);
 
 #[test]
 fn test() -> Result<()> {
     let ctx = Context::new();
     assert!(ctx.channel("echo://;name=custom").is_err());
-    ctx.register(custom_impl())?;
+    ctx.register(Echo::channel_impl())?;
 
     {
         let mut r = ctx.channel("echo://host;name=custom;echo.scheme=yamls://[{name: Data, id: 10}]");

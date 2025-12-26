@@ -164,14 +164,14 @@ impl TestPrefix {
     }
 }
 
-tll::declare_channel_impl!(test_prefix_impl, TestPrefix);
-tll::declare_channel_module!(test_prefix_impl);
+tll::declare_channel_impl!(TestPrefix);
+tll::declare_channel_module!(TestPrefix);
 
 #[test]
 fn test() -> Result<()> {
     let ctx = Context::new();
     assert!(ctx.channel("prefix+null://;name=prefix").is_err());
-    ctx.register(test_prefix_impl())?;
+    ctx.register(TestPrefix::channel_impl())?;
 
     {
         let mut r = ctx.channel("prefix+null://host;name=prefix");

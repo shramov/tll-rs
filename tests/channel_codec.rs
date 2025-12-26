@@ -12,7 +12,18 @@ struct Xor {
     decbuf: Vec<u8>,
 }
 
-type XorCodec = Codec<Xor>;
+#[derive(Debug, Default)]
+struct XorCodec(Codec<Xor>);
+
+impl Extension for XorCodec {
+    type Inner = Codec<Xor>;
+    fn inner(&self) -> &Self::Inner { &self.0 }
+    fn inner_mut(&mut self) -> &mut Self::Inner { &mut self.0 }
+}
+
+impl ChannelImpl for XorCodec {
+    fn channel_protocol() -> &'static str { Xor::channel_protocol() }
+}
 
 impl Xor {
     fn convert<'a>(data: &[u8], vec: &'a mut Vec<u8>) -> &'a [u8] {
@@ -43,12 +54,12 @@ impl CodecImpl for Xor {
     }
 }
 
-tll::declare_channel_impl!(custom_impl, XorCodec);
+tll::declare_channel_impl!(XorCodec);
 
 #[test]
 fn test() -> Result<()> {
     let ctx = Context::new();
-    ctx.register(custom_impl())?;
+    ctx.register(XorCodec::channel_impl())?;
 
     let mut c = ctx.channel("xor+null://host;name=custom;dump=text+hex").unwrap();
     println!("Created channel");

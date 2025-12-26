@@ -316,24 +316,26 @@ pub struct CImpl<T : ChannelImpl> {
     phantom: std::marker::PhantomData<T>,
 }
 
-#[macro_export]
-macro_rules! declare_channel_impl {
-    ($var:ident, $klass:ident) => {
-#[allow(dead_code, non_camel_case_types)]
-#[doc(hidden)]
-fn $var() -> &'static CImpl::<$klass>
-{
-    static mut POINTER: *const CImpl::<$klass> = std::ptr::null();
-    static ONCE: std::sync::Once = std::sync::Once::new();
-
-    unsafe {
-        ONCE.call_once(|| {
-            POINTER = std::mem::transmute(Box::new(CImpl::<$klass>::new(<$klass as ChannelImpl>::channel_protocol())));
-        });
-        &*POINTER
-    }
+pub trait ChannelImplHolder : ChannelImpl {
+    fn channel_impl() -> &'static CImpl::<Self>;
 }
 
+#[macro_export]
+macro_rules! declare_channel_impl {
+    ($klass:ident) => {
+impl ChannelImplHolder for $klass {
+    fn channel_impl() -> &'static CImpl::<$klass> {
+        static mut POINTER: *const CImpl::<$klass> = std::ptr::null();
+        static ONCE: std::sync::Once = std::sync::Once::new();
+
+        unsafe {
+            ONCE.call_once(|| {
+                POINTER = std::mem::transmute(Box::new(CImpl::<$klass>::new(<$klass as ChannelImpl>::channel_protocol())));
+            });
+            &*POINTER
+        }
+    }
+}
     }
 }
 
@@ -518,7 +520,7 @@ macro_rules! declare_channel_module {
 unsafe extern "C" fn _channel_module_init(_m: *mut tll_channel_module_t, ctx: *mut tll_channel_context_t, _cfg: *const tll_config_t) -> std::os::raw::c_int
 {
     $(
-    if let Err(e) = Context::from(ctx).register($impl0()) { return e.code.unwrap_or(EINVAL); };
+    if let Err(e) = Context::from(ctx).register($impl0::channel_impl()) { return e.code.unwrap_or(EINVAL); };
     )*
     0
 }
