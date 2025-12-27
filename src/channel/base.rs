@@ -216,7 +216,7 @@ impl Base {
 
     pub fn set_caps(&mut self, caps: Caps)
     {
-        self.data.caps = caps.bits();
+        self.data.caps |= caps.bits();
     }
 
     pub fn update_dcaps(&mut self, caps: DCaps, mask: DCaps)
