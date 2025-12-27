@@ -350,6 +350,17 @@ pub trait ChannelImplHolder : ChannelImpl {
     fn channel_impl() -> &'static CImpl::<Self>;
 }
 
+pub fn channel_cast<T: 'static + ChannelImplHolder>(channel: &Channel) -> Option<&'_ T> {
+    let iptr = T::channel_impl().as_ptr();
+    let cptr = channel.as_const_ptr();
+    if unsafe { (*cptr).impl_ == iptr } {
+        let r = unsafe { & *((*cptr).data as * const T) };
+        Some(r)
+    } else {
+        None
+    }
+}
+
 #[macro_export]
 macro_rules! declare_channel_impl {
     ($klass:ident) => {
