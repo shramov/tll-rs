@@ -74,6 +74,30 @@ impl std::str::FromStr for DumpMode {
     }
 }
 
+#[ derive(Debug, Eq, PartialEq) ]
+enum DirMode {
+    None = 0,
+    R = 1,
+    W = 2,
+    RW = 1 | 2,
+}
+
+impl std::str::FromStr for DirMode {
+    type Err = Error;
+
+    fn from_str(v: &str) -> Result<DirMode> {
+        match v {
+            "r" => Ok(DirMode::R),
+            "in" => Ok(DirMode::R),
+            "w" => Ok(DirMode::W),
+            "out" => Ok(DirMode::W),
+            "rw" => Ok(DirMode::RW),
+            "inout" => Ok(DirMode::RW),
+            _ => Err(Error::from(format!("Invalid dir mode, expected one of r, w, rw, in, out, inout"))),
+        }
+    }
+}
+
 #[repr(C)]
 #[ derive(Debug) ]
 struct Stat {
@@ -206,6 +230,12 @@ impl Base {
         }
         self.data.dump = url.get_typed("dump", DumpMode::Disable)? as u32;
         self.scheme_url = url.get("scheme");
+        self.set_caps(match url.get_typed("dir", DirMode::None)? {
+            DirMode::None => Caps::empty(),
+            DirMode::R => Caps::Input,
+            DirMode::W => Caps::Output,
+            DirMode::RW => Caps::InOut,
+        });
         Ok(())
     }
 
