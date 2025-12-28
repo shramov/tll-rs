@@ -549,6 +549,11 @@ impl<T> CImpl<T>
     {
         if c.is_null() || unsafe { (*c).data.is_null() } { return EINVAL }
         let channel = unsafe { &mut *((*c).data as * mut T) };
+        match channel.state() {
+            State::Closed => return 0,
+            State::Error => return 0,
+            _ => (),
+        }
         match channel.process() {
             Ok(_) => 0,
             Err(_) => EINVAL,
