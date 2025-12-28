@@ -328,6 +328,12 @@ impl Scheme {
         Scheme { ptr: ptr }
     }
 
+    pub fn enums(&self) -> EnumIter<'_> {
+        EnumIter {
+            data: Pointer::new(unsafe { (*self.ptr).enums }),
+        }
+    }
+
     pub fn messages(&self) -> MessageIter {
         MessageIter {
             data: Pointer::new(unsafe { (*self.ptr).messages }),
