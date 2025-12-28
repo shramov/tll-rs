@@ -501,6 +501,7 @@ impl<T> CImpl<T>
         match Self::open(channel, &cfg) {
             Err(e) => {
                 channel.logger().error(&format!("Open failed: {:?}", e));
+                channel.set_state(State::Error);
                 EINVAL
             },
             Ok(_) => 0,
