@@ -402,6 +402,13 @@ impl<'a> Message<'a> {
     }
 
     #[inline(always)]
+    pub fn enums(&self) -> EnumIter<'_> {
+        EnumIter {
+            data: Pointer::new(unsafe { (*self.data.ptr).enums }),
+        }
+    }
+
+    #[inline(always)]
     pub fn fields(&self) -> FieldIter<'a> {
         FieldIter {
             data: Pointer::new(unsafe { (*self.data.ptr).fields }),
