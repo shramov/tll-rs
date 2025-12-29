@@ -9,6 +9,19 @@ use std::ffi::CString;
 use std::marker::PhantomData;
 use std::os::raw::{c_char, c_int};
 
+type Options = std::collections::BTreeMap<String, String>;
+
+fn options_from(mut ptr: *const tll_scheme_option_t) -> Result<Options> {
+    let mut r = Options::new();
+    while !ptr.is_null() {
+        let k = unsafe { CStr::from_ptr((*ptr).name) }.to_str()?.to_owned();
+        let v = unsafe { CStr::from_ptr((*ptr).value) }.to_str()?.to_owned();
+        r.insert(k, v);
+        ptr = unsafe { (*ptr).next };
+    }
+    Ok(r)
+}
+
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum TypeRaw {
     Int8 = TLL_SCHEME_FIELD_INT8 as isize,
@@ -348,6 +361,10 @@ impl Scheme {
         }
         None
     }
+
+    pub fn options(&self) -> Result<Options> {
+        options_from(unsafe { (*self.ptr).options })
+    }
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -399,6 +416,10 @@ impl<'a> Message<'a> {
         } else {
             Some(Field::from_pointer(Pointer::new(pmap)))
         }
+    }
+
+    pub fn options(&self) -> Result<Options> {
+        options_from(unsafe { (*self.data.ptr).options })
     }
 }
 
@@ -580,6 +601,10 @@ impl<'a> Field<'a> {
             Some(Field::from_pointer(Pointer::new(ptr)))
         }
     }
+
+    pub fn options(&self) -> Result<Options> {
+        options_from(unsafe { (*self.data.ptr).options })
+    }
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -649,6 +674,9 @@ impl<'a> Enum<'a> {
         }
     }
 
+    pub fn options(&self) -> Result<Options> {
+        options_from(unsafe { (*self.data.ptr).options })
+    }
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
