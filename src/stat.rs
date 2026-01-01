@@ -217,7 +217,7 @@ impl <T: Default> Base<T> {
 
     pub fn as_ptr(&mut self) -> * mut tll_stat_block_t { &mut self.block }
 
-    pub fn acquire(&mut self) -> Option<Reference<T>>
+    pub fn acquire(&mut self) -> Option<Reference<'_, T>>
     {
         let p = unsafe { tll_stat_page_acquire(&mut self.block) };
         if p.is_null() { return None }
