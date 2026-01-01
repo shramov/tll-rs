@@ -347,13 +347,13 @@ impl Scheme {
         }
     }
 
-    pub fn messages(&self) -> MessageIter {
+    pub fn messages(&self) -> MessageIter<'_> {
         MessageIter {
             data: Pointer::new(unsafe { (*self.ptr).messages }),
         }
     }
 
-    pub fn message(&self, id: i32) -> Option<Message> {
+    pub fn message(&self, id: i32) -> Option<Message<'_>> {
         for m in self.messages() {
             if m.msgid() == id {
                 return Some(m);
@@ -444,7 +444,7 @@ impl DetachedMessage {
         }
     }
 
-    pub fn message(&self) -> Message {
+    pub fn message(&self) -> Message<'_> {
         Message::from_pointer(Pointer::new(self.ptr))
     }
 }
@@ -490,7 +490,7 @@ impl<'a> Field<'a> {
     }
 
     #[inline(always)]
-    pub fn get_type(&self) -> Type {
+    pub fn get_type(&self) -> Type<'_> {
         match self.type_raw() {
             TypeRaw::Int8 => Type::Int8,
             TypeRaw::Int16 => Type::Int16,
@@ -655,7 +655,7 @@ impl<'a> Enum<'a> {
     }
 
     #[inline(always)]
-    pub fn get_type(&self) -> Type {
+    pub fn get_type(&self) -> Type<'_> {
         match self.type_raw() {
             TypeRaw::Int8 => Type::Int8,
             TypeRaw::Int16 => Type::Int16,
