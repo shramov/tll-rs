@@ -252,10 +252,9 @@ impl Base {
             return;
         }
         self.data.dcaps ^= (old & mask.bits()) ^ caps.bits();
+        let oldbytes = old.to_ne_bytes();
         let mut msg = Message::new();
-        msg.set_type(MsgType::Channel)
-            .set_msgid(TLL_MESSAGE_CHANNEL_UPDATE as i32)
-            .set_data(&old.to_ne_bytes());
+        msg.set_type(MsgType::Channel).set_msgid(TLL_MESSAGE_CHANNEL_UPDATE as i32).set_data(&oldbytes);
         self.callback(&msg);
     }
 
