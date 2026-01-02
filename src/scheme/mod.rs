@@ -5,6 +5,7 @@ pub mod chrono;
 pub mod scheme;
 pub mod mem;
 pub mod native;
+pub mod serde;
 
 pub use bind::*;
 pub use self::chrono::*;
