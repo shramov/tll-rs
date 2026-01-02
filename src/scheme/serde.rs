@@ -4,6 +4,7 @@ use base64::{engine::general_purpose::STANDARD as base64, Engine};
 pub use serde_core::ser::Serialize;
 use serde_core::ser::{Error, SerializeMap, SerializeSeq, Serializer};
 
+use crate::decimal128::{Decimal128, Unpacked128};
 use crate::mem::MemRead;
 use crate::scheme::mem::{OffsetPtrDefault, OffsetPtrImpl, OffsetPtrLegacyLong, OffsetPtrLegacyShort};
 use crate::scheme::native::*;
@@ -134,6 +135,25 @@ impl<'a> Serialize for DataField<'a> {
             Type::UInt32 => self.data.mem_get_primitive::<u32>(0).serialize(ser),
             Type::UInt64 => self.data.mem_get_primitive::<u64>(0).serialize(ser),
             Type::Double => self.data.mem_get_primitive::<f64>(0).serialize(ser),
+            Type::Decimal128 => {
+                let mut buf = String::new();
+                match self.data.mem_get_primitive::<Decimal128>(0).unpack() {
+                    Unpacked128::Value(s, m, e) => {
+                        if s {
+                            buf += "-"
+                        }
+                        buf += &m.to_string();
+                        buf += ".0E";
+                        buf += &e.to_string();
+                        &buf
+                    }
+                    Unpacked128::Inf => "Inf",
+                    Unpacked128::NegInf => "-Inf",
+                    Unpacked128::NaN => "NaN",
+                    Unpacked128::SNaN => "sNan",
+                }
+                .serialize(ser)
+            }
             Type::Bytes(capacity) => {
                 if SubType::ByteString == self.desc.sub_type {
                     let slice = self.data.mem_get_bytestring(0, *capacity);
