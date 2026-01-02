@@ -21,11 +21,11 @@ pub fn channel_callback(internal: &tll_channel_internal_t, msg: *const tll_msg_t
         return channel_callback_data(internal, msg);
     };
 
-    for i in 0..internal.data_cb_size {
+    for i in 0..internal.cb_size {
         unsafe {
-            let ptr = internal.data_cb.offset(i as isize);
+            let ptr = internal.cb.offset(i as isize);
             let mask = std::ptr::addr_of!((*ptr).mask).read_unaligned();
-            if mask & (1u32 << t) != 0 {
+            if mask & (1u32 << t) == 0 {
                 continue;
             }
             let cb = std::ptr::addr_of!((*ptr).cb).read_unaligned();
