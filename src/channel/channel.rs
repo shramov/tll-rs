@@ -65,7 +65,7 @@ impl From<State> for tll_state_t {
 pub enum MsgMask {
     All = TLL_MESSAGE_MASK_ALL as u32,
     Data = TLL_MESSAGE_MASK_DATA as u32,
-    Constrol = TLL_MESSAGE_MASK_CONTROL as u32,
+    Control = TLL_MESSAGE_MASK_CONTROL as u32,
     State = TLL_MESSAGE_MASK_STATE as u32,
     Channel = TLL_MESSAGE_MASK_CHANNEL as u32,
 }
