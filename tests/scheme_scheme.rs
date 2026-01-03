@@ -103,20 +103,16 @@ impl<Buf: MemRead + Copy> msg<Buf> {
         }
     }
     pub fn get_duration_us(&self) -> tll::scheme::Duration<i32, tll::scheme::Micro> {
-        self.data
-            .mem_get_primitive::<tll::scheme::Duration<i32, tll::scheme::Micro>>(104)
+        self.data.mem_get_primitive::<tll::scheme::Duration<i32, tll::scheme::Micro>>(104)
     }
     pub fn get_duration_ns(&self) -> tll::scheme::Duration<u64, tll::scheme::Nano> {
-        self.data
-            .mem_get_primitive::<tll::scheme::Duration<u64, tll::scheme::Nano>>(108)
+        self.data.mem_get_primitive::<tll::scheme::Duration<u64, tll::scheme::Nano>>(108)
     }
     pub fn get_timepoint_days(&self) -> tll::scheme::TimePoint<i32, tll::scheme::RatioDay> {
-        self.data
-            .mem_get_primitive::<tll::scheme::TimePoint<i32, tll::scheme::RatioDay>>(116)
+        self.data.mem_get_primitive::<tll::scheme::TimePoint<i32, tll::scheme::RatioDay>>(116)
     }
     pub fn get_timepoint_ns(&self) -> tll::scheme::TimePoint<u64, tll::scheme::Nano> {
-        self.data
-            .mem_get_primitive::<tll::scheme::TimePoint<u64, tll::scheme::Nano>>(120)
+        self.data.mem_get_primitive::<tll::scheme::TimePoint<u64, tll::scheme::Nano>>(120)
     }
 }
 impl<Buf: MemRead> MsgId for msg<Buf> {

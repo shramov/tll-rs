@@ -11,10 +11,8 @@ struct TestPrefix {
     child: OwnedChannel,
 }
 
-impl Default for TestPrefix
-{
-    fn default() -> Self
-    {
+impl Default for TestPrefix {
+    fn default() -> Self {
         Self {
             base: Base::default(),
             child: unsafe { OwnedChannel::new_null() },
@@ -23,8 +21,7 @@ impl Default for TestPrefix
 }
 
 impl CallbackMut for TestPrefix {
-    fn message_callback_mut(&mut self, c : &Channel, m: &Message) -> i32
-    {
+    fn message_callback_mut(&mut self, c: &Channel, m: &Message) -> i32 {
         self.child_cb(c, m)
     }
 }
@@ -41,7 +38,9 @@ impl Extension for TestPrefix {
 }
 
 impl ChannelImpl for TestPrefix {
-    fn channel_protocol() -> &'static str { "prefix+" }
+    fn channel_protocol() -> &'static str {
+        "prefix+"
+    }
 
     fn open_policy() -> OpenPolicy {
         OpenPolicy::Manual
@@ -90,8 +89,7 @@ impl ChannelImpl for TestPrefix {
         Ok(())
     }
 
-    fn free(&mut self)
-    {
+    fn free(&mut self) {
         self.child = unsafe { OwnedChannel::new_null() }
     }
 
@@ -110,13 +108,13 @@ impl ChannelImpl for TestPrefix {
 
 impl TestPrefix {
     pub fn on_state(&mut self, s: State) -> i32 {
-	match s {
+        match s {
             State::Active => self.on_active(),
             State::Error => self.on_error(),
             State::Closing => self.on_closing(),
             State::Closed => self.on_closed(),
-	    _ => 0
-	}
+            _ => 0,
+        }
     }
 
     pub fn on_active(&mut self) -> i32 {

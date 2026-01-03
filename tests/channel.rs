@@ -15,8 +15,7 @@ impl From<&mut i32> for Error {
 */
 
 #[allow(dead_code)]
-fn callback(c: &Channel, m: &Message) -> i32
-{
+fn callback(c: &Channel, m: &Message) -> i32 {
     println!("Callback: {} {:?} {:?}", c.name(), m.type_, m.msgid);
     0
 }
@@ -36,22 +35,25 @@ fn test() -> Result<()> {
 
         assert_eq!(c.name(), "null");
         assert_eq!(c.state(), State::Closed);
-        assert_eq!(cfg.get("state"), Some( String::from("Closed") ));
+        assert_eq!(cfg.get("state"), Some(String::from("Closed")));
 
         let mut last = (MsgType::Data, 0i32);
-        let mut cb = |_ : &Channel, m : &Message| { last = (m.get_type(), m.msgid()); 0 };
+        let mut cb = |_: &Channel, m: &Message| {
+            last = (m.get_type(), m.msgid());
+            0
+        };
         assert!(c.callback_add_mut(&mut cb, None).is_ok());
 
         assert!(c.open("").is_ok());
 
         assert_eq!(c.state(), State::Active);
-        assert_eq!(cfg.get("state"), Some( String::from("Active") ));
+        assert_eq!(cfg.get("state"), Some(String::from("Active")));
         assert_eq!(last, (MsgType::State, c.state() as i32));
 
         c.close();
 
         assert_eq!(c.state(), State::Closed);
-        assert_eq!(cfg.get("state"), Some( String::from("Closed") ));
+        assert_eq!(cfg.get("state"), Some(String::from("Closed")));
         assert_eq!(last, (MsgType::State, c.state() as i32));
 
         //assert!(ctx.channel("null://;name=null").is_err()); // Check for duplicate name

@@ -28,4 +28,3 @@ bitflags! {
         const SuspendPermanent = TLL_DCAPS_SUSPEND_PERMANENT;
     }
 }
-

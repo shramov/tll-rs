@@ -1,29 +1,39 @@
 use crate::scheme::bind::*;
-use num_traits::{Num, CheckedMul};
-use ::chrono::{Utc, Local, TimeZone};
+use ::chrono::{Local, TimeZone, Utc};
+use num_traits::{CheckedMul, Num};
 use std::convert::TryFrom;
 
-pub trait Ratio : Copy {
-    fn num() -> u64 { 1 }
-    fn denom() -> u64 { 1 }
+pub trait Ratio: Copy {
+    fn num() -> u64 {
+        1
+    }
+    fn denom() -> u64 {
+        1
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Nano {}
 impl Ratio for Nano {
-    fn denom() -> u64 { 1000000000 }
+    fn denom() -> u64 {
+        1000000000
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Micro {}
 impl Ratio for Micro {
-    fn denom() -> u64 { 1000000 }
+    fn denom() -> u64 {
+        1000000
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Milli {}
 impl Ratio for Milli {
-    fn denom() -> u64 { 1000 }
+    fn denom() -> u64 {
+        1000
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -33,19 +43,25 @@ impl Ratio for Ratio1 {}
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct RatioMinute {}
 impl Ratio for RatioMinute {
-    fn num() -> u64 { 60 }
+    fn num() -> u64 {
+        60
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct RatioHour {}
 impl Ratio for RatioHour {
-    fn num() -> u64 { 3600 }
+    fn num() -> u64 {
+        3600
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct RatioDay {}
 impl Ratio for RatioDay {
-    fn num() -> u64 { 86400 }
+    fn num() -> u64 {
+        86400
+    }
 }
 
 pub trait Integer: Num + CheckedMul + std::convert::TryFrom<u64> + std::fmt::Display + Copy {}
@@ -64,7 +80,9 @@ pub enum Error {
 }
 
 impl From<Error> for crate::error::Error {
-    fn from(_: Error) -> Self { crate::error::Error::from("Time value overflow") }
+    fn from(_: Error) -> Self {
+        crate::error::Error::from("Time value overflow")
+    }
 }
 
 #[repr(C)]
@@ -80,7 +98,7 @@ where
 
 fn convert<T>(value: T, mul: u64, div: u64) -> Result<T, Error>
 where
-    T : Integer,
+    T: Integer,
 {
     if mul == div {
         Ok(value)
@@ -95,19 +113,21 @@ where
 
 impl<T, P> Duration<T, P>
 where
-    P : Ratio,
-    T : Integer,
+    P: Ratio,
+    T: Integer,
 {
-    pub fn new(value: T) -> Self
-    {
-        Self { value: value, _ratio: std::marker::PhantomData }
+    pub fn new(value: T) -> Self {
+        Self {
+            value: value,
+            _ratio: std::marker::PhantomData,
+        }
     }
 
     pub fn from_duration<T1, P1>(value: Duration<T1, P1>) -> Result<Self, Error>
     where
         P1: Ratio,
         T1: Integer,
-        T: std::convert::TryFrom<T1>
+        T: std::convert::TryFrom<T1>,
     {
         let value = if std::mem::size_of::<T>() > std::mem::size_of::<T1>() {
             let v0 = T::try_from(value.value).map_err(|_| Error::Overflow)?;
@@ -124,8 +144,8 @@ where
 
 impl<T, P> TryFrom<Duration<T, P>> for std::time::Duration
 where
-    T : Integer,
-    P : Ratio,
+    T: Integer,
+    P: Ratio,
     u64: TryFrom<T>,
 {
     type Error = Error;
@@ -147,9 +167,9 @@ where
 
 impl<T, P> TryFrom<TimePoint<T, P>> for ::chrono::DateTime<Utc>
 where
-    P : Ratio,
-    T : Integer,
-    i64 : TryFrom<T>,
+    P: Ratio,
+    T: Integer,
+    i64: TryFrom<T>,
 {
     type Error = Error;
     fn try_from(value: TimePoint<T, P>) -> Result<Self, Self::Error> {
@@ -159,9 +179,9 @@ where
 
 impl<T, P> TryFrom<TimePoint<T, P>> for ::chrono::DateTime<Local>
 where
-    P : Ratio,
-    T : Integer,
-    i64 : TryFrom<T>,
+    P: Ratio,
+    T: Integer,
+    i64: TryFrom<T>,
 {
     type Error = Error;
     fn try_from(value: TimePoint<T, P>) -> Result<Self, Self::Error> {
@@ -171,13 +191,13 @@ where
 
 impl<T, P> TryFrom<::chrono::DateTime<Utc>> for TimePoint<T, P>
 where
-    P : Ratio,
-    T : Integer,
-    T : TryFrom<i64>,
+    P: Ratio,
+    T: Integer,
+    T: TryFrom<i64>,
 {
     type Error = Error;
     fn try_from(dt: ::chrono::DateTime<Utc>) -> Result<Self, Self::Error> {
-        let d = Duration::<i64, Nano>::new(dt.timestamp_nanos());
+        let d = Duration::<i64, Nano>::new(dt.timestamp_nanos_opt().unwrap());
         let v = Duration::<T, P>::from_duration(d)?;
         Ok(TimePoint { value: v })
     }
@@ -194,24 +214,33 @@ where
     }
 
     pub fn new_raw(value: T) -> Self {
-        Self { value : Duration::<T, P>::new(value) }
+        Self {
+            value: Duration::<T, P>::new(value),
+        }
     }
 
-    pub fn as_datetime(self) -> Result<::chrono::DateTime<Utc>, Error>
-    {
+    pub fn as_datetime(self) -> Result<::chrono::DateTime<Utc>, Error> {
         let v = Duration::<i64, Nano>::from_duration(self.value)?;
         Ok(Utc.timestamp_nanos(v.value))
     }
 
-    pub fn as_local_datetime(self) -> Result<::chrono::DateTime<Local>, Error>
-    {
+    pub fn as_local_datetime(self) -> Result<::chrono::DateTime<Local>, Error> {
         Ok(self.as_datetime()?.into())
-
     }
 }
 
-impl<T, P> Binder for Duration<T, P> where P: Ratio, T: Copy {}
-impl<T, P> Binder for TimePoint<T, P> where P: Ratio, T: Copy {}
+impl<T, P> Binder for Duration<T, P>
+where
+    P: Ratio,
+    T: Copy,
+{
+}
+impl<T, P> Binder for TimePoint<T, P>
+where
+    P: Ratio,
+    T: Copy,
+{
+}
 
 #[cfg(test)]
 mod tests {
@@ -220,9 +249,18 @@ mod tests {
     #[test]
     fn bench() {
         let u32s = Duration::<u32, Ratio1>::new(1234);
-        assert_eq!(Duration::<u32, Milli>::from_duration(u32s), Ok(Duration::<u32, Milli>::new(1234 * 1000)));
+        assert_eq!(
+            Duration::<u32, Milli>::from_duration(u32s),
+            Ok(Duration::<u32, Milli>::new(1234 * 1000))
+        );
         assert_eq!(Duration::<u32, Nano>::from_duration(u32s), Err(Error::Overflow));
-        assert_eq!(Duration::<i16, RatioMinute>::from_duration(u32s), Ok(Duration::<i16, RatioMinute>::new(20)));
-        assert_eq!(Duration::<i64, Nano>::from_duration(u32s), Ok(Duration::<i64, Nano>::new(1234 * 1000000000)));
+        assert_eq!(
+            Duration::<i16, RatioMinute>::from_duration(u32s),
+            Ok(Duration::<i16, RatioMinute>::new(20))
+        );
+        assert_eq!(
+            Duration::<i64, Nano>::from_duration(u32s),
+            Ok(Duration::<i64, Nano>::new(1234 * 1000000000))
+        );
     }
 }

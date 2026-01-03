@@ -7,7 +7,7 @@ fn test() {
     assert!(v.is_none());
     cfg.set("a.b.c", "xxx");
     v = cfg.get("a.b.c");
-    assert_eq!(v, Some ("xxx".to_string()));
+    assert_eq!(v, Some("xxx".to_string()));
     let sub = cfg.sub("a.b");
     assert!(!sub.is_none());
     let v1 = sub.unwrap().get("c");
@@ -18,7 +18,7 @@ fn test() {
 fn load() {
     let cfg = Config::load("yamls://{x: 1, a.b.c: 2}").unwrap();
     let v = cfg.get("a.b.c");
-    assert!(v == Some ("2".to_string()));
+    assert!(v == Some("2".to_string()));
 }
 
 #[test]
@@ -28,20 +28,27 @@ fn browse() {
     cfg.set("a.b.0", "xxx");
     cfg.set("a.b.1", "yyy");
     cfg.set("a.b.2", "zzz");
-    assert!(cfg.get("a.b.0") == Some ("xxx".to_string()));
+    assert!(cfg.get("a.b.0") == Some("xxx".to_string()));
     assert_eq!(
-    cfg.browse("a.b.**").iter().map(|x| (x.0.clone(), x.1.get_self())).collect::<Vec<_>>(),
-    vec![("a.b.0", "xxx"),("a.b.1", "yyy"),("a.b.2", "zzz")].iter().map(|&x| (x.0.to_owned(), Some(x.1.to_owned()))).collect::<Vec<_>>());
+        cfg.browse("a.b.**").iter().map(|x| (x.0.clone(), x.1.get_self())).collect::<Vec<_>>(),
+        vec![("a.b.0", "xxx"), ("a.b.1", "yyy"), ("a.b.2", "zzz")]
+            .iter()
+            .map(|&x| (x.0.to_owned(), Some(x.1.to_owned())))
+            .collect::<Vec<_>>()
+    );
 }
 
 #[test]
 fn test_type() {
-    let cfg = Config::load("yamls://
+    let cfg = Config::load(
+        "yamls://
 i8: -100
 u8: 200
 f64: 1.234
 bool: true
-").unwrap();
+",
+    )
+    .unwrap();
     assert_eq!(-100, cfg.get_typed::<i8>("i8", 0).unwrap());
     assert_eq!(200, cfg.get_typed::<u8>("u8", 0).unwrap());
     assert_eq!(1.234, cfg.get_typed::<f64>("f64", 0.).unwrap());

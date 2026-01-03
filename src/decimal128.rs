@@ -1,6 +1,6 @@
-use std::convert::TryFrom;
-use rust_decimal::Decimal;
 use crate::error;
+use rust_decimal::Decimal;
+use std::convert::TryFrom;
 
 #[repr(C)]
 #[derive(Debug, Clone, Copy)]
@@ -23,14 +23,16 @@ pub enum Error {
     ExponentOverflow,
 }
 
-impl From<Error> for error::Error
-{
-    fn from(e: Error) -> Self { Self::from(format!("Failed to convert Decimal128: {:?}", e)) }
+impl From<Error> for error::Error {
+    fn from(e: Error) -> Self {
+        Self::from(format!("Failed to convert Decimal128: {:?}", e))
+    }
 }
 
-impl From<rust_decimal::Error> for error::Error
-{
-    fn from(e: rust_decimal::Error) -> Self { Self::from(format!("Failed to convert Decimal: {:?}", e)) }
+impl From<rust_decimal::Error> for error::Error {
+    fn from(e: rust_decimal::Error) -> Self {
+        Self::from(format!("Failed to convert Decimal: {:?}", e))
+    }
 }
 
 impl Decimal128 {
@@ -100,11 +102,7 @@ impl Decimal128 {
         let sign = combination & (0x1u16 << 14) != 0;
         if combination & Decimal128::EXP_HIGH_MASK == Decimal128::EXP_HIGH_MASK {
             if combination & Decimal128::EXP_INF_MASK == Decimal128::EXP_INF_VALUE {
-                return if sign {
-                    Unpacked128::NegInf
-                } else {
-                    Unpacked128::Inf
-                };
+                return if sign { Unpacked128::NegInf } else { Unpacked128::Inf };
             } else if combination & Decimal128::EXP_NAN_MASK == Decimal128::EXP_NAN_VALUE {
                 return Unpacked128::NaN;
             } else if combination & Decimal128::EXP_NAN_MASK == Decimal128::EXP_SNAN_VALUE {
@@ -143,7 +141,8 @@ impl TryFrom<&Decimal> for Decimal128 {
 
     fn try_from(v: &Decimal) -> Result<Decimal128, Error> {
         let m = v.mantissa();
-        Decimal128::pack_value(m < 0, if m > 0 { m as u128 } else { (-m) as u128 }, v.scale() as i16) // scale is in range [0, 28]
+        Decimal128::pack_value(m < 0, if m > 0 { m as u128 } else { (-m) as u128 }, v.scale() as i16)
+        // scale is in range [0, 28]
     }
 }
 
@@ -161,7 +160,9 @@ impl TryFrom<Decimal128> for Decimal {
                 let m = if s { -im } else { im };
 
                 if e < 0 {
-                    if m == 0 { return Ok(Decimal::ZERO); }
+                    if m == 0 {
+                        return Ok(Decimal::ZERO);
+                    }
                     Err(Self::Error::ErrorString("Negative exponent".to_string()))
                 } else {
                     Decimal::try_from_i128_with_scale(m, e as u32)
@@ -186,14 +187,16 @@ mod test {
 
         match u {
             Unpacked128::Value(s, m, e) => {
-                if e > 28 || e < 0 { return; }
+                if e > 28 || e < 0 {
+                    return;
+                }
                 let r1 = Decimal::try_from(d);
                 assert!(r1.is_ok());
                 let d1 = r1.unwrap();
                 assert_eq!(d1.scale(), e as u32);
                 assert_eq!(d1.mantissa(), if s { -(m as i128) } else { m as i128 });
-            },
-            _ => {},
+            }
+            _ => {}
         }
     }
 

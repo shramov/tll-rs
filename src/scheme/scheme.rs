@@ -558,11 +558,9 @@ impl<'a> Field<'a> {
         match self.sub_type_raw() {
             SubTypeRaw::Unknown(v) => SubType::Unknown(v),
             SubTypeRaw::None => SubType::None,
-            SubTypeRaw::Enum => SubType::Enum(
-                Enum::from_pointer(Pointer::new(
-                    unsafe { (*self.data.ptr).__bindgen_anon_1.type_enum }
-                ))
-            ),
+            SubTypeRaw::Enum => SubType::Enum(Enum::from_pointer(Pointer::new(unsafe {
+                (*self.data.ptr).__bindgen_anon_1.type_enum
+            }))),
             SubTypeRaw::Bits => SubType::Bits,
             SubTypeRaw::ByteString => SubType::ByteString,
             SubTypeRaw::Fixed => SubType::Fixed(unsafe { (*self.data.ptr).__bindgen_anon_1.fixed_precision as usize }),

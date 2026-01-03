@@ -310,7 +310,7 @@ pub struct PMap<Buf: MemRead>(Buf);
 impl<Buf: MemRead> PMap<Buf> {
     #[inline(always)]
     pub fn new(buf: Buf) -> Self {
-        Self (buf)
+        Self(buf)
     }
 
     #[inline(always)]

@@ -1,5 +1,5 @@
-use crate::channel::channel::*;
 use crate::channel::base::*;
+use crate::channel::channel::*;
 
 use crate::config::Config;
 use crate::error::*;
@@ -14,10 +14,14 @@ pub struct Codec<T: CodecImpl> {
 
 impl<T> Default for Codec<T>
 where
-    T : CodecImpl
+    T: CodecImpl,
 {
     fn default() -> Self {
-        Codec { base: Base::default(), codec: T::default(), child: unsafe { OwnedChannel::new_null() } }
+        Codec {
+            base: Base::default(),
+            codec: T::default(),
+            child: unsafe { OwnedChannel::new_null() },
+        }
     }
 }
 
@@ -45,7 +49,9 @@ impl<T: CodecImpl> Extension for Codec<T> {
 }
 
 impl<T: CodecImpl> ChannelImpl for Codec<T> {
-    fn channel_protocol() -> &'static str { <T as CodecImpl>::channel_protocol() }
+    fn channel_protocol() -> &'static str {
+        <T as CodecImpl>::channel_protocol()
+    }
     fn open_policy() -> OpenPolicy {
         OpenPolicy::Manual
     }
@@ -169,7 +175,9 @@ impl<T: CodecImpl> Codec<T> {
         };
         if let Err(e) = r {
             self.logger().error(&format!("Failed to handle message {:?}: {}", msg, e));
-            if self.state() != State::Closed { self.set_state(State::Error); }
+            if self.state() != State::Closed {
+                self.set_state(State::Error);
+            }
             return EINVAL;
         }
         0

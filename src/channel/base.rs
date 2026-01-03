@@ -1,13 +1,13 @@
 use tll_sys::channel::*;
 use tll_sys::channel_callback::*;
 pub use tll_sys::config::tll_config_t;
-use tll_sys::scheme::tll_scheme_t;
 use tll_sys::logger::{tll_logger_copy, tll_logger_free};
+use tll_sys::scheme::tll_scheme_t;
 
 // Reexport for using in macro
-pub use tll_sys::channel::{tll_channel_module_t, tll_channel_context_t, TLL_CHANNEL_MODULE_VERSION};
 pub use crate::config::ConfigChainBuilder;
 pub use crate::error::EINVAL;
+pub use tll_sys::channel::{tll_channel_context_t, tll_channel_module_t, TLL_CHANNEL_MODULE_VERSION};
 
 use crate::channel::*;
 use crate::config::*;
@@ -22,32 +22,32 @@ use std::mem::MaybeUninit;
 use std::os::raw::{c_int, c_long, c_void};
 //use std::option::Option;
 
-#[ derive(Debug, Eq, PartialEq) ]
+#[derive(Debug, Eq, PartialEq)]
 pub enum ProcessPolicy {
     Normal,
     Never,
 }
 
-#[ derive(Debug, Eq, PartialEq) ]
+#[derive(Debug, Eq, PartialEq)]
 pub enum OpenPolicy {
     Normal,
     Manual,
 }
 
-#[ derive(Debug, Eq, PartialEq) ]
+#[derive(Debug, Eq, PartialEq)]
 pub enum ChildPolicy {
     Never,
     Single,
     Many,
 }
 
-#[ derive(Debug, Eq, PartialEq) ]
+#[derive(Debug, Eq, PartialEq)]
 pub enum SchemePolicy {
     Normal,
     Manual,
 }
 
-#[ derive(Debug, Eq, PartialEq) ]
+#[derive(Debug, Eq, PartialEq)]
 enum DumpMode {
     Disable = TLL_MESSAGE_LOG_DISABLE as isize,
     Frame = TLL_MESSAGE_LOG_FRAME as isize,
@@ -69,12 +69,14 @@ impl std::str::FromStr for DumpMode {
             "text" => Ok(DumpMode::Text),
             "text+hex" => Ok(DumpMode::TextHex),
             "scheme" => Ok(DumpMode::Scheme),
-            _ => Err(Error::from(format!("Invalid dump mode, expected one of no, yes, frame, text, text+hex"))),
+            _ => Err(Error::from(format!(
+                "Invalid dump mode, expected one of no, yes, frame, text, text+hex"
+            ))),
         }
     }
 }
 
-#[ derive(Debug, Eq, PartialEq) ]
+#[derive(Debug, Eq, PartialEq)]
 enum DirMode {
     None = 0,
     R = 1,
@@ -93,13 +95,15 @@ impl std::str::FromStr for DirMode {
             "out" => Ok(DirMode::W),
             "rw" => Ok(DirMode::RW),
             "inout" => Ok(DirMode::RW),
-            _ => Err(Error::from(format!("Invalid dir mode, expected one of r, w, rw, in, out, inout"))),
+            _ => Err(Error::from(format!(
+                "Invalid dir mode, expected one of r, w, rw, in, out, inout"
+            ))),
         }
     }
 }
 
 #[repr(C)]
-#[ derive(Debug) ]
+#[derive(Debug)]
 struct Stat {
     rx: crate::stat::Field,
     rxb: crate::stat::Field,
@@ -108,8 +112,7 @@ struct Stat {
 }
 
 impl Default for Stat {
-    fn default() -> Self
-    {
+    fn default() -> Self {
         Self {
             rx: crate::stat::Field::new("rx", crate::stat::Type::Sum),
             rxb: crate::stat::Field::new_unit("tx", crate::stat::Type::Sum, crate::stat::Unit::Bytes),
@@ -124,27 +127,26 @@ impl<T: ChannelImpl> ConfigChainBuilder for T {
         ConfigChain::new(
             cfg.sub(T::param_prefix()),
             Some(cfg.clone()),
-            self.base().context().config_defaults().sub(T::param_prefix())
+            self.base().context().config_defaults().sub(T::param_prefix()),
         )
     }
 }
 
-#[ derive(Debug) ]
+#[derive(Debug)]
 pub struct Base {
-    pub data : tll_channel_internal_t,
-    c_name : CString,
-    name : String,
-    pub logger : Logger,
-    stat : Option<crate::stat::Base<Stat>>,
-    context : MaybeUninit<Context>,
-    pub scheme_url : Option<String>,
-    pub scheme_data : Option<Scheme>,
-    pub scheme_control : Option<Scheme>,
+    pub data: tll_channel_internal_t,
+    c_name: CString,
+    name: String,
+    pub logger: Logger,
+    stat: Option<crate::stat::Base<Stat>>,
+    context: MaybeUninit<Context>,
+    pub scheme_url: Option<String>,
+    pub scheme_data: Option<Scheme>,
+    pub scheme_control: Option<Scheme>,
 }
 
 impl Drop for Base {
-    fn drop(&mut self)
-    {
+    fn drop(&mut self) {
         unsafe { tll_channel_internal_clear(&mut self.data) }
         // It is safe to call drop on zeroed Context
         unsafe { self.context.assume_init_drop() }
@@ -152,8 +154,7 @@ impl Drop for Base {
 }
 
 impl Default for Base {
-    fn default() -> Self
-    {
+    fn default() -> Self {
         let mut r = Base {
             c_name: CString::default(),
             name: String::default(),
@@ -174,23 +175,24 @@ impl Default for Base {
 }
 
 impl Base {
-    pub fn new() -> Self
-    {
+    pub fn new() -> Self {
         Base::default()
     }
 
-    pub fn name(&self) -> &str { &self.name }
-    pub fn set_name(&mut self, n: &str) -> Result<()>
-    {
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+    pub fn set_name(&mut self, n: &str) -> Result<()> {
         self.name = String::from(n);
         self.c_name = CString::new(n).map_err(|_| Error::from("Name with internal NUL"))?;
         self.data.name = self.c_name.as_ptr();
         Ok(())
     }
 
-    pub fn state(&self) -> State { State::from(self.data.state) }
-    pub fn set_state(&mut self, state: State) -> State
-    {
+    pub fn state(&self) -> State {
+        State::from(self.data.state)
+    }
+    pub fn set_state(&mut self, state: State) -> State {
         let old = self.state();
         unsafe { tll_channel_internal_set_state(&mut self.data, state.into()) };
         old
@@ -200,23 +202,19 @@ impl Base {
         unsafe { self.context.assume_init_ref() }
     }
 
-    pub fn callback(&self, msg: &tll_msg_t)
-    {
+    pub fn callback(&self, msg: &tll_msg_t) {
         channel_callback(&self.data, msg);
     }
 
-    pub fn callback_data(&self, msg: &tll_msg_t)
-    {
+    pub fn callback_data(&self, msg: &tll_msg_t) {
         channel_callback_data(&self.data, msg);
     }
 
-    pub fn callback_simple(&self, t : MsgType, msgid: i32)
-    {
+    pub fn callback_simple(&self, t: MsgType, msgid: i32) {
         self.callback(Message::new().set_type(t).set_msgid(msgid))
     }
 
-    pub fn init_base(&mut self, url: &ConfigChain) -> Result<()>
-    {
+    pub fn init_base(&mut self, url: &ConfigChain) -> Result<()> {
         self.set_name(&url.get("name").unwrap_or("noname".to_string()))?;
         self.logger = Logger::new(&format!("tll.channel.{}", self.name));
         unsafe {
@@ -239,24 +237,25 @@ impl Base {
         Ok(())
     }
 
-    pub fn caps(&self) -> Caps
-    {
+    pub fn caps(&self) -> Caps {
         Caps::from_bits_truncate(self.data.caps)
     }
 
-    pub fn set_caps(&mut self, caps: Caps)
-    {
+    pub fn set_caps(&mut self, caps: Caps) {
         self.data.caps |= caps.bits();
     }
 
-    pub fn update_dcaps(&mut self, caps: DCaps, mask: DCaps)
-    {
+    pub fn update_dcaps(&mut self, caps: DCaps, mask: DCaps) {
         let old = self.data.dcaps;
         self.logger().debug(&format!("Update dcaps: {} -> {:?}", old, caps));
-        if old & mask.bits() == caps.bits() { return; }
+        if old & mask.bits() == caps.bits() {
+            return;
+        }
         self.data.dcaps ^= (old & mask.bits()) ^ caps.bits();
         let mut msg = Message::new();
-        msg.set_type(MsgType::Channel).set_msgid(TLL_MESSAGE_CHANNEL_UPDATE as i32).set_data(&old.to_ne_bytes());
+        msg.set_type(MsgType::Channel)
+            .set_msgid(TLL_MESSAGE_CHANNEL_UPDATE as i32)
+            .set_data(&old.to_ne_bytes());
         self.callback(&msg);
     }
 
@@ -269,35 +268,72 @@ impl Base {
     */
 }
 
-pub trait ChannelImpl : Extension {
+pub trait ChannelImpl: Extension {
     fn channel_protocol() -> &'static str;
-    fn param_prefix() -> &'static str { let p = Self::channel_protocol(); p.strip_suffix("+").unwrap_or(p) }
+    fn param_prefix() -> &'static str {
+        let p = Self::channel_protocol();
+        p.strip_suffix("+").unwrap_or(p)
+    }
 
-    fn process_policy() -> ProcessPolicy { <Self::Inner as ChannelImpl>::process_policy() }
-    fn open_policy() -> OpenPolicy { <Self::Inner as ChannelImpl>::open_policy() }
-    fn child_policy() -> ChildPolicy { <Self::Inner as ChannelImpl>::child_policy() }
-    fn scheme_policy() -> SchemePolicy { <Self::Inner as ChannelImpl>::scheme_policy() }
+    fn process_policy() -> ProcessPolicy {
+        <Self::Inner as ChannelImpl>::process_policy()
+    }
+    fn open_policy() -> OpenPolicy {
+        <Self::Inner as ChannelImpl>::open_policy()
+    }
+    fn child_policy() -> ChildPolicy {
+        <Self::Inner as ChannelImpl>::child_policy()
+    }
+    fn scheme_policy() -> SchemePolicy {
+        <Self::Inner as ChannelImpl>::scheme_policy()
+    }
 
-    fn init(&mut self, url: &Config, master: Option<Channel>, context: &Context) -> Result<()> { self.inner_mut().init(url, master, context) }
-    fn open(&mut self, url: &Config) -> Result<()> { self.inner_mut().open(url) }
-    fn close(&mut self, force : bool) { self.inner_mut().close(force) }
-    fn free(&mut self) { self.inner_mut().free() }
+    fn init(&mut self, url: &Config, master: Option<Channel>, context: &Context) -> Result<()> {
+        self.inner_mut().init(url, master, context)
+    }
+    fn open(&mut self, url: &Config) -> Result<()> {
+        self.inner_mut().open(url)
+    }
+    fn close(&mut self, force: bool) {
+        self.inner_mut().close(force)
+    }
+    fn free(&mut self) {
+        self.inner_mut().free()
+    }
 
-    fn post(&mut self, msg: &Message) -> Result<()> { self.inner_mut().post(msg) }
-    fn process(&mut self) -> Result<i32> { self.inner_mut().process() }
-    fn scheme(&self, typ: MsgType) -> Option<&Scheme> { self.inner().scheme(typ) }
+    fn post(&mut self, msg: &Message) -> Result<()> {
+        self.inner_mut().post(msg)
+    }
+    fn process(&mut self) -> Result<i32> {
+        self.inner_mut().process()
+    }
+    fn scheme(&self, typ: MsgType) -> Option<&Scheme> {
+        self.inner().scheme(typ)
+    }
 
-    fn logger(&self) -> &Logger { self.base().logger() }
-    fn state(&self) -> State { self.base().state() }
-    fn set_state(&mut self, state: State) -> State { self.base_mut().set_state(state) }
-    fn update_dcaps(&mut self, caps: DCaps, mask: DCaps) { self.base_mut().update_dcaps(caps, mask) }
+    fn logger(&self) -> &Logger {
+        self.base().logger()
+    }
+    fn state(&self) -> State {
+        self.base().state()
+    }
+    fn set_state(&mut self, state: State) -> State {
+        self.base_mut().set_state(state)
+    }
+    fn update_dcaps(&mut self, caps: DCaps, mask: DCaps) {
+        self.base_mut().update_dcaps(caps, mask)
+    }
 }
 
-pub trait Extension : Default {
-    type Inner : ChannelImpl;
+pub trait Extension: Default {
+    type Inner: ChannelImpl;
 
-    fn base(&self) -> &Base { self.inner().base() }
-    fn base_mut(&mut self) -> &mut Base { self.inner_mut().base_mut() }
+    fn base(&self) -> &Base {
+        self.inner().base()
+    }
+    fn base_mut(&mut self) -> &mut Base {
+        self.inner_mut().base_mut()
+    }
 
     fn inner(&self) -> &Self::Inner;
     fn inner_mut(&mut self) -> &mut Self::Inner;
@@ -305,56 +341,90 @@ pub trait Extension : Default {
 
 impl Extension for Base {
     type Inner = Base;
-    fn base(&self) -> &Base { self }
-    fn base_mut(&mut self) -> &mut Base { self }
+    fn base(&self) -> &Base {
+        self
+    }
+    fn base_mut(&mut self) -> &mut Base {
+        self
+    }
 
-    fn inner(&self) -> &Self::Inner { self }
-    fn inner_mut(&mut self) -> &mut Self::Inner { self }
+    fn inner(&self) -> &Self::Inner {
+        self
+    }
+    fn inner_mut(&mut self) -> &mut Self::Inner {
+        self
+    }
 }
 
 impl ChannelImpl for Base {
-    fn channel_protocol() -> &'static str { "rust" }
-    fn process_policy() -> ProcessPolicy { ProcessPolicy::Normal }
-    fn open_policy() -> OpenPolicy { OpenPolicy::Normal }
-    fn child_policy() -> ChildPolicy { ChildPolicy::Never }
-    fn scheme_policy() -> SchemePolicy { SchemePolicy::Normal }
+    fn channel_protocol() -> &'static str {
+        "rust"
+    }
+    fn process_policy() -> ProcessPolicy {
+        ProcessPolicy::Normal
+    }
+    fn open_policy() -> OpenPolicy {
+        OpenPolicy::Normal
+    }
+    fn child_policy() -> ChildPolicy {
+        ChildPolicy::Never
+    }
+    fn scheme_policy() -> SchemePolicy {
+        SchemePolicy::Normal
+    }
 
-    fn init(&mut self, _url: &Config, _master: Option<Channel>, _context: &Context) -> Result<()> { Ok(()) }
-    fn open(&mut self, _url: &Config) -> Result<()> { Ok(()) }
-    fn close(&mut self, _force : bool) {}
+    fn init(&mut self, _url: &Config, _master: Option<Channel>, _context: &Context) -> Result<()> {
+        Ok(())
+    }
+    fn open(&mut self, _url: &Config) -> Result<()> {
+        Ok(())
+    }
+    fn close(&mut self, _force: bool) {}
     fn free(&mut self) {}
 
-    fn post(&mut self, _: &Message) -> Result<()> { Ok(()) }
-    fn process(&mut self) -> Result<i32> { Ok(EAGAIN) }
+    fn post(&mut self, _: &Message) -> Result<()> {
+        Ok(())
+    }
+    fn process(&mut self) -> Result<i32> {
+        Ok(EAGAIN)
+    }
     fn scheme(&self, typ: MsgType) -> Option<&Scheme> {
         match typ {
-        MsgType::Data => self.scheme_data.as_ref(),
-        MsgType::Control => self.scheme_control.as_ref(),
-        _ => None,
+            MsgType::Data => self.scheme_data.as_ref(),
+            MsgType::Control => self.scheme_control.as_ref(),
+            _ => None,
         }
     }
 
-    fn logger(&self) -> &Logger { &self.logger }
-    fn state(&self) -> State { self.state() }
-    fn set_state(&mut self, state: State) -> State { self.set_state(state) }
-    fn update_dcaps(&mut self, caps: DCaps, mask: DCaps) { self.update_dcaps(caps, mask) }
+    fn logger(&self) -> &Logger {
+        &self.logger
+    }
+    fn state(&self) -> State {
+        self.state()
+    }
+    fn set_state(&mut self, state: State) -> State {
+        self.set_state(state)
+    }
+    fn update_dcaps(&mut self, caps: DCaps, mask: DCaps) {
+        self.update_dcaps(caps, mask)
+    }
 }
 
-pub struct CImpl<T : ChannelImpl> {
-    data : tll_channel_impl_t,
-    name : CString,
+pub struct CImpl<T: ChannelImpl> {
+    data: tll_channel_impl_t,
+    name: CString,
     phantom: std::marker::PhantomData<T>,
 }
 
-pub trait ChannelImplHolder : ChannelImpl {
-    fn channel_impl() -> &'static CImpl::<Self>;
+pub trait ChannelImplHolder: ChannelImpl {
+    fn channel_impl() -> &'static CImpl<Self>;
 }
 
 pub fn channel_cast<T: 'static + ChannelImplHolder>(channel: &Channel) -> Option<&'_ T> {
     let iptr = T::channel_impl().as_ptr();
     let cptr = channel.as_const_ptr();
     if unsafe { (*cptr).impl_ == iptr } {
-        let r = unsafe { & *((*cptr).data as * const T) };
+        let r = unsafe { &*((*cptr).data as *const T) };
         Some(r)
     } else {
         None
@@ -364,28 +434,34 @@ pub fn channel_cast<T: 'static + ChannelImplHolder>(channel: &Channel) -> Option
 #[macro_export]
 macro_rules! declare_channel_impl {
     ($klass:ident) => {
-impl ChannelImplHolder for $klass {
-    fn channel_impl() -> &'static CImpl::<$klass> {
-        static mut POINTER: *const CImpl::<$klass> = std::ptr::null();
-        static ONCE: std::sync::Once = std::sync::Once::new();
+        impl ChannelImplHolder for $klass {
+            fn channel_impl() -> &'static CImpl<$klass> {
+                static mut POINTER: *const CImpl<$klass> = std::ptr::null();
+                static ONCE: std::sync::Once = std::sync::Once::new();
 
-        unsafe {
-            ONCE.call_once(|| {
-                POINTER = std::mem::transmute(Box::new(CImpl::<$klass>::new(<$klass as ChannelImpl>::channel_protocol())));
-            });
-            &*POINTER
+                unsafe {
+                    ONCE.call_once(|| {
+                        POINTER = std::mem::transmute(Box::new(CImpl::<$klass>::new(
+                            <$klass as ChannelImpl>::channel_protocol(),
+                        )));
+                    });
+                    &*POINTER
+                }
+            }
         }
-    }
-}
-    }
+    };
 }
 
 impl<T> CImpl<T>
-    where T : ChannelImpl
+where
+    T: ChannelImpl,
 {
-    pub fn new(name: &str) -> Self
-    {
-        let mut i = CImpl { data: unsafe { std::mem::zeroed() }, name: CString::new(name).unwrap(), phantom: std::marker::PhantomData };
+    pub fn new(name: &str) -> Self {
+        let mut i = CImpl {
+            data: unsafe { std::mem::zeroed() },
+            name: CString::new(name).unwrap(),
+            phantom: std::marker::PhantomData,
+        };
         i.data.name = i.name.as_ptr();
         i.data.init = Some(Self::c_init);
         i.data.free = Some(Self::c_free);
@@ -397,17 +473,23 @@ impl<T> CImpl<T>
         i
     }
 
-    pub fn as_ptr(&self) -> * const tll_channel_impl_t { &self.data }
+    pub fn as_ptr(&self) -> *const tll_channel_impl_t {
+        &self.data
+    }
 
-    pub fn name(&self) -> &CString { &self.name }
+    pub fn name(&self) -> &CString {
+        &self.name
+    }
 
-    fn init(c : &mut tll_channel_t, url: &Config, master: Option<Channel>, ctx: &Context) -> Result<()>
-    {
-        c.data = Box::into_raw(Box::new(<T>::default())) as * mut c_void;
-        let channel = unsafe { &mut *((*c).data as * mut T) };
+    fn init(c: &mut tll_channel_t, url: &Config, master: Option<Channel>, ctx: &Context) -> Result<()> {
+        c.data = Box::into_raw(Box::new(<T>::default())) as *mut c_void;
+        let channel = unsafe { &mut *((*c).data as *mut T) };
         channel.base_mut().context.write(ctx.clone());
 
-        let log = Logger::new(&format!("tll.channel.{}", url.get("name").unwrap_or(String::from("noname"))));
+        let log = Logger::new(&format!(
+            "tll.channel.{}",
+            url.get("name").unwrap_or(String::from("noname"))
+        ));
         //println!("Call init on boxed object {:?}", c.data);
         //let mut channel = unsafe { std::ptr::NonNull::new_unchecked((*c).data as * mut T) };
 
@@ -435,84 +517,105 @@ impl<T> CImpl<T>
         Ok(())
     }
 
-    fn open(channel : &mut T, cfg: &Config) -> Result<()>
-    {
+    fn open(channel: &mut T, cfg: &Config) -> Result<()> {
         channel.set_state(State::Opening);
         match <T>::process_policy() {
             ProcessPolicy::Normal => channel.update_dcaps(DCaps::Process, DCaps::Process),
-            ProcessPolicy::Never => ()
+            ProcessPolicy::Never => (),
         }
 
         match <T>::scheme_policy() {
-            SchemePolicy::Normal => {
-                match &channel.base().scheme_url {
-                    Some(url) => {
-                        channel.base_mut().scheme_data = Some(Scheme::new(url)?);
-                    },
-                    None => ()
+            SchemePolicy::Normal => match &channel.base().scheme_url {
+                Some(url) => {
+                    channel.base_mut().scheme_data = Some(Scheme::new(url)?);
                 }
-            }
-            SchemePolicy::Manual => ()
+                None => (),
+            },
+            SchemePolicy::Manual => (),
         }
 
         let r = channel.open(cfg);
         if r.is_ok() {
-            if <T>::open_policy() == OpenPolicy::Normal { channel.set_state(State::Active); }
+            if <T>::open_policy() == OpenPolicy::Normal {
+                channel.set_state(State::Active);
+            }
         }
         r
     }
 
-    extern "C" fn c_init(c : * mut tll_channel_t, url : * const tll_config_t, master : * mut tll_channel_t, ctx : * mut tll_channel_context_t) -> c_int
-    {
-        if c.is_null() || url.is_null() || ctx.is_null() { return EINVAL as c_int }
+    extern "C" fn c_init(
+        c: *mut tll_channel_t,
+        url: *const tll_config_t,
+        master: *mut tll_channel_t,
+        ctx: *mut tll_channel_context_t,
+    ) -> c_int {
+        if c.is_null() || url.is_null() || ctx.is_null() {
+            return EINVAL as c_int;
+        }
         //if &self.data != unsafe { (*c).impl_ } { return EINVAL }
-        match Self::init( unsafe { &mut *c },
-                &Config::from(url as * mut tll_config_t),
-                if master.is_null() { None } else { Some(Channel::from_ptr(master)) },
-                    &Context::from(ctx)) {
+        match Self::init(
+            unsafe { &mut *c },
+            &Config::from(url as *mut tll_config_t),
+            if master.is_null() {
+                None
+            } else {
+                Some(Channel::from_ptr(master))
+            },
+            &Context::from(ctx),
+        ) {
             Ok(()) => 0,
             Err(r) => r.code.unwrap_or(EINVAL),
         }
     }
 
-    fn dealloc(c : * mut tll_channel_t)
-    {
-        if c.is_null() { return () }
+    fn dealloc(c: *mut tll_channel_t) {
+        if c.is_null() {
+            return ();
+        }
         unsafe {
-            let data = (*c).data as * mut T;
+            let data = (*c).data as *mut T;
             drop(Box::<T>::from_raw(data));
             (*c).data = std::ptr::null_mut();
         }
     }
 
-    extern "C" fn c_free(c : * mut tll_channel_t)
-    {
-        if c.is_null() || unsafe { (*c).data.is_null() } { return () }
-        let channel = unsafe { &mut *((*c).data as * mut T) };
+    extern "C" fn c_free(c: *mut tll_channel_t) {
+        if c.is_null() || unsafe { (*c).data.is_null() } {
+            return ();
+        }
+        let channel = unsafe { &mut *((*c).data as *mut T) };
         channel.free();
         Self::dealloc(c)
     }
 
-    extern "C" fn c_open(c : * mut tll_channel_t, url : * const tll_config_t) -> c_int
-    {
-        if c.is_null() || unsafe { (*c).data.is_null() } { return EINVAL }
-        let channel = unsafe { &mut *((*c).data as * mut T) };
-        let cfg = if url.is_null() { Config::new() } else { Config::from(url as * mut tll_config_t) };
+    extern "C" fn c_open(c: *mut tll_channel_t, url: *const tll_config_t) -> c_int {
+        if c.is_null() || unsafe { (*c).data.is_null() } {
+            return EINVAL;
+        }
+        let channel = unsafe { &mut *((*c).data as *mut T) };
+        let cfg = if url.is_null() {
+            Config::new()
+        } else {
+            Config::from(url as *mut tll_config_t)
+        };
         match Self::open(channel, &cfg) {
             Err(e) => {
                 channel.logger().error(&format!("Open failed: {:?}", e));
                 channel.set_state(State::Error);
                 EINVAL
-            },
+            }
             Ok(_) => 0,
         }
     }
 
-    extern "C" fn c_close(c : * mut tll_channel_t, force : c_int) -> c_int
-    {
-        if c.is_null() || unsafe { (*c).data.is_null() } { return EINVAL }
-        let channel = unsafe { &mut *((*c).data as * mut T) };
-        if channel.state() == State::Closed { return 0; }
+    extern "C" fn c_close(c: *mut tll_channel_t, force: c_int) -> c_int {
+        if c.is_null() || unsafe { (*c).data.is_null() } {
+            return EINVAL;
+        }
+        let channel = unsafe { &mut *((*c).data as *mut T) };
+        if channel.state() == State::Closed {
+            return 0;
+        }
         channel.set_state(State::Closing);
         channel.close(force != 0);
         channel.base_mut().update_dcaps(DCaps::empty(), DCaps::Process | DCaps::POLLMASK);
@@ -521,34 +624,39 @@ impl<T> CImpl<T>
         0
     }
 
-    extern "C" fn c_scheme(c : * const tll_channel_t, typ : c_int) -> * const tll_scheme_t
-    {
-        if c.is_null() || unsafe { (*c).data.is_null() } { return std::ptr::null(); }
-        let channel = unsafe { & *((*c).data as * const T) };
+    extern "C" fn c_scheme(c: *const tll_channel_t, typ: c_int) -> *const tll_scheme_t {
+        if c.is_null() || unsafe { (*c).data.is_null() } {
+            return std::ptr::null();
+        }
+        let channel = unsafe { &*((*c).data as *const T) };
         match channel.scheme(MsgType::from(typ as i16)) {
             Some(s) => s.as_ptr(),
-            None => std::ptr::null()
+            None => std::ptr::null(),
         }
     }
 
-    extern "C" fn c_post(c : * mut tll_channel_t, m : * const tll_msg_t, _ : c_int ) -> c_int
-    {
-        if c.is_null() || unsafe { (*c).data.is_null() } { return EINVAL }
-        if m.is_null() { return EINVAL }
-        let channel = unsafe { &mut *((*c).data as * mut T) };
-        match channel.post(unsafe { &*(m as * const Message) }) {
+    extern "C" fn c_post(c: *mut tll_channel_t, m: *const tll_msg_t, _: c_int) -> c_int {
+        if c.is_null() || unsafe { (*c).data.is_null() } {
+            return EINVAL;
+        }
+        if m.is_null() {
+            return EINVAL;
+        }
+        let channel = unsafe { &mut *((*c).data as *mut T) };
+        match channel.post(unsafe { &*(m as *const Message) }) {
             Ok(_) => 0,
             Err(e) => {
                 channel.logger().error(&format!("Post failed: {}", e));
                 EINVAL
-            },
+            }
         }
     }
 
-    extern "C" fn c_process(c : * mut tll_channel_t, _ : c_long, _ : c_int) -> c_int
-    {
-        if c.is_null() || unsafe { (*c).data.is_null() } { return EINVAL }
-        let channel = unsafe { &mut *((*c).data as * mut T) };
+    extern "C" fn c_process(c: *mut tll_channel_t, _: c_long, _: c_int) -> c_int {
+        if c.is_null() || unsafe { (*c).data.is_null() } {
+            return EINVAL;
+        }
+        let channel = unsafe { &mut *((*c).data as *mut T) };
         match channel.state() {
             State::Closed => return 0,
             State::Error => return 0,

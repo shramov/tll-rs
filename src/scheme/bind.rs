@@ -12,7 +12,7 @@ pub unsafe fn bind_checked<T>(data: &[u8]) -> Option<&T> {
 }
 
 pub trait Binder: Sized {
-    const PRIMITIVE_BIND : bool = true;
+    const PRIMITIVE_BIND: bool = true;
     fn bind(data: &[u8]) -> Option<&Self> {
         unsafe { bind_checked::<Self>(data) }
     }
@@ -29,9 +29,11 @@ impl Binder for u64 {}
 impl Binder for f64 {}
 impl Binder for Decimal128 {}
 
-impl<T, const SIZE : usize> Binder for [T; SIZE] where T : Binder
+impl<T, const SIZE: usize> Binder for [T; SIZE]
+where
+    T: Binder,
 {
-    const PRIMITIVE_BIND : bool = T::PRIMITIVE_BIND;
+    const PRIMITIVE_BIND: bool = T::PRIMITIVE_BIND;
 
     fn bind(data: &[u8]) -> Option<&Self> {
         if <T as Binder>::PRIMITIVE_BIND {
@@ -46,8 +48,10 @@ impl<T, const SIZE : usize> Binder for [T; SIZE] where T : Binder
     }
 }
 
-pub fn bind_check_inner<T : Binder>(data: &[u8]) -> Option<()> {
-    if !<T as Binder>::PRIMITIVE_BIND { <T as Binder>::bind(data)?; }
+pub fn bind_check_inner<T: Binder>(data: &[u8]) -> Option<()> {
+    if !<T as Binder>::PRIMITIVE_BIND {
+        <T as Binder>::bind(data)?;
+    }
     Some(())
 }
 

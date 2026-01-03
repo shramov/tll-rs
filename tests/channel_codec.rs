@@ -17,12 +17,18 @@ struct XorCodec(Codec<Xor>);
 
 impl Extension for XorCodec {
     type Inner = Codec<Xor>;
-    fn inner(&self) -> &Self::Inner { &self.0 }
-    fn inner_mut(&mut self) -> &mut Self::Inner { &mut self.0 }
+    fn inner(&self) -> &Self::Inner {
+        &self.0
+    }
+    fn inner_mut(&mut self) -> &mut Self::Inner {
+        &mut self.0
+    }
 }
 
 impl ChannelImpl for XorCodec {
-    fn channel_protocol() -> &'static str { Xor::channel_protocol() }
+    fn channel_protocol() -> &'static str {
+        Xor::channel_protocol()
+    }
 }
 
 impl Xor {
@@ -39,7 +45,9 @@ impl Xor {
 }
 
 impl CodecImpl for Xor {
-    fn channel_protocol() -> &'static str { "xor+" }
+    fn channel_protocol() -> &'static str {
+        "xor+"
+    }
 
     fn encode(&mut self, msg: &Message) -> Result<Message> {
         let mut m = Message::new();
@@ -72,9 +80,7 @@ fn test() -> Result<()> {
     assert!(c.open("").is_ok());
     assert_eq!(c.state(), State::Active);
 
-    assert!(c
-        .post(Message::new().set_msgid(100).set_seq(100).set_data(b"abcd"))
-        .is_ok());
+    assert!(c.post(Message::new().set_msgid(100).set_seq(100).set_data(b"abcd")).is_ok());
 
     Ok(())
 }

@@ -1,18 +1,18 @@
 use tll::channel::*;
 use tll::config::Config;
+use tll::error::EINVAL;
 use tll::logger::Logger;
 use tll::processor::Loop;
-use tll::error::EINVAL;
 
+use ::chrono::{DateTime, Local};
 use std::fs::File;
 use std::io::{Read, Seek, SeekFrom};
-use ::chrono::{DateTime, Local};
 
 mod netlink_scheme;
 use crate::netlink_scheme::*;
 mod nl80211_scheme;
-mod udev_scheme;
 mod timer_scheme;
+mod udev_scheme;
 use crate::timer_scheme::*;
 
 #[derive(Debug)]
@@ -28,7 +28,15 @@ struct SystemState {
 
 impl Default for SystemState {
     fn default() -> Self {
-        SystemState { time: Local::now(), link: None, ssid: None, battery: 0, ac: false, battery_buf: [0; 16], battery_file: File::open("/sys/class/power_supply/BAT0/capacity").unwrap() }
+        SystemState {
+            time: Local::now(),
+            link: None,
+            ssid: None,
+            battery: 0,
+            ac: false,
+            battery_buf: [0; 16],
+            battery_file: File::open("/sys/class/power_supply/BAT0/capacity").unwrap(),
+        }
     }
 }
 
@@ -39,7 +47,7 @@ enum TimerBind<'a> {
     Unknown(i32),
 }
 
-fn timer_bind(m: &Message) -> TimerBind {
+fn timer_bind(m: &Message) -> TimerBind<'_> {
     match m.msgid() {
         absolute::MSGID => match absolute::bind(m.data()) {
             Some(m) => TimerBind::RefAbsolute(m),
@@ -61,7 +69,7 @@ enum NetlinkBind<'a> {
     Unknown(i32),
 }
 
-fn netlink_bind(m: &Message) -> NetlinkBind {
+fn netlink_bind(m: &Message) -> NetlinkBind<'_> {
     match m.msgid() {
         Link::MSGID => match Link::bind(m.data()) {
             Some(m) => NetlinkBind::RefLink(m),
@@ -152,7 +160,7 @@ impl SystemState {
         if m.msgid != nl80211_scheme::Interface::MSGID {
             return 0;
         }
-        if let Some (data) = nl80211_scheme::Interface::bind(m.data()) {
+        if let Some(data) = nl80211_scheme::Interface::bind(m.data()) {
             match data.ssid.as_str() {
                 Ok("") => self.ssid = None,
                 Ok(ssid) => self.ssid = Some(ssid.into()),
@@ -170,7 +178,7 @@ impl SystemState {
         if m.msgid != udev_scheme::Device::MSGID {
             return 0;
         }
-        if let Some (data) = udev_scheme::Device::bind(m.data()) {
+        if let Some(data) = udev_scheme::Device::bind(m.data()) {
             match data.subsystem.as_str() {
                 Ok("power_supply") => (),
                 _ => return 0,
@@ -181,13 +189,12 @@ impl SystemState {
             }
             for p in unsafe { data.properties.data() } {
                 match p.name.as_str() {
-                    Ok("POWER_SUPPLY_ONLINE") =>
-                        match p.value.as_str() {
-                            Ok("0") => self.ac = false,
-                            Ok("1") => self.ac = true,
-                            _ => (),
-                        },
-                    _  => (),
+                    Ok("POWER_SUPPLY_ONLINE") => match p.value.as_str() {
+                        Ok("0") => self.ac = false,
+                        Ok("1") => self.ac = true,
+                        _ => (),
+                    },
+                    _ => (),
                 }
             }
         }
@@ -196,9 +203,15 @@ impl SystemState {
     }
 
     pub fn dump(&self) {
-        let link : &str = self.ssid.as_ref().or(self.link.as_ref()).map(String::as_str).unwrap_or("-");
+        let link: &str = self.ssid.as_ref().or(self.link.as_ref()).map(String::as_str).unwrap_or("-");
         let ac_sym = if self.ac { "🗲" } else { "" };
-        println!("{} {} {}{:2}%", self.time.format("%Y-%m-%d %H:%M:%S"), link, ac_sym, self.battery);
+        println!(
+            "{} {} {}{:2}%",
+            self.time.format("%Y-%m-%d %H:%M:%S"),
+            link,
+            ac_sym,
+            self.battery
+        );
     }
 }
 

@@ -1,17 +1,18 @@
 use tll::channel::*;
 
-use tll::error::*;
-use tll::config::{Config};
 use tll::channel::base::*;
+use tll::config::Config;
+use tll::error::*;
 
-fn callback(c: &Channel, m: &Message) -> i32
-{
+fn callback(c: &Channel, m: &Message) -> i32 {
     println!("Callback: {} {:?} {:?}", c.name(), m.type_, m.msgid);
     0
 }
 
-#[ derive(Debug, Default) ]
-struct Echo { base: Base }
+#[derive(Debug, Default)]
+struct Echo {
+    base: Base,
+}
 
 impl Extension for Echo {
     type Inner = Base;
@@ -25,24 +26,25 @@ impl Extension for Echo {
 }
 
 impl ChannelImpl for Echo {
-    fn channel_protocol() -> &'static str { "echo" }
-    fn open_policy() -> OpenPolicy { OpenPolicy::Manual }
+    fn channel_protocol() -> &'static str {
+        "echo"
+    }
+    fn open_policy() -> OpenPolicy {
+        OpenPolicy::Manual
+    }
 
-    fn init(&mut self, url: &Config, master: Option<Channel>, context: &Context) -> Result<()>
-    {
+    fn init(&mut self, url: &Config, master: Option<Channel>, context: &Context) -> Result<()> {
         println!("Create channel, master {:?}", master);
         self.logger().info(&format!("Create channel, master {:?}", master));
         self.inner_mut().init(url, master, context)
     }
 
-    fn open(&mut self, url: &Config) -> Result<()>
-    {
+    fn open(&mut self, url: &Config) -> Result<()> {
         println!("Open channel");
         self.inner_mut().open(url)
     }
 
-    fn process(&mut self) -> Result<i32>
-    {
+    fn process(&mut self) -> Result<i32> {
         println!("Called process");
         if self.state() == State::Opening {
             self.set_state(State::Active);
@@ -50,8 +52,7 @@ impl ChannelImpl for Echo {
         Ok(0)
     }
 
-    fn post(&mut self, msg: &Message) -> Result<()>
-    {
+    fn post(&mut self, msg: &Message) -> Result<()> {
         self.base_mut().callback_data(msg);
         Ok(())
     }
@@ -91,7 +92,6 @@ fn test() -> Result<()> {
 
         let names: Vec<&str> = scheme.as_ref().unwrap().messages().map(|x| x.name()).collect();
         assert_eq!(names, ["Data"]);
-
 
         assert!(c.post(Message::new().set_msgid(100).set_seq(100).set_data(b"abcd")).is_ok())
     }

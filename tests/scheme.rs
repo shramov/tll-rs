@@ -1,18 +1,19 @@
+use std::convert::TryFrom;
 use tll::channel::*;
 use tll::config::*;
 use tll::error::{Error, Result};
-use std::convert::TryFrom;
 
 mod scheme_scheme;
 use crate::scheme_scheme::*;
 //use crate::scheme_scheme::SCHEME_STRING;
 
-use ::chrono::{Utc, TimeZone};
+use ::chrono::{TimeZone, Utc};
 
 #[allow(dead_code)]
-fn check(m: &Message) -> Result<()>
-{
-    if m.get_type() != MsgType::Data { return Ok(()); }
+fn check(m: &Message) -> Result<()> {
+    if m.get_type() != MsgType::Data {
+        return Ok(());
+    }
     println!("Callback: {:?} {:?}", m.get_type(), m.msgid);
     Ok(())
 }
@@ -21,7 +22,10 @@ fn check(m: &Message) -> Result<()>
 fn test() -> Result<()> {
     let ctx = Context::new();
 
-    let url = Config::load_data("yamls", &format!("
+    let url = Config::load_data(
+        "yamls",
+        &format!(
+            "
 tll.proto: yaml
 name: yaml
 dump: scheme
@@ -49,11 +53,14 @@ config:
         timepoint_days: 2023-05-06
         timepoint_ns: 2023-05-06T12:34:56.0000000789
 scheme: {}
-", SCHEME_STRING))?;
+",
+            SCHEME_STRING
+        ),
+    )?;
 
     let mut c = ctx.channel_url(&url)?;
     let mut r = Err(Error::from("No message received"));
-    let check = |m : &Message| -> Result<()> {
+    let check = |m: &Message| -> Result<()> {
         assert_eq!(m.msgid(), msg::<&[u8]>::MSGID);
         let data = msg::bind(m.data()).ok_or("Failed to bind")?;
         assert_eq!({ data.get_i8() }, -1);
@@ -65,19 +72,39 @@ scheme: {}
         assert_eq!({ data.get_i64() }, -1000000000);
         assert_eq!({ data.get_u64() }, 1000000000);
         assert_eq!({ data.get_f64() }, 1.234);
-        assert_eq!(format!("{}", {data.get_d128()}), "1234567890.E-5");
+        assert_eq!(format!("{}", { data.get_d128() }), "1234567890.E-5");
         assert_eq!(data.get_c16().as_str(), Ok("string"));
         assert_eq!(data.get_b8(), *b"bytes\0\0\0");
         assert_eq!(data.get_arr4().iter().collect::<Vec<_>>(), [1, 2, 3]);
         assert_eq!(data.get_ptr().unwrap().iter().collect::<Vec<_>>(), [10, 20, 30, 40]);
         assert_eq!(data.get_sub().get_s8(), 10);
-        assert_eq!(std::time::Duration::try_from(data.get_duration_us()), Ok(std::time::Duration::from_micros(1234)));
-        assert_eq!(std::time::Duration::try_from(data.get_duration_ns()), Ok(std::time::Duration::from_nanos(5432)));
-        assert_eq!(data.get_timepoint_days().as_datetime(), Ok(Utc.datetime_from_str("2023-05-06 00:00:00", "%Y-%m-%d %H:%M:%S").unwrap()));
-        assert_eq!(data.get_timepoint_ns().as_datetime(), Ok(Utc.datetime_from_str("2023-05-06 12:34:56.000000789", "%Y-%m-%d %H:%M:%S.%f").unwrap()));
+        assert_eq!(
+            std::time::Duration::try_from(data.get_duration_us()),
+            Ok(std::time::Duration::from_micros(1234))
+        );
+        assert_eq!(
+            std::time::Duration::try_from(data.get_duration_ns()),
+            Ok(std::time::Duration::from_nanos(5432))
+        );
+        assert_eq!(
+            data.get_timepoint_days().as_datetime(),
+            Ok(Utc.datetime_from_str("2023-05-06 00:00:00", "%Y-%m-%d %H:%M:%S").unwrap())
+        );
+        assert_eq!(
+            data.get_timepoint_ns().as_datetime(),
+            Ok(Utc.datetime_from_str("2023-05-06 12:34:56.000000789", "%Y-%m-%d %H:%M:%S.%f").unwrap())
+        );
         Ok(())
     };
-    assert!(c.callback_add_mut(&mut |_ : &Channel, m : &Message| { r = check(m); 0 }, Some(MsgMask::Data as u32)).is_ok());
+    assert!(c
+        .callback_add_mut(
+            &mut |_: &Channel, m: &Message| {
+                r = check(m);
+                0
+            },
+            Some(MsgMask::Data as u32)
+        )
+        .is_ok());
 
     assert!(c.open("").is_ok());
 
@@ -111,67 +138,89 @@ scheme: {}
     assert_eq!(msg.size(), 128);
     assert_eq!(msg.msgid(), 10);
     {
-        use tll::scheme::scheme::{TypeRaw, Type, SubType, TimeResolution, PointerVersion};
+        use tll::scheme::scheme::{PointerVersion, SubType, TimeResolution, Type, TypeRaw};
 
-        let names = msg.fields().map(|x| (x.name(), x.type_raw(), x.size(), x.offset())).collect::<Vec<(&str, TypeRaw, usize, usize)>>();
-        assert_eq!(names, [
-            ("i8", TypeRaw::Int8, 1, 0),
-            ("u8", TypeRaw::UInt8, 1, 1),
-            ("i16", TypeRaw::Int16, 2, 2),
-            ("u16", TypeRaw::UInt16, 2, 4),
-            ("i32", TypeRaw::Int32, 4, 6),
-            ("u32", TypeRaw::UInt32, 4, 10),
-            ("i64", TypeRaw::Int64, 8, 14),
-            ("u64", TypeRaw::UInt64, 8, 22),
-            ("f64", TypeRaw::Double, 8, 30),
-            ("d128", TypeRaw::Decimal128, 16, 38),
-            ("c16", TypeRaw::Bytes, 16, 54),
-            ("b8", TypeRaw::Bytes, 8, 70),
-            ("arr4", TypeRaw::Array, 1 + 4 * 4, 78),
-            ("ptr", TypeRaw::Pointer, 8, 95),
-            ("sub", TypeRaw::Message, 1, 103),
-            ("duration_us", TypeRaw::Int32, 4, 104),
-            ("duration_ns", TypeRaw::UInt64, 8, 108),
-            ("timepoint_days", TypeRaw::Int32, 4, 116),
-            ("timepoint_ns", TypeRaw::UInt64, 8, 120),
-        ]);
+        let names =
+            msg.fields()
+                .map(|x| (x.name(), x.type_raw(), x.size(), x.offset()))
+                .collect::<Vec<(&str, TypeRaw, usize, usize)>>();
+        assert_eq!(
+            names,
+            [
+                ("i8", TypeRaw::Int8, 1, 0),
+                ("u8", TypeRaw::UInt8, 1, 1),
+                ("i16", TypeRaw::Int16, 2, 2),
+                ("u16", TypeRaw::UInt16, 2, 4),
+                ("i32", TypeRaw::Int32, 4, 6),
+                ("u32", TypeRaw::UInt32, 4, 10),
+                ("i64", TypeRaw::Int64, 8, 14),
+                ("u64", TypeRaw::UInt64, 8, 22),
+                ("f64", TypeRaw::Double, 8, 30),
+                ("d128", TypeRaw::Decimal128, 16, 38),
+                ("c16", TypeRaw::Bytes, 16, 54),
+                ("b8", TypeRaw::Bytes, 8, 70),
+                ("arr4", TypeRaw::Array, 1 + 4 * 4, 78),
+                ("ptr", TypeRaw::Pointer, 8, 95),
+                ("sub", TypeRaw::Message, 1, 103),
+                ("duration_us", TypeRaw::Int32, 4, 104),
+                ("duration_ns", TypeRaw::UInt64, 8, 108),
+                ("timepoint_days", TypeRaw::Int32, 4, 116),
+                ("timepoint_ns", TypeRaw::UInt64, 8, 120),
+            ]
+        );
 
-        let types = msg.fields().filter_map(|x| match x.sub_type() { SubType::None => None, t => Some((x.name(), t)) }).collect::<Vec<(&str, SubType)>>();
-        assert_eq!(types, [
-            ("c16", SubType::ByteString),
-            ("duration_us", SubType::Duration(TimeResolution::Us)),
-            ("duration_ns", SubType::Duration(TimeResolution::Ns)),
-            ("timepoint_days", SubType::TimePoint(TimeResolution::Day)),
-            ("timepoint_ns", SubType::TimePoint(TimeResolution::Ns)),
-        ]);
+        let types = msg
+            .fields()
+            .filter_map(|x| match x.sub_type() {
+                SubType::None => None,
+                t => Some((x.name(), t)),
+            })
+            .collect::<Vec<(&str, SubType)>>();
+        assert_eq!(
+            types,
+            [
+                ("c16", SubType::ByteString),
+                ("duration_us", SubType::Duration(TimeResolution::Us)),
+                ("duration_ns", SubType::Duration(TimeResolution::Ns)),
+                ("timepoint_days", SubType::TimePoint(TimeResolution::Day)),
+                ("timepoint_ns", SubType::TimePoint(TimeResolution::Ns)),
+            ]
+        );
         let sub = msg.fields().find(|x| x.name() == "sub").unwrap();
         assert_eq!(sub.type_ptr(), None);
         assert_eq!(sub.type_msg().map(|x| x.name()), Some("sub"));
         assert_eq!(sub.type_msg(), scheme.messages().find(|x| x.name() == "sub"));
         assert_eq!(sub.get_type(), Type::Message(sub.type_msg().unwrap()));
 
-        assert_eq!(msg.fields().find(|x| x.name() == "b8").as_ref().map(|x| x.get_type()), Some(Type::Bytes(8)));
+        assert_eq!(
+            msg.fields().find(|x| x.name() == "b8").as_ref().map(|x| x.get_type()),
+            Some(Type::Bytes(8))
+        );
 
         let mut f = msg.fields().find(|x| x.name() == "arr4").unwrap();
         match f.get_type() {
-            Type::Array {capacity, counter, data} => {
+            Type::Array {
+                capacity,
+                counter,
+                data,
+            } => {
                 assert_eq!(capacity, 4);
                 assert_eq!(counter.name(), "arr4_count");
                 assert_eq!(counter.get_type(), Type::Int8);
                 assert_eq!(data.name(), "arr4");
                 assert_eq!(data.get_type(), Type::Int32);
                 assert_eq!(data.offset(), counter.size());
-            },
+            }
             t => panic!("Invalid array type: {:?}", t),
         }
 
         f = msg.fields().find(|x| x.name() == "ptr").unwrap();
         match f.get_type() {
-            Type::Pointer {version, data} => {
+            Type::Pointer { version, data } => {
                 assert_eq!(version, PointerVersion::Default);
                 assert_eq!(data.name(), "ptr");
                 assert_eq!(data.get_type(), Type::Int64);
-            },
+            }
             t => panic!("Invalid array type: {:?}", t),
         }
     }

@@ -7,11 +7,10 @@ struct Example {
 }
 
 impl Default for Example {
-    fn default() -> Example
-    {
+    fn default() -> Example {
         Example {
             rx: Field::new("rx", Type::Sum),
-            tx: Field::new_unit("tx", Type::Sum, Unit::Bytes)
+            tx: Field::new_unit("tx", Type::Sum, Unit::Bytes),
         }
     }
 }
