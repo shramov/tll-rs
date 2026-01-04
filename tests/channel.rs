@@ -1,5 +1,5 @@
 use tll::channel::*;
-use tll::error::*;
+use tll::Result;
 
 /*
 #[ derive(Debug, PartialEq, Eq, PartialOrd, Ord) ]

@@ -1,4 +1,3 @@
-use crate::error;
 use rust_decimal::Decimal;
 use std::convert::TryFrom;
 
@@ -23,13 +22,24 @@ pub enum Error {
     ExponentOverflow,
 }
 
-impl From<Error> for error::Error {
+impl std::fmt::Display for Error {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::MantissaOverflow => write!(f, "mantissa too large"),
+            Self::ExponentOverflow => write!(f, "exponent too large"),
+        }
+    }
+}
+
+impl std::error::Error for Error {}
+
+impl From<Error> for crate::result::Error {
     fn from(e: Error) -> Self {
         Self::from(format!("Failed to convert Decimal128: {:?}", e))
     }
 }
 
-impl From<rust_decimal::Error> for error::Error {
+impl From<rust_decimal::Error> for crate::result::Error {
     fn from(e: rust_decimal::Error) -> Self {
         Self::from(format!("Failed to convert Decimal: {:?}", e))
     }

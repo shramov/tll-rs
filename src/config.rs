@@ -3,7 +3,7 @@ use std::os::raw::{c_char, c_int, c_void};
 use std::str::FromStr;
 use tll_sys::config::*;
 
-use crate::error::*;
+use crate::result::*;
 
 pub trait FromStrCustom: Sized {
     fn from_str_custom(s: &str) -> Result<Self>;

@@ -2,7 +2,7 @@ use tll_sys::channel::*;
 
 use crate::channel::base::{CImpl, ChannelImpl};
 use crate::config::Config;
-use crate::error::*;
+use crate::result::*;
 use crate::scheme::Scheme;
 
 pub use crate::channel::caps::*;
@@ -26,8 +26,8 @@ pub enum State {
 }
 
 impl TryFrom<i32> for State {
-    type Error = crate::error::Error;
-    fn try_from(s: i32) -> std::result::Result<Self, crate::error::Error> {
+    type Error = crate::result::Error;
+    fn try_from(s: i32) -> std::result::Result<Self, crate::result::Error> {
         match s as u32 {
             TLL_STATE_CLOSED => Ok(State::Closed),
             TLL_STATE_OPENING => Ok(State::Opening),

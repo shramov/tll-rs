@@ -1,6 +1,6 @@
 use tll_sys::scheme::*;
 
-use crate::error::*;
+use crate::result::*;
 
 use std::ffi::CStr;
 /*

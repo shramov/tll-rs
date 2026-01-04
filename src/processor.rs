@@ -2,7 +2,7 @@ use tll_sys::processor_loop::*;
 
 use crate::channel::*;
 use crate::config::Config;
-use crate::error::*;
+use crate::result::*;
 
 use std::os::raw::{c_char, c_int, c_long};
 

@@ -2,7 +2,7 @@ use tll::channel::*;
 
 use tll::channel::base::*;
 use tll::config::Config;
-use tll::error::*;
+use tll::Result;
 
 #[derive(Debug, Default)]
 struct Echo {

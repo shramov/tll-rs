@@ -1,8 +1,8 @@
 use tll::channel::*;
 use tll::config::Config;
-use tll::error::EINVAL;
 use tll::logger::Logger;
 use tll::processor::Loop;
+use tll::result::EINVAL;
 
 use ::chrono::{DateTime, Local};
 use std::fs::File;
@@ -88,7 +88,7 @@ fn netlink_bind(m: &Message) -> NetlinkBind<'_> {
 }
 
 impl SystemState {
-    fn update_battery(&mut self) -> tll::error::Result<()> {
+    fn update_battery(&mut self) -> tll::result::Result<()> {
         self.battery_file.seek(SeekFrom::Start(0))?;
         let size = self.battery_file.read(&mut self.battery_buf)?;
         let string = std::str::from_utf8(&self.battery_buf[0..size])?.trim();
@@ -96,7 +96,7 @@ impl SystemState {
         Ok(())
     }
 
-    pub fn on_timer(&mut self, m: &Message) -> tll::error::Result<()> {
+    pub fn on_timer(&mut self, m: &Message) -> tll::result::Result<()> {
         if m.get_type() != MsgType::Data {
             return Ok(());
         }
@@ -250,7 +250,7 @@ impl CallbackMut<PowerCallback> for SystemState {
     }
 }
 
-pub fn main() -> tll::error::Result<()> {
+pub fn main() -> tll::result::Result<()> {
     let mut state = SystemState::default();
 
     let cfg = Config::load_data("yamls", "{type: spdlog, levels.tll: error}")?;

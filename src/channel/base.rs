@@ -6,13 +6,13 @@ use tll_sys::scheme::tll_scheme_t;
 
 // Reexport for using in macro
 pub use crate::config::ConfigChainBuilder;
-pub use crate::error::EINVAL;
+pub use crate::result::EINVAL;
 pub use tll_sys::channel::{tll_channel_context_t, tll_channel_module_t, TLL_CHANNEL_MODULE_VERSION};
 
 use crate::channel::*;
 use crate::config::*;
 
-use crate::error::*;
+use crate::result::*;
 use crate::logger::*;
 
 use crate::scheme::Scheme;

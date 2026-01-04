@@ -2,7 +2,7 @@ use tll::channel::*;
 
 use tll::channel::base::*;
 use tll::config::Config;
-use tll::error::*;
+use tll::Result;
 
 fn callback(c: &Channel, m: &Message) -> i32 {
     println!("Callback: {} {:?} {:?}", c.name(), m.type_, m.msgid);

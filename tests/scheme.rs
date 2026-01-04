@@ -1,7 +1,7 @@
 use std::convert::TryFrom;
 use tll::channel::*;
 use tll::config::*;
-use tll::error::{Error, Result};
+use tll::{Error, Result};
 
 mod scheme_scheme;
 use crate::scheme_scheme::*;

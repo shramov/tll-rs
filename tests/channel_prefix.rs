@@ -2,7 +2,7 @@ use tll::channel::*;
 
 use tll::channel::base::*;
 use tll::config::Config;
-use tll::error::*;
+use tll::{Error, Result};
 use tll_sys::channel::tll_state_t;
 
 #[derive(Debug)]

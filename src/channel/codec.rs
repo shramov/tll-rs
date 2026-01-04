@@ -2,7 +2,7 @@ use crate::channel::base::*;
 use crate::channel::channel::*;
 
 use crate::config::Config;
-use crate::error::*;
+use crate::result::*;
 use tll_sys::channel::tll_state_t;
 
 #[derive(Debug)]

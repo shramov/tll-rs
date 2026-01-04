@@ -1,7 +1,7 @@
 use tll::channel::codec::*;
 use tll::channel::*;
 
-use tll::error::*;
+use tll::Result;
 //use tll::config::{Config};
 //use tll::props::{Props};
 use tll::channel::base::*;

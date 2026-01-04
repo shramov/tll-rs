@@ -1,7 +1,7 @@
 use tll_sys::logger::*;
 
 use crate::config::Config;
-use crate::error::*;
+use crate::result::*;
 
 use std::ffi::CStr;
 use std::os::raw::{c_char, c_int};

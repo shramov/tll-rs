@@ -1,4 +1,4 @@
-use crate::error::*;
+use crate::result::*;
 use std::collections::HashMap;
 
 #[derive(Default, Debug)]
