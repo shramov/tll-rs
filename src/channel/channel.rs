@@ -431,6 +431,38 @@ impl Channel {
         error_check_str(r, "Failed to add callback")
     }
 
+    pub fn callback_del<F, Tag>(&mut self, f: &F, mask: Option<u32>) -> Result<()>
+    where
+        F: Callback<Tag>,
+    {
+        let fptr = f as *const F as *mut F;
+        let r = unsafe {
+            tll_channel_callback_del(
+                self.ptr,
+                Some(callback_wrap::<F, Tag>),
+                fptr as *mut c_void,
+                mask.unwrap_or(MsgMask::All as u32),
+            )
+        };
+        error_check_str(r, "Failed to del callback")
+    }
+
+    pub fn callback_del_mut<F, Tag>(&mut self, f: &F, mask: Option<u32>) -> Result<()>
+    where
+        F: CallbackMut<Tag>,
+    {
+        let fptr = f as *const F;
+        let r = unsafe {
+            tll_channel_callback_del(
+                self.ptr,
+                Some(callback_wrap_mut::<F, Tag>),
+                fptr as *mut c_void,
+                mask.unwrap_or(MsgMask::All as u32),
+            )
+        };
+        error_check_str(r, "Failed to del callback")
+    }
+
     pub fn process(&mut self) -> Result<i32> {
         match unsafe { tll_channel_process(self.ptr, 0, 0) } {
             0 => Ok(0),
