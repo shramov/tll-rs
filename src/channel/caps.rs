@@ -28,3 +28,10 @@ bitflags! {
         const SuspendPermanent = TLL_DCAPS_SUSPEND_PERMANENT;
     }
 }
+
+bitflags! {
+    pub struct PostFlags: u32 {
+        const More   = TLL_POST_MORE;
+        const Urgent = TLL_POST_URGENT;
+    }
+}

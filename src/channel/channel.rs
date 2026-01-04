@@ -474,4 +474,11 @@ impl Channel {
     pub fn post(&mut self, msg: &Message) -> Result<()> {
         error_check_str(unsafe { tll_channel_post(self.ptr, msg.deref(), 0) }, "Post failed")
     }
+
+    pub fn post_flags(&mut self, msg: &Message, flags: PostFlags) -> Result<()> {
+        error_check_str(
+            unsafe { tll_channel_post(self.ptr, msg.deref(), flags.bits() as i32) },
+            "Post failed",
+        )
+    }
 }
