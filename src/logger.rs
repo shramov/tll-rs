@@ -30,6 +30,15 @@ impl From<u32> for Level {
     }
 }
 
+pub trait IntoLogger {
+    fn into_logger(&self) -> &Logger;
+}
+
+#[inline(always)]
+pub fn into_logger<T: IntoLogger>(v: &T) -> &Logger {
+    v.into_logger()
+}
+
 #[derive(Debug, PartialEq, Eq)]
 pub struct Logger {
     ptr: *mut tll_logger_t,
@@ -40,6 +49,12 @@ impl Clone for Logger {
         let ptr = unsafe { tll_logger_copy(self.ptr) };
         assert!(!ptr.is_null());
         Logger { ptr: ptr }
+    }
+}
+
+impl IntoLogger for Logger {
+    fn into_logger(&self) -> &Logger {
+        self
     }
 }
 
@@ -143,3 +158,38 @@ impl Drop for Logger {
         }
     }
 }
+
+#[macro_export]
+//#[clippy::format_args] // See https://github.com/rust-lang/rust/issues/74087
+macro_rules! log {
+    ($logger:expr, $level:expr, $($arg:tt)+) => ({
+        let l = $crate::logger::into_logger($logger);
+        if l.enabled($level) {
+            l.log($level, &std::format_args!($($arg)+).to_string());
+        }
+    })
+}
+
+#[macro_export]
+#[clippy::format_args]
+macro_rules! ciritcal { ($logger:expr, $($arg:tt)+) => ($crate::log!($logger, $crate::logger::Level::Critical, $($arg)+)) }
+
+#[macro_export]
+#[clippy::format_args]
+macro_rules! error { ($logger:expr, $($arg:tt)+) => ($crate::log!($logger, $crate::logger::Level::Error, $($arg)+)) }
+
+#[macro_export]
+#[clippy::format_args]
+macro_rules! warning { ($logger:expr, $($arg:tt)+) => ($crate::log!($logger, $crate::logger::Level::Warning, $($arg)+)) }
+
+#[macro_export]
+#[clippy::format_args]
+macro_rules! info { ($logger:expr, $($arg:tt)+) => ($crate::log!($logger, $crate::logger::Level::Info, $($arg)+)) }
+
+#[macro_export]
+#[clippy::format_args]
+macro_rules! debug { ($logger:expr, $($arg:tt)+) => ($crate::log!($logger, $crate::logger::Level::Debug, $($arg)+)) }
+
+#[macro_export]
+#[clippy::format_args]
+macro_rules! trace { ($logger:expr, $($arg:tt)+) => ($crate::log!($logger, $crate::logger::Level::Trace, $($arg)+)) }

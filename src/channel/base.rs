@@ -9,6 +9,7 @@ pub use crate::config::ConfigChainBuilder;
 pub use crate::result::EINVAL;
 pub use tll_sys::channel::{tll_channel_context_t, tll_channel_module_t, TLL_CHANNEL_MODULE_VERSION};
 
+use crate::*; // Import logging macros
 use crate::channel::*;
 use crate::config::*;
 
@@ -247,7 +248,7 @@ impl Base {
 
     pub fn update_dcaps(&mut self, caps: DCaps, mask: DCaps) {
         let old = self.data.dcaps;
-        self.logger().debug(&format!("Update dcaps: {} -> {:?}", old, caps));
+        debug!(self, "Update dcaps: {} -> {:?}", old, caps);
         if old & mask.bits() == caps.bits() {
             return;
         }
@@ -336,6 +337,12 @@ pub trait Extension: Default {
 
     fn inner(&self) -> &Self::Inner;
     fn inner_mut(&mut self) -> &mut Self::Inner;
+}
+
+impl<T: Extension> IntoLogger for T {
+    fn into_logger(&self) -> &Logger {
+        &self.base().logger
+    }
 }
 
 impl Extension for Base {
@@ -499,7 +506,7 @@ where
         c.internal = &mut internal.data;
         //println!("Call init on boxed object {:?}", c.data);
         if let Err(e) = internal.init_base(&chain) {
-            log.error(&format!("Base init failed: {:?}", e));
+            error!(&log, "Base init failed: {}", e);
             return Err(e);
         }
 
@@ -509,7 +516,7 @@ where
             ChildPolicy::Many => Caps::Parent,
         });
         if let Err(e) = channel.init(&url, master, ctx) {
-            log.error(&format!("Init failed: {}", e));
+            error!(&log, "Init failed: {}", e);
             Self::dealloc(c);
             return Err(e);
         }
@@ -599,7 +606,7 @@ where
         };
         match Self::open(channel, &cfg) {
             Err(e) => {
-                channel.logger().error(&format!("Open failed: {:?}", e));
+                error!(channel, "Open failed: {}", e);
                 channel.set_state(State::Error);
                 EINVAL
             }
@@ -645,7 +652,7 @@ where
         match channel.post(unsafe { &*(m as *const Message) }) {
             Ok(_) => 0,
             Err(e) => {
-                channel.logger().error(&format!("Post failed: {}", e));
+                error!(channel, "Post failed: {e}");
                 EINVAL
             }
         }
