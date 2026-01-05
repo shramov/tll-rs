@@ -1,5 +1,64 @@
 use crate::decimal128::Decimal128;
 
+#[derive(Debug,Eq,PartialEq)]
+pub struct BindError {
+}
+
+impl BindError {
+    pub fn new_size(_: usize) -> Self {
+        BindError {}
+    }
+}
+
+impl std::fmt::Display for BindError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "data size to small")
+    }
+}
+
+impl std::error::Error for BindError {}
+
+impl From<BindError> for crate::result::Error {
+    fn from(e: BindError) -> Self {
+        Self::from(format!("Failed to bind message string: {}", e))
+    }
+}
+
+#[derive(Debug,Eq,PartialEq)]
+pub enum StringBindError {
+    BindError(BindError),
+    StringError(std::str::Utf8Error),
+}
+
+impl std::fmt::Display for StringBindError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::BindError(_) => write!(f, "pointer out of buffer"),
+            Self::StringError(e) => write!(f, "invalid string: {e}"),
+        }
+    }
+}
+
+impl std::error::Error for StringBindError {}
+
+impl From<StringBindError> for crate::result::Error {
+    fn from(e: StringBindError) -> Self {
+        Self::from(format!("Failed to bind offset string: {}", e))
+    }
+}
+
+impl From<BindError> for StringBindError {
+    fn from(e: BindError) -> Self {
+        Self::BindError(e)
+    }
+}
+
+impl From<std::str::Utf8Error> for StringBindError {
+    fn from(e: std::str::Utf8Error) -> Self {
+        Self::StringError(e)
+    }
+}
+
 pub unsafe fn bind_unchecked<T>(data: &[u8]) -> &T {
     &*(data.as_ptr() as *const T)
 }

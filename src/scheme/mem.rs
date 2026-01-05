@@ -1,4 +1,5 @@
 use crate::mem::{MemOffset, MemRead};
+use crate::scheme::bind::{BindError, StringBindError};
 
 pub struct ByteString<const SIZE: usize, Buf> {
     pub data: Buf,
@@ -245,17 +246,17 @@ where
     Buf: MemRead,
 {
     #[inline(always)]
-    pub fn new(data: MemOffset<Buf>) -> Option<Self> {
+    pub fn new(data: MemOffset<Buf>) -> Result<Self, BindError> {
         let size = data.mem_size();
         if size < std::mem::size_of::<Ptr>() {
-            return None;
+            return Err(BindError::new_size(std::mem::size_of::<Ptr>()));
         }
         let offset = Ptr::offset(&data);
         let full = Ptr::size(&data) * Ptr::entity(&data);
         if full != 0 && offset + full > size {
-            return None;
+            Err(BindError::new_size(offset + full))
         } else {
-            Some(Self::new_unchecked(data))
+            Ok(Self::new_unchecked(data))
         }
     }
 
@@ -266,12 +267,7 @@ where
             phantom: std::marker::PhantomData,
         }
     }
-}
 
-impl<Inner, Ptr: OffsetPtrImpl, Buf> OffsetPtr<Inner, Ptr, Buf>
-where
-    Buf: MemRead + Copy,
-{
     pub fn size(&self) -> usize {
         <Ptr as OffsetPtrImpl>::size(&self.buf) as usize
     }
@@ -283,7 +279,12 @@ where
     pub fn entity(&self) -> usize {
         <Ptr as OffsetPtrImpl>::entity(&self.buf) as usize
     }
+}
 
+impl<Inner, Ptr: OffsetPtrImpl, Buf> OffsetPtr<Inner, Ptr, Buf>
+where
+    Buf: MemRead + Copy,
+{
     pub fn data(&self) -> MemOffset<Buf> {
         self.buf.view(self.offset())
     }
@@ -307,6 +308,51 @@ impl<Inner: Copy, Ptr: OffsetPtrImpl, Buf: MemRead + Copy> IntoIterator for Offs
     #[inline(always)]
     fn into_iter(self) -> Self::IntoIter {
         self.iter()
+    }
+}
+
+pub struct OffsetString<Ptr: OffsetPtrImpl, Buf: MemRead> ( OffsetPtr<u8, Ptr, Buf> );
+
+impl<Ptr: OffsetPtrImpl, Buf> OffsetString<Ptr, Buf>
+where
+    Buf: MemRead,
+{
+    #[inline(always)]
+    pub fn new(data: MemOffset<Buf>) -> Result<Self, BindError> {
+        OffsetPtr::<u8, Ptr, Buf>::new(data).map(|x| Self(x))
+    }
+
+    #[inline(always)]
+    pub fn new_unchecked(data: MemOffset<Buf>) -> Self {
+        Self(OffsetPtr::<u8, Ptr, Buf>::new_unchecked(data))
+    }
+
+    #[inline(always)]
+    pub fn size(&self) -> usize {
+        std::cmp::max(self.0.size(), 1) - 1
+    }
+
+    #[inline(always)]
+    pub fn data(&self) -> Result<&'_ str, std::str::Utf8Error> {
+        let size = self.size();
+        let offset = self.0.offset();
+        if size == 0 {
+            Ok("")
+        } else {
+            str::from_utf8(&self.0.buf.as_mem()[offset..offset+size])
+        }
+    }
+}
+
+#[inline(always)]
+pub fn offset_str<Ptr: OffsetPtrImpl, Buf: MemRead>(data: &MemOffset<Buf>, mut offset: usize) -> Result<&'_ str, StringBindError> {
+    let this = OffsetString::<Ptr, &[u8]>::new(MemOffset::new(data.as_mem()).view(offset))?;
+    let size = this.size();
+    offset += this.0.offset();
+    if size == 0 {
+        Ok("")
+    } else {
+        str::from_utf8(&data.as_mem()[offset..offset+size]).map_err(StringBindError::from)
     }
 }
 
