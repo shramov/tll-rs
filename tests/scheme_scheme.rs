@@ -4,18 +4,27 @@ pub use tll::mem::{MemOffset, MemRead};
 pub use tll::scheme::mem::ByteString;
 pub use tll::scheme::*;
 
-pub const SCHEME_STRING : &str = "yamls+gz://eJylkt2KgzAQRu/7FLkLlBXWVor4KssisUnLgEbJz4WUvvtmBN3EyZZd9i5jTs7ky1gwLQbVMG59xw+M3UD10jZhxVjBHutmzd+Ymydcg3Y1fx6K9eBg73gQZMPK9x8NQA0p4CPAZwkoL4kjlEQSIz7PwPmUaEJJNDHi8wxcqkQTSqKJEZ9nbjEjR9/1ijCyPEWPI9UVBtHjtz14jeN3s1NLPU4ORm0b9uC4xXGezoC+8+de0NXpedpCGFPtnu+j+iTY5Mw3dcxHxz9uY7Agub0RePXW2/3EklRG2bH3WGK2Bd6Srg6adbNrS6b0Qq9/qXcwqGkMulaK+S/3D3jcAT3tInrV4z8Z0g5fMvYzTg==";
+pub const SCHEME_STRING : &str = "yamls+gz://eJylks1qhDAQgO/7FLkFisJqZZG9dR+jpYhusktAE8nPQRbfvTO22sRYaekpmcyXbzJJUiLrjp8JpQdCuHSdOcOEEMpLeiYPO/SQdELaMpnSsEZfIJMlhF5gzGF85VrB9DiOh3TWGdeg8SZ4y76UKXnMyZIm5FNNUU29jZ2540bBoMbxR4OIDSHgPMBtEiI7BQ4II4mPuG1GPOeBBsJI4yNumxGnItBAGGl8xG0zN59hyjUtjxiW5d7lMH4VXd3i2hq8+u03g+VTrHorlDT4ETBF8T2tFvJOx7WgKcP9cYla62J1fW/Fe4T1Vn9TT9ut449bGAyivp2u8eiVM+sXC7rS3KjWYYi9TfDS6eyIe13s0kSvtKOXv9Rb0fFega5i9fCX8wPuV0BPNYn2avynh70K3PsQ02/4ABSaUBY=";
+
+#[repr(u8)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum e8 {
+    Zero = 0,
+    A = 1,
+    B = 2,
+}
+impl Binder for e8 {}
 
 #[derive(Debug)]
 pub struct sub<Buf: MemRead> {
     data: MemOffset<Buf>,
 }
 impl<Buf: MemRead + Copy> sub<Buf> {
-    pub fn bind(data: Buf) -> Option<Self> {
+    pub fn bind(data: Buf) -> std::result::Result<Self, BindError> {
         if data.mem_size() < 1 {
-            return None;
+            return Err(BindError::new_size(1));
         }
-        Some(Self {
+        Ok(Self {
             data: MemOffset::new(data),
         })
     }
@@ -31,20 +40,18 @@ impl<Buf: MemRead + Copy> sub<Buf> {
     }
 }
 #[derive(Debug)]
-pub struct msg<Buf: MemRead = &'static [u8]> {
+pub struct msg<Buf: MemRead> {
     data: MemOffset<Buf>,
 }
 impl<Buf: MemRead + Copy> msg<Buf> {
-    pub fn bind(data: Buf) -> Option<Self> {
-        if data.mem_size() < 128 {
-            return None;
+    pub fn bind(data: Buf) -> std::result::Result<Self, BindError> {
+        if data.mem_size() < 129 {
+            return Err(BindError::new_size(129));
         }
         // Array
         // Pointer
-        if sub::<&[u8]>::bind(&data.as_mem()[103..]).is_none() {
-            return None;
-        }
-        Some(Self {
+        sub::<&[u8]>::bind(&data.as_mem()[103..])?;
+        Ok(Self {
             data: MemOffset::new(data),
         })
     }
@@ -94,7 +101,9 @@ impl<Buf: MemRead + Copy> msg<Buf> {
     pub fn get_arr4(&self) -> tll::scheme::mem::Array<u8, i32, 4, MemOffset<Buf>> {
         tll::scheme::mem::Array::<u8, i32, 4, MemOffset<Buf>>::new(self.data.view(78))
     }
-    pub fn get_ptr(&self) -> Option<tll::scheme::mem::OffsetPtr<i64, tll::scheme::mem::OffsetPtrDefault, Buf>> {
+    pub fn get_ptr(
+        &self,
+    ) -> Result<tll::scheme::mem::OffsetPtr<i64, tll::scheme::mem::OffsetPtrDefault, Buf>, BindError> {
         tll::scheme::mem::OffsetPtr::<i64, tll::scheme::mem::OffsetPtrDefault, Buf>::new(self.data.view(95))
     }
     pub fn get_sub(&self) -> sub<Buf> {
@@ -113,6 +122,9 @@ impl<Buf: MemRead + Copy> msg<Buf> {
     }
     pub fn get_timepoint_ns(&self) -> tll::scheme::TimePoint<u64, tll::scheme::Nano> {
         self.data.mem_get_primitive::<tll::scheme::TimePoint<u64, tll::scheme::Nano>>(120)
+    }
+    pub fn get_e8(&self) -> e8 {
+        self.data.mem_get_primitive::<e8>(128)
     }
 }
 impl<Buf: MemRead> MsgId for msg<Buf> {

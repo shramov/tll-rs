@@ -1,3 +1,4 @@
+use std::ops::Deref;
 use std::rc::Rc;
 
 use base64::{engine::general_purpose::STANDARD as base64, Engine};
@@ -95,6 +96,24 @@ fn read_size(desc: &Field, data: &[u8]) -> std::result::Result<usize, SizeError>
     }
 }
 
+fn serialize_integer<'a, T: Serialize + std::convert::TryInto<i64> + Copy, S: Serializer>(
+    v: T,
+    field: &Field,
+    ser: S,
+) -> std::result::Result<S::Ok, S::Error> {
+    match &field.sub_type {
+        SubType::Enum(e) => {
+            let iv: i64 = v.try_into().map_err(|_| S::Error::custom("Integer overflow"))?;
+            if let Some(ev) = e.values.iter().find(|x| x.value == iv) {
+                ser.serialize_str(&ev.name)
+            } else {
+                v.serialize(ser)
+            }
+        }
+        _ => v.serialize(ser),
+    }
+}
+
 fn serialize_ptr<'a, Ptr: OffsetPtrImpl, S: Serializer>(
     this: &DataField<'a>,
     data_field: &Rc<Field>,
@@ -126,14 +145,14 @@ fn serialize_ptr<'a, Ptr: OffsetPtrImpl, S: Serializer>(
 impl<'a> Serialize for DataField<'a> {
     fn serialize<S: Serializer>(&self, ser: S) -> std::result::Result<S::Ok, S::Error> {
         match &self.desc.field_type {
-            Type::Int8 => self.data.mem_get_primitive::<i8>(0).serialize(ser),
-            Type::Int16 => self.data.mem_get_primitive::<i16>(0).serialize(ser),
-            Type::Int32 => self.data.mem_get_primitive::<i32>(0).serialize(ser),
-            Type::Int64 => self.data.mem_get_primitive::<i64>(0).serialize(ser),
-            Type::UInt8 => self.data.mem_get_primitive::<u8>(0).serialize(ser),
-            Type::UInt16 => self.data.mem_get_primitive::<u16>(0).serialize(ser),
-            Type::UInt32 => self.data.mem_get_primitive::<u32>(0).serialize(ser),
-            Type::UInt64 => self.data.mem_get_primitive::<u64>(0).serialize(ser),
+            Type::Int8 => serialize_integer(self.data.mem_get_primitive::<i8>(0), self.desc.deref(), ser),
+            Type::Int16 => serialize_integer(self.data.mem_get_primitive::<i16>(0), self.desc.deref(), ser),
+            Type::Int32 => serialize_integer(self.data.mem_get_primitive::<i32>(0), self.desc.deref(), ser),
+            Type::Int64 => serialize_integer(self.data.mem_get_primitive::<i64>(0), self.desc.deref(), ser),
+            Type::UInt8 => serialize_integer(self.data.mem_get_primitive::<u8>(0), self.desc.deref(), ser),
+            Type::UInt16 => serialize_integer(self.data.mem_get_primitive::<u16>(0), self.desc.deref(), ser),
+            Type::UInt32 => serialize_integer(self.data.mem_get_primitive::<u32>(0), self.desc.deref(), ser),
+            Type::UInt64 => serialize_integer(self.data.mem_get_primitive::<u64>(0), self.desc.deref(), ser),
             Type::Double => self.data.mem_get_primitive::<f64>(0).serialize(ser),
             Type::Decimal128 => {
                 let mut buf = String::new();

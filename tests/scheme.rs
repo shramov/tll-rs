@@ -1,31 +1,17 @@
 use std::convert::TryFrom;
+
 use tll::channel::*;
 use tll::config::*;
+use tll::scheme::serde::{DataMessage, Serialize};
 use tll::{Error, Result};
 
 mod scheme_scheme;
 use crate::scheme_scheme::*;
-//use crate::scheme_scheme::SCHEME_STRING;
 
 use ::chrono::{TimeZone, Utc};
+use serde_json::{json, Value};
 
-#[allow(dead_code)]
-fn check(m: &Message) -> Result<()> {
-    if m.get_type() != MsgType::Data {
-        return Ok(());
-    }
-    println!("Callback: {:?} {:?}", m.get_type(), m.msgid);
-    Ok(())
-}
-
-#[test]
-fn test() -> Result<()> {
-    let ctx = Context::new();
-
-    let url = Config::load_data(
-        "yamls",
-        &format!(
-            "
+const YAML: &str = "
 tll.proto: yaml
 name: yaml
 dump: scheme
@@ -52,17 +38,30 @@ config:
         duration_ns: 5432ns
         timepoint_days: 2023-05-06
         timepoint_ns: 2023-05-06T12:34:56.0000000789
-scheme: {}
-",
-            SCHEME_STRING
-        ),
-    )?;
+        e8: A
+";
+
+#[allow(dead_code)]
+fn check(m: &Message) -> Result<()> {
+    if m.get_type() != MsgType::Data {
+        return Ok(());
+    }
+    println!("Callback: {:?} {:?}", m.get_type(), m.msgid);
+    Ok(())
+}
+
+#[test]
+fn test() -> Result<()> {
+    let ctx = Context::new();
+
+    let mut url = Config::load_data("yamls", YAML)?;
+    url.set("scheme", SCHEME_STRING);
 
     let mut c = ctx.channel_url(&url)?;
     let mut r = Err(Error::from("No message received"));
     let check = |m: &Message| -> Result<()> {
         assert_eq!(m.msgid(), msg::<&[u8]>::MSGID);
-        let data = msg::bind(m.data()).ok_or("Failed to bind")?;
+        let data = msg::bind(m.data())?;
         assert_eq!({ data.get_i8() }, -1);
         assert_eq!({ data.get_u8() }, 1);
         assert_eq!({ data.get_i16() }, -1000);
@@ -135,7 +134,7 @@ scheme: {}
     assert!(omsg.is_some());
     msg = omsg.unwrap();
     assert_eq!(msg.name(), "msg");
-    assert_eq!(msg.size(), 128);
+    assert_eq!(msg.size(), 129);
     assert_eq!(msg.msgid(), 10);
     {
         use tll::scheme::scheme::{PointerVersion, SubType, TimeResolution, Type, TypeRaw};
@@ -143,7 +142,7 @@ scheme: {}
         let names =
             msg.fields()
                 .map(|x| (x.name(), x.type_raw(), x.size(), x.offset()))
-                .collect::<Vec<(&str, TypeRaw, usize, usize)>>();
+                .collect::<Vec<_>>();
         assert_eq!(
             names,
             [
@@ -166,6 +165,7 @@ scheme: {}
                 ("duration_ns", TypeRaw::UInt64, 8, 108),
                 ("timepoint_days", TypeRaw::Int32, 4, 116),
                 ("timepoint_ns", TypeRaw::UInt64, 8, 120),
+                ("e8", TypeRaw::UInt8, 1, 128),
             ]
         );
 
@@ -173,9 +173,10 @@ scheme: {}
             .fields()
             .filter_map(|x| match x.sub_type() {
                 SubType::None => None,
+                SubType::Enum(_) => None,
                 t => Some((x.name(), t)),
             })
-            .collect::<Vec<(&str, SubType)>>();
+            .collect::<Vec<_>>();
         assert_eq!(
             types,
             [
@@ -235,5 +236,70 @@ scheme: {}
     assert_eq!(c.state(), State::Closed);
     assert_eq!(r, Ok(()));
 
+    Ok(())
+}
+
+#[derive(Debug, Default)]
+struct Accum {
+    result: Vec<OwnedMessage>,
+}
+
+impl tll::channel::CallbackMut for Accum {
+    fn message_callback_mut(&mut self, _: &Channel, msg: &Message) -> i32 {
+        self.result.push(msg.into());
+        0
+    }
+}
+
+#[test]
+fn test_json() -> Result<()> {
+    let ctx = Context::new();
+
+    let mut url = Config::load_data("yamls", YAML)?;
+    url.set("scheme", SCHEME_STRING);
+
+    let mut c = ctx.channel_url(&url)?;
+    let mut accum = Accum::default();
+    c.callback_add_mut(&mut accum, Some(tll::channel::MsgMask::Data as u32))?;
+    c.open(None)?;
+    let scheme = tll::scheme::native::Scheme::from(c.scheme().ok_or("No data scheme")?);
+    c.process()?;
+    assert_eq!(accum.result.len(), 1);
+    let mut buf = Vec::<u8>::new();
+    let mut ser = serde_json::Serializer::new(&mut buf);
+    let msg = accum.result.get(0).unwrap();
+    DataMessage {
+        data: msg.data(),
+        desc: scheme.messages.iter().find(|x| x.msgid == msg.msgid).ok_or("Message not found")?.clone(),
+    }
+    .serialize(&mut ser)
+    .map_err(|x| Error::from(x.to_string()))?;
+    let json: Value = serde_json::from_str(&str::from_utf8(&buf[..]).map_err(|_| "Invalid string")?)
+        .map_err(|e| format!("Failet to decode json: {e}"))?;
+    assert_eq!(
+        json,
+        json!({
+            "i8": -1,
+            "u8": 1,
+            "i16": -1000,
+            "u16": 1000,
+            "i32": -1000000,
+            "u32": 1000000,
+            "i64": -1000000000,
+            "u64": 1000000000,
+            "f64": 1.234,
+            "d128": "1234567890.0E-5",
+            "duration_ns": 5432,
+            "duration_us": 1234,
+            "timepoint_days": 19483,
+            "timepoint_ns": 1683376496000000789i64,
+            "b8": "Ynl0ZXMAAAA=",
+            "c16": "string",
+            "ptr": [10, 20, 30, 40],
+            "arr4": [1, 2, 3],
+            "sub": {"s8": 10},
+            "e8": "A",
+        })
+    );
     Ok(())
 }

@@ -1,3 +1,5 @@
+- enums:
+    e8: {type: uint8, enum: {A: 1, B: 2, Zero: 0}}
 - name: sub
   fields:
     - {name: s8, type: int8}
@@ -24,4 +26,5 @@
     - {name: duration_ns, type: uint64, options.type: duration, options.resolution: ns}
     - {name: timepoint_days, type: int32, options.type: time_point, options.resolution: day}
     - {name: timepoint_ns, type: uint64, options.type: time_point, options.resolution: ns}
+    - {name: e8, type: e8}
 # vim: sts=2 sw=2 et
