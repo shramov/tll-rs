@@ -670,7 +670,11 @@ where
         }
         match channel.process() {
             Ok(_) => 0,
-            Err(_) => EINVAL,
+            Err(e) => {
+                error!(channel, "Process failed: {e}");
+                channel.set_state(State::Error);
+                EINVAL
+            }
         }
     }
 }
