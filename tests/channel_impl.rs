@@ -80,7 +80,7 @@ fn test() -> Result<()> {
         assert_eq!(c.name(), "custom");
         assert_eq!(c.state(), State::Closed);
 
-        assert!(c.open("").is_ok());
+        assert!(c.open(None).is_ok());
         assert_eq!(c.state(), State::Opening);
 
         assert_eq!(c.process(), Ok(0));

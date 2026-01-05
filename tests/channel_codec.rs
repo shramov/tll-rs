@@ -77,7 +77,7 @@ fn test() -> Result<()> {
     assert_eq!(c.name(), "custom");
     assert_eq!(c.state(), State::Closed);
 
-    assert!(c.open("").is_ok());
+    assert!(c.open(None).is_ok());
     assert_eq!(c.state(), State::Active);
 
     assert!(c.post(Message::new().set_msgid(100).set_seq(100).set_data(b"abcd")).is_ok());

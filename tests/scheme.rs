@@ -106,7 +106,7 @@ scheme: {}
         )
         .is_ok());
 
-    assert!(c.open("").is_ok());
+    assert!(c.open(None).is_ok());
 
     assert!(c.scheme().is_some());
     let scheme = c.scheme().unwrap();

@@ -280,10 +280,10 @@ pub fn main() -> tll::result::Result<()> {
     l.add(&mut nl80211)?;
     l.add(&mut udev)?;
     l.add(&mut tc)?;
-    tc.open("")?;
-    netlink.open("")?;
-    nl80211.open("")?;
-    udev.open("")?;
+    tc.open(None)?;
+    netlink.open(None)?;
+    nl80211.open(None)?;
+    udev.open(None)?;
     loop {
         l.step(1000)?;
     }

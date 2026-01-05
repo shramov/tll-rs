@@ -376,9 +376,13 @@ impl Channel {
         }
     }
 
-    pub fn open(&mut self, props: &str) -> Result<()> {
+    pub fn open(&mut self, props: Option<&str>) -> Result<()> {
+        let (ptr, len) = match props {
+            Some(v) => (v.as_ptr() as *const c_char, v.len()),
+            None => (std::ptr::null(), 0),
+        };
         error_check_str(
-            unsafe { tll_channel_open(self.ptr, props.as_ptr() as *const c_char, props.len()) },
+            unsafe { tll_channel_open(self.ptr, ptr, len) },
             "Failed to open channel",
         )
     }

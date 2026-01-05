@@ -44,7 +44,7 @@ fn test() -> Result<()> {
         };
         assert!(c.callback_add_mut(&mut cb, None).is_ok());
 
-        assert!(c.open("").is_ok());
+        assert!(c.open(None).is_ok());
 
         assert_eq!(c.state(), State::Active);
         assert_eq!(cfg.get("state"), Some(String::from("Active")));
