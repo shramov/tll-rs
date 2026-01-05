@@ -229,6 +229,10 @@ impl Scheme {
     }
 }
 
+impl From<crate::scheme::scheme::Scheme> for Scheme {
+    fn from(s: crate::scheme::scheme::Scheme) -> Self { Self::from(&s) }
+}
+
 impl From<&crate::scheme::scheme::Scheme> for Scheme {
     fn from(s: &crate::scheme::scheme::Scheme) -> Self {
         let mut r = Scheme::default();
