@@ -1,7 +1,7 @@
 use crate::scheme::bind::*;
-use ::chrono::{Local, TimeZone, Utc};
+use chrono::{DateTime, Local, Utc};
 use num_traits::{CheckedMul, Num};
-use std::convert::TryFrom;
+use std::convert::{TryFrom, TryInto};
 
 pub trait Ratio: Copy {
     fn num() -> u64 {
@@ -79,6 +79,14 @@ pub enum Error {
     Overflow,
 }
 
+impl std::fmt::Display for Error {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "Time value overflow")
+    }
+}
+
+impl std::error::Error for Error {}
+
 impl From<Error> for crate::result::Error {
     fn from(_: Error) -> Self {
         crate::result::Error::from("Time value overflow")
@@ -126,17 +134,16 @@ where
     pub fn from_duration<T1, P1>(value: Duration<T1, P1>) -> Result<Self, Error>
     where
         P1: Ratio,
-        T1: Integer,
-        T: std::convert::TryFrom<T1>,
+        T1: Integer + TryInto<T>,
     {
         let value = if std::mem::size_of::<T>() > std::mem::size_of::<T1>() {
-            let v0 = T::try_from(value.value).map_err(|_| Error::Overflow)?;
+            let v0 = value.value.try_into().map_err(|_| Error::Overflow)?;
             let v1 = convert(v0, P1::num(), P::num())?;
             convert(v1, P::denom(), P1::denom())?
         } else {
             let v0 = convert(value.value, P1::num(), P::num())?;
             let v1 = convert(v0, P::denom(), P1::denom())?;
-            T::try_from(v1).map_err(|_| Error::Overflow)?
+            v1.try_into().map_err(|_| Error::Overflow)?
         };
         Ok(Self::new(value))
     }
@@ -197,7 +204,7 @@ where
 {
     type Error = Error;
     fn try_from(dt: ::chrono::DateTime<Utc>) -> Result<Self, Self::Error> {
-        let d = Duration::<i64, Nano>::new(dt.timestamp_nanos_opt().unwrap());
+        let d = Duration::<i64, Nano>::new(dt.timestamp_nanos_opt().ok_or(Error::Overflow)?);
         let v = Duration::<T, P>::from_duration(d)?;
         Ok(TimePoint { value: v })
     }
@@ -206,8 +213,7 @@ where
 impl<T, P> TimePoint<T, P>
 where
     P: Ratio,
-    T: Integer,
-    i64: TryFrom<T>,
+    T: Integer + TryInto<i64>,
 {
     pub fn new(value: Duration<T, P>) -> Self {
         Self { value }
@@ -221,7 +227,7 @@ where
 
     pub fn as_datetime(self) -> Result<::chrono::DateTime<Utc>, Error> {
         let v = Duration::<i64, Nano>::from_duration(self.value)?;
-        Ok(Utc.timestamp_nanos(v.value))
+        Ok(DateTime::from_timestamp_nanos(v.value))
     }
 
     pub fn as_local_datetime(self) -> Result<::chrono::DateTime<Local>, Error> {

@@ -8,7 +8,7 @@ use tll::{Error, Result};
 mod scheme_scheme;
 use crate::scheme_scheme::*;
 
-use ::chrono::{TimeZone, Utc};
+use ::chrono::NaiveDateTime;
 use serde_json::{json, Value};
 
 const YAML: &str = "
@@ -37,7 +37,7 @@ config:
         duration_us: 1234us
         duration_ns: 5432ns
         timepoint_days: 2023-05-06
-        timepoint_ns: 2023-05-06T12:34:56.0000000789
+        timepoint_ns: 2023-05-06T12:34:56.000000789
         e8: A
 ";
 
@@ -86,12 +86,14 @@ fn test() -> Result<()> {
             Ok(std::time::Duration::from_nanos(5432))
         );
         assert_eq!(
-            data.get_timepoint_days().as_datetime(),
-            Ok(Utc.datetime_from_str("2023-05-06 00:00:00", "%Y-%m-%d %H:%M:%S").unwrap())
+            data.get_timepoint_days().as_datetime()?.naive_utc(),
+            NaiveDateTime::parse_from_str("2023-05-06 00:00:00", "%Y-%m-%d %H:%M:%S")
+                .map_err(|x| format!("{x}"))?
         );
         assert_eq!(
-            data.get_timepoint_ns().as_datetime(),
-            Ok(Utc.datetime_from_str("2023-05-06 12:34:56.000000789", "%Y-%m-%d %H:%M:%S.%f").unwrap())
+            data.get_timepoint_ns().as_datetime()?.naive_utc(),
+            NaiveDateTime::parse_from_str("2023-05-06 12:34:56.000000789", "%Y-%m-%d %H:%M:%S.%f")
+                .map_err(|x| format!("{x}"))?
         );
         Ok(())
     };
@@ -139,10 +141,7 @@ fn test() -> Result<()> {
     {
         use tll::scheme::scheme::{PointerVersion, SubType, TimeResolution, Type, TypeRaw};
 
-        let names =
-            msg.fields()
-                .map(|x| (x.name(), x.type_raw(), x.size(), x.offset()))
-                .collect::<Vec<_>>();
+        let names = msg.fields().map(|x| (x.name(), x.type_raw(), x.size(), x.offset())).collect::<Vec<_>>();
         assert_eq!(
             names,
             [
@@ -289,10 +288,10 @@ fn test_json() -> Result<()> {
             "u64": 1000000000,
             "f64": 1.234,
             "d128": "1234567890.0E-5",
-            "duration_ns": 5432,
-            "duration_us": 1234,
-            "timepoint_days": 19483,
-            "timepoint_ns": 1683376496000000789i64,
+            "duration_ns": "5432ns",
+            "duration_us": "1234us",
+            "timepoint_days": "2023-05-06",
+            "timepoint_ns": "2023-05-06T12:34:56.000000789",
             "b8": "Ynl0ZXMAAAA=",
             "c16": "string",
             "ptr": [10, 20, 30, 40],

@@ -1,12 +1,15 @@
+use std::io::Write;
 use std::ops::Deref;
 use std::rc::Rc;
 
 use base64::{engine::general_purpose::STANDARD as base64, Engine};
+use chrono::Timelike;
 pub use serde_core::ser::Serialize;
 use serde_core::ser::{Error, SerializeMap, SerializeSeq, Serializer};
 
 use crate::decimal128::{Decimal128, Unpacked128};
 use crate::mem::MemRead;
+use crate::scheme::chrono as C;
 use crate::scheme::mem::{OffsetPtrDefault, OffsetPtrImpl, OffsetPtrLegacyLong, OffsetPtrLegacyShort};
 use crate::scheme::native::*;
 
@@ -96,7 +99,23 @@ fn read_size(desc: &Field, data: &[u8]) -> std::result::Result<usize, SizeError>
     }
 }
 
-fn serialize_integer<'a, T: Serialize + std::convert::TryInto<i64> + Copy, S: Serializer>(
+fn res_to_str(res: TimeResolution) -> &'static str {
+    match res {
+        TimeResolution::Ns => "ns",
+        TimeResolution::Us => "us",
+        TimeResolution::Ms => "ms",
+        TimeResolution::Second => "s",
+        TimeResolution::Minute => "m",
+        TimeResolution::Hour => "h",
+        TimeResolution::Day => "d",
+    }
+}
+
+fn serialize_integer<
+    'a,
+    T: Serialize + std::convert::TryInto<i64> + Copy + std::fmt::Display + std::ops::Div + C::Integer,
+    S: Serializer,
+>(
     v: T,
     field: &Field,
     ser: S,
@@ -109,6 +128,35 @@ fn serialize_integer<'a, T: Serialize + std::convert::TryInto<i64> + Copy, S: Se
             } else {
                 v.serialize(ser)
             }
+        }
+        SubType::Duration(res) => ser.serialize_str(&format!("{}{}", v, res_to_str(*res))),
+        SubType::TimePoint(res) => {
+            let dt = match res {
+                TimeResolution::Ns => C::TimePoint::<T, C::Nano>::new_raw(v).as_datetime(),
+                TimeResolution::Us => C::TimePoint::<T, C::Micro>::new_raw(v).as_datetime(),
+                TimeResolution::Ms => C::TimePoint::<T, C::Milli>::new_raw(v).as_datetime(),
+                TimeResolution::Second => C::TimePoint::<T, C::Ratio1>::new_raw(v).as_datetime(),
+                TimeResolution::Minute => C::TimePoint::<T, C::RatioMinute>::new_raw(v).as_datetime(),
+                TimeResolution::Hour => C::TimePoint::<T, C::RatioHour>::new_raw(v).as_datetime(),
+                TimeResolution::Day => C::TimePoint::<T, C::RatioDay>::new_raw(v).as_datetime(),
+            }
+            .map_err(S::Error::custom)?
+            .naive_utc();
+            let mut buf = Vec::<u8>::with_capacity(32);
+            write!(buf, "{}", dt.date().format("%Y-%m-%d")).map_err(S::Error::custom)?;
+            let time = dt.time();
+            if time.num_seconds_from_midnight() != 0 || time.nanosecond() != 0 {
+                write!(buf, "T{}", time.format("%H:%M:%S")).map_err(S::Error::custom)?;
+                if time.nanosecond() != 0 {
+                    write!(buf, "{}", match res {
+                        TimeResolution::Ns => time.format("%.9f"),
+                        TimeResolution::Us => time.format("%.6f"),
+                        TimeResolution::Ms => time.format("%.3f"),
+                        _ => time.format("%.f"),
+                    }).map_err(S::Error::custom)?;
+                }
+            }
+            ser.serialize_str(unsafe { str::from_utf8_unchecked(&buf[..]) })
         }
         _ => v.serialize(ser),
     }
