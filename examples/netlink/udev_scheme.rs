@@ -1,24 +1,8 @@
 #![allow(dead_code, non_camel_case_types, non_upper_case_globals, non_snake_case)]
 
-pub use tll::scheme::*;
+pub use tll::bind::*;
 
-pub const SCHEME_STRING : &str = "yamls+gz://eJyNkd1qwkAQhe99irkbkATUWpDcpe0DlEIfYHVHXWpml+wmJci+uzNGLUiLvdpzdj7mtwQ2DVWA760P1KYBJwBbRwcbK1EAJRwvhD5YQBqCuphaxzvMd1BvDt1vVHmt80a925BWcbaC+UwEcddcqmG9Sc4zVnAcMzhOq+JMyBfW1kpoXgC+OFa5EPm6N7wjMU9iPqjxvZpnMZ+8HrHl2Xyx/9bUs5z/HNKM9W8D1Ffvg4qoXWhI0qB2hfl+A7FbxyEmah7uSrB/7dRSH0zaP+TCeEJH8Qed3u6aJyfOTZQG";
-
-#[repr(C, packed(1))]
-pub struct Property {
-    pub name: tll::scheme::OffsetString,
-    pub value: tll::scheme::OffsetString,
-}
-impl Binder for Property {
-    fn bind(data: &[u8]) -> Option<&Self> {
-        if data.len() < std::mem::size_of::<Self>() {
-            return None;
-        }
-        <tll::scheme::OffsetString as Binder>::bind(&data[0..])?; // name
-        <tll::scheme::OffsetString as Binder>::bind(&data[8..])?; // value
-        Some(unsafe { bind_unchecked::<Self>(data) })
-    }
-}
+pub const SCHEME_STRING : &str = "yamls+gz://eJyNUU1Lw0AQvedXzG1BEmhtBcmt6g8QwXPZZsdmsftBZhMJIf+9M02MKEo97XvMm5n3dgrw2mEJSmUAISYbPJUwqCrGQioUdYWK663Bbk9VjQ7VmBWfbc9NiNikXtrfLJ4MlYwAChhmhTwqh9RHYZQa64884buo06f2N9Wy5wk7y0a4zZoS1isG6Fs3b1O7Spyzz2GaYH26zy8KCbMzhkvrHNSD9QJvGT7W2h8l2obJC7rQCblj8uoPk2x7Ie8+fMjo1Tj+GVJP+5cAs5+fMak9UE8J3dUPYdm/Po6vEnWqr+ridCeL9CW9WY43ZmeXSZzS";
 
 #[repr(i8)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -30,29 +14,75 @@ pub enum Action {
     Unbind = 4,
     Remove = 5,
 }
-impl Binder for Action {}
+impl BinderCopy for Action {}
 
-#[repr(C, packed(1))]
-pub struct Device {
-    pub action: Action,
-    pub subsystem: tll::scheme::OffsetString,
-    pub sysname: tll::scheme::OffsetString,
-    pub devpath: tll::scheme::OffsetString,
-    pub properties: tll::scheme::OffsetPtr<Property>,
+#[derive(Debug)]
+pub struct Property<Buf: MemRead> {
+    data: MemOffset<Buf>,
 }
-impl MsgId for Device {
-    const MSGID: i32 = 10;
-}
-impl Binder for Device {
-    fn bind(data: &[u8]) -> Option<&Self> {
-        if data.len() < std::mem::size_of::<Self>() {
-            return None;
+impl<Buf: MemRead + Copy> Binder<Buf> for Property<Buf> {
+    fn bind_view(data: MemOffset<Buf>) -> Result<Self, BindError> {
+        if data.mem_size() < 16 {
+            return Err(BindError::new_size(16));
         }
-        <Action as Binder>::bind(&data[0..])?; // action
-        <tll::scheme::OffsetString as Binder>::bind(&data[1..])?; // subsystem
-        <tll::scheme::OffsetString as Binder>::bind(&data[9..])?; // sysname
-        <tll::scheme::OffsetString as Binder>::bind(&data[17..])?; // devpath
-        <tll::scheme::OffsetPtr<Property> as Binder>::bind(&data[25..])?; // properties
-        Some(unsafe { bind_unchecked::<Self>(data) })
+        // Pointer
+        // Pointer
+        Ok(Self { data })
     }
+
+    fn bind_unchecked(data: MemOffset<Buf>) -> Self {
+        Self { data }
+    }
+}
+
+impl<Buf: MemRead + Copy> Property<Buf> {
+    pub fn get_name(&self) -> Result<&'_ str, StringBindError> {
+        tll::bind::offset_str::<tll::bind::OffsetPtrDefault, Buf>(&self.data, 0)
+    }
+    pub fn get_value(&self) -> Result<&'_ str, StringBindError> {
+        tll::bind::offset_str::<tll::bind::OffsetPtrDefault, Buf>(&self.data, 8)
+    }
+}
+#[derive(Debug)]
+pub struct Device<Buf: MemRead> {
+    data: MemOffset<Buf>,
+}
+impl<Buf: MemRead + Copy> Binder<Buf> for Device<Buf> {
+    fn bind_view(data: MemOffset<Buf>) -> Result<Self, BindError> {
+        if data.mem_size() < 33 {
+            return Err(BindError::new_size(33));
+        }
+        // Pointer
+        // Pointer
+        // Pointer
+        // Pointer
+        Ok(Self { data })
+    }
+
+    fn bind_unchecked(data: MemOffset<Buf>) -> Self {
+        Self { data }
+    }
+}
+
+impl<Buf: MemRead + Copy> Device<Buf> {
+    pub fn get_action(&self) -> Action {
+        self.data.mem_get_primitive::<Action>(0)
+    }
+    pub fn get_subsystem(&self) -> Result<&'_ str, StringBindError> {
+        tll::bind::offset_str::<tll::bind::OffsetPtrDefault, Buf>(&self.data, 1)
+    }
+    pub fn get_sysname(&self) -> Result<&'_ str, StringBindError> {
+        tll::bind::offset_str::<tll::bind::OffsetPtrDefault, Buf>(&self.data, 9)
+    }
+    pub fn get_devpath(&self) -> Result<&'_ str, StringBindError> {
+        tll::bind::offset_str::<tll::bind::OffsetPtrDefault, Buf>(&self.data, 17)
+    }
+    pub fn get_properties(
+        &self,
+    ) -> Result<tll::bind::OffsetPtr<Property<Buf>, tll::bind::OffsetPtrDefault, Buf>, BindError> {
+        tll::bind::OffsetPtr::<Property<Buf>, tll::bind::OffsetPtrDefault, Buf>::new(self.data.view(25))
+    }
+}
+impl<Buf: MemRead> MsgId for Device<Buf> {
+    const MSGID: i32 = 10;
 }

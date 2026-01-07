@@ -72,7 +72,7 @@ fn test() -> Result<()> {
         assert_eq!({ data.get_u64() }, 1000000000);
         assert_eq!({ data.get_f64() }, 1.234);
         assert_eq!(format!("{}", { data.get_d128() }), "1234567890.E-5");
-        assert_eq!(data.get_c16().as_str(), Ok("string"));
+        assert_eq!(data.get_c16(), Ok("string"));
         assert_eq!(data.get_b8(), *b"bytes\0\0\0");
         assert_eq!(data.get_arr4().iter().collect::<Vec<_>>(), [1, 2, 3]);
         assert_eq!(data.get_ptr().unwrap().iter().collect::<Vec<_>>(), [10, 20, 30, 40]);
@@ -87,8 +87,7 @@ fn test() -> Result<()> {
         );
         assert_eq!(
             data.get_timepoint_days().as_datetime()?.naive_utc(),
-            NaiveDateTime::parse_from_str("2023-05-06 00:00:00", "%Y-%m-%d %H:%M:%S")
-                .map_err(|x| format!("{x}"))?
+            NaiveDateTime::parse_from_str("2023-05-06 00:00:00", "%Y-%m-%d %H:%M:%S").map_err(|x| format!("{x}"))?
         );
         assert_eq!(
             data.get_timepoint_ns().as_datetime()?.naive_utc(),

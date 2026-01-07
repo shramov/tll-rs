@@ -1,8 +1,8 @@
 #![allow(dead_code, non_camel_case_types, non_upper_case_globals, non_snake_case)]
 
-pub use tll::scheme::*;
+pub use tll::bind::*;
 
-pub const SCHEME_STRING : &str = "yamls+gz://eJyFjrEOgjAQhnef4rZbSgKYGNPNxMXFzQeo9DBNoBBaooT03b0ChoiDU//cff3uT8CqmiTgxXrqSlUQ7gCMlpClHMj2tZMcAPBUeNNYlDD6oeUvxvqjmAge4Zkq8sTbXABe6ckp5XRrtZrGWQisKQ1VehEmMC631WwWMIs/l8IGM1bTa6V6LpAdfqj4rNB98MSQgKaNTherxhU3Quc7Yx8YtgbnjP427PN/hjdmFmH1";
+pub const SCHEME_STRING : &str = "yamls+gz://eJyFkD0PgjAQhnd+xW1dIKGYGMJm4uLi5myQHtoESkNLlJD+d698BMXBqW96T5+3uQhUXmMGjAUAjbayUSaDgRVaR35idF4go7mq0jjh/GqKB9bIXBAtL0/KYlt6jBRSZMBjCqi62mQUANih8F6yDLbX9EQqm4Yj4auOWKH1HUkI7IxPSjGlixb5eM2dI00psRKzMIJh7s4ncwiTeGlyG0wqga+V6ugDfP9D+WOFbr1FgsLPrfiRX4axrVR35rYGY6T4NuySf4Y3hqFz+g==";
 
 #[repr(i8)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -11,29 +11,39 @@ pub enum Action {
     Update = 1,
     Delete = 2,
 }
+impl BinderCopy for Action {}
 
-impl Binder for Action {}
-
-#[repr(C, packed(1))]
-#[derive(Debug, Clone, Copy)]
-pub struct Interface {
-    pub action: Action,
-    pub index: u16,
-    pub name: tll::scheme::ByteString<16>,
-    pub ssid: tll::scheme::ByteString<32>,
+#[derive(Debug)]
+pub struct Interface<Buf: MemRead> {
+    data: MemOffset<Buf>,
 }
-impl MsgId for Interface {
-    const MSGID: i32 = 10;
-}
-impl Binder for Interface {
-    fn bind(data: &[u8]) -> Option<&Self> {
-        if data.len() < std::mem::size_of::<Self>() {
-            return None;
+impl<Buf: MemRead + Copy> Binder<Buf> for Interface<Buf> {
+    fn bind_view(data: MemOffset<Buf>) -> Result<Self, BindError> {
+        if data.mem_size() < 51 {
+            return Err(BindError::new_size(51));
         }
-        <Action as Binder>::bind(&data[0..])?; // action
-        <u16 as Binder>::bind(&data[1..])?; // index
-        <tll::scheme::ByteString<16> as Binder>::bind(&data[3..])?; // name
-        <tll::scheme::ByteString<32> as Binder>::bind(&data[19..])?; // ssid
-        Some(unsafe { bind_unchecked::<Self>(data) })
+        Ok(Self { data })
     }
+
+    fn bind_unchecked(data: MemOffset<Buf>) -> Self {
+        Self { data }
+    }
+}
+
+impl<Buf: MemRead + Copy> Interface<Buf> {
+    pub fn get_action(&self) -> Action {
+        self.data.mem_get_primitive::<Action>(0)
+    }
+    pub fn get_index(&self) -> u16 {
+        self.data.mem_get_primitive::<u16>(1)
+    }
+    pub fn get_name(&self) -> Result<&'_ str, StringBindError> {
+        tll::bind::byte_str(&self.data, 3, 16)
+    }
+    pub fn get_ssid(&self) -> Result<&'_ str, StringBindError> {
+        tll::bind::byte_str(&self.data, 19, 32)
+    }
+}
+impl<Buf: MemRead> MsgId for Interface<Buf> {
+    const MSGID: i32 = 10;
 }

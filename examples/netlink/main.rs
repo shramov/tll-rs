@@ -4,7 +4,7 @@ use tll::logger::Logger;
 use tll::processor::Loop;
 use tll::result::EINVAL;
 
-use ::chrono::{DateTime, Local};
+use chrono::{DateTime, Local};
 use std::fs::File;
 use std::io::{Read, Seek, SeekFrom};
 
@@ -40,48 +40,48 @@ impl Default for SystemState {
     }
 }
 
-enum TimerBind<'a> {
-    RefAbsolute(&'a absolute),
-    RefRelative(&'a relative),
+enum TimerBind<Buf: MemRead> {
+    RefAbsolute(absolute<Buf>),
+    RefRelative(relative<Buf>),
     SizeError(i32),
     Unknown(i32),
 }
 
-fn timer_bind(m: &Message) -> TimerBind<'_> {
+fn timer_bind(m: &Message) -> TimerBind<&'_ [u8]> {
     match m.msgid() {
-        absolute::MSGID => match absolute::bind(m.data()) {
-            Some(m) => TimerBind::RefAbsolute(m),
-            None => TimerBind::SizeError(m.msgid()),
+        absolute::<&[u8]>::MSGID => match absolute::bind(m.data()) {
+            Ok(m) => TimerBind::RefAbsolute(m),
+            _ => TimerBind::SizeError(m.msgid()),
         },
-        relative::MSGID => match relative::bind(m.data()) {
-            Some(m) => TimerBind::RefRelative(m),
-            None => TimerBind::SizeError(m.msgid()),
+        relative::<&[u8]>::MSGID => match relative::bind(m.data()) {
+            Ok(m) => TimerBind::RefRelative(m),
+            _ => TimerBind::SizeError(m.msgid()),
         },
         _ => TimerBind::Unknown(m.msgid()),
     }
 }
 
-enum NetlinkBind<'a> {
-    RefLink(&'a Link),
-    RefRoute4(&'a Route4),
-    RefRoute6(&'a Route6),
+enum NetlinkBind<Buf: MemRead> {
+    RefLink(Link<Buf>),
+    RefRoute4(Route4<Buf>),
+    RefRoute6(Route6<Buf>),
     SizeError(i32),
     Unknown(i32),
 }
 
-fn netlink_bind(m: &Message) -> NetlinkBind<'_> {
+fn netlink_bind(m: &Message) -> NetlinkBind<&'_ [u8]> {
     match m.msgid() {
-        Link::MSGID => match Link::bind(m.data()) {
-            Some(m) => NetlinkBind::RefLink(m),
-            None => NetlinkBind::SizeError(m.msgid()),
+        Link::<&[u8]>::MSGID => match Link::bind(m.data()) {
+            Ok(m) => NetlinkBind::RefLink(m),
+            _ => NetlinkBind::SizeError(m.msgid()),
         },
-        Route4::MSGID => match Route4::bind(m.data()) {
-            Some(m) => NetlinkBind::RefRoute4(m),
-            None => NetlinkBind::SizeError(m.msgid()),
+        Route4::<&[u8]>::MSGID => match Route4::bind(m.data()) {
+            Ok(m) => NetlinkBind::RefRoute4(m),
+            _ => NetlinkBind::SizeError(m.msgid()),
         },
-        Route6::MSGID => match Route6::bind(m.data()) {
-            Some(m) => NetlinkBind::RefRoute6(m),
-            None => NetlinkBind::SizeError(m.msgid()),
+        Route6::<&[u8]>::MSGID => match Route6::bind(m.data()) {
+            Ok(m) => NetlinkBind::RefRoute6(m),
+            _ => NetlinkBind::SizeError(m.msgid()),
         },
         _ => NetlinkBind::Unknown(m.msgid()),
     }
@@ -102,7 +102,7 @@ impl SystemState {
         }
         match timer_bind(m) {
             TimerBind::RefAbsolute(msg) => {
-                self.time = msg.ts.as_local_datetime()?;
+                self.time = msg.get_ts().as_local_datetime()?;
             }
             _ => {}
         }
@@ -111,23 +111,23 @@ impl SystemState {
         Ok(())
     }
 
-    pub fn on_route(&mut self, m: &Message) -> i32 {
+    pub fn on_route(&mut self, m: &Message) -> Result<(), tll::Error> {
         if m.get_type() != MsgType::Data {
-            return 0;
+            return Ok(());
         }
         match netlink_bind(m) {
             NetlinkBind::RefLink(msg) => {
-                let name = unsafe { msg.name.as_str_unchecked() };
+                let name = msg.get_name()?;
                 //println!("Link: {:?} {} {}", msg.action, name, msg.up);
-                if msg.up == 1 {
-                    return 0;
+                if msg.get_up() == 1 {
+                    return Ok(());
                 }
                 if self.link.as_ref().map(|s| s.as_str()) == Some(name) {
                     self.link = None;
                 }
             }
             NetlinkBind::RefRoute4(r4) => {
-                let name = unsafe { r4.oif.as_str_unchecked() };
+                let name = r4.get_oif()?;
                 /*
                 println!(
                     "Route4: {:?} {}/{} -> {}",
@@ -137,11 +137,11 @@ impl SystemState {
                     name
                 );
                 */
-                if r4.dst_mask != 0 {
-                    return 0;
+                if r4.get_dst_mask() != 0 {
+                    return Ok(());
                 }
                 //println!("Default route");
-                match r4.action {
+                match r4.get_action() {
                     Action::New => self.link = Some(name.to_string()),
                     Action::Delete => self.link = None,
                     //_ => (),
@@ -150,18 +150,18 @@ impl SystemState {
             _ => (),
         }
         //self.dump();
-        0
+        Ok(())
     }
 
     pub fn on_nl80211(&mut self, m: &Message) -> i32 {
         if m.get_type() != MsgType::Data {
             return 0;
         }
-        if m.msgid != nl80211_scheme::Interface::MSGID {
+        if m.msgid != nl80211_scheme::Interface::<&[u8]>::MSGID {
             return 0;
         }
-        if let Some(data) = nl80211_scheme::Interface::bind(m.data()) {
-            match data.ssid.as_str() {
+        if let Ok(data) = nl80211_scheme::Interface::bind(m.data()) {
+            match data.get_ssid() {
                 Ok("") => self.ssid = None,
                 Ok(ssid) => self.ssid = Some(ssid.into()),
                 Err(_) => self.ssid = None,
@@ -171,25 +171,25 @@ impl SystemState {
         0
     }
 
-    pub fn on_power(&mut self, m: &Message) -> i32 {
+    pub fn on_power(&mut self, m: &Message) -> Result<(), tll::Error> {
         if m.get_type() != MsgType::Data {
-            return 0;
+            return Ok(());
         }
-        if m.msgid != udev_scheme::Device::MSGID {
-            return 0;
+        if m.msgid != udev_scheme::Device::<&[u8]>::MSGID {
+            return Ok(());
         }
-        if let Some(data) = udev_scheme::Device::bind(m.data()) {
-            match data.subsystem.as_str() {
+        if let Ok(data) = udev_scheme::Device::<&[u8]>::bind(m.data()) {
+            match data.get_subsystem() {
                 Ok("power_supply") => (),
-                _ => return 0,
+                _ => return Ok(()),
             }
-            match data.sysname.as_str() {
+            match data.get_sysname() {
                 Ok("AC") => (),
-                _ => return 0,
+                _ => return Ok(()),
             }
-            for p in unsafe { data.properties.data() } {
-                match p.name.as_str() {
-                    Ok("POWER_SUPPLY_ONLINE") => match p.value.as_str() {
+            for p in data.get_properties()?.iter() {
+                match p.get_name() {
+                    Ok("POWER_SUPPLY_ONLINE") => match p.get_value() {
                         Ok("0") => self.ac = false,
                         Ok("1") => self.ac = true,
                         _ => (),
@@ -199,7 +199,7 @@ impl SystemState {
             }
         }
         //self.dump();
-        0
+        Ok(())
     }
 
     pub fn dump(&self) {
@@ -234,7 +234,8 @@ impl CallbackMut<TimerCallback> for SystemState {
 
 impl CallbackMut<RouteCallback> for SystemState {
     fn message_callback_mut(&mut self, _c: &Channel, m: &Message) -> i32 {
-        self.on_route(m)
+        let _ = self.on_route(m);
+        0
     }
 }
 
@@ -246,7 +247,8 @@ impl CallbackMut<NL80211Callback> for SystemState {
 
 impl CallbackMut<PowerCallback> for SystemState {
     fn message_callback_mut(&mut self, _c: &Channel, m: &Message) -> i32 {
-        self.on_power(m)
+        let _ = self.on_power(m);
+        0
     }
 }
 

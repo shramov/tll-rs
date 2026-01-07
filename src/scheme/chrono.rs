@@ -1,4 +1,3 @@
-use crate::scheme::bind::*;
 use chrono::{DateTime, Local, Utc};
 use num_traits::{CheckedMul, Num};
 use std::convert::{TryFrom, TryInto};
@@ -233,19 +232,6 @@ where
     pub fn as_local_datetime(self) -> Result<::chrono::DateTime<Local>, Error> {
         Ok(self.as_datetime()?.into())
     }
-}
-
-impl<T, P> Binder for Duration<T, P>
-where
-    P: Ratio,
-    T: Copy,
-{
-}
-impl<T, P> Binder for TimePoint<T, P>
-where
-    P: Ratio,
-    T: Copy,
-{
 }
 
 #[cfg(test)]

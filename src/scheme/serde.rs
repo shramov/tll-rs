@@ -7,10 +7,10 @@ use chrono::Timelike;
 pub use serde_core::ser::Serialize;
 use serde_core::ser::{Error, SerializeMap, SerializeSeq, Serializer};
 
+use crate::bind::{OffsetPtrDefault, OffsetPtrImpl, OffsetPtrLegacyLong, OffsetPtrLegacyShort};
 use crate::decimal128::{Decimal128, Unpacked128};
 use crate::mem::MemRead;
 use crate::scheme::chrono as C;
-use crate::scheme::mem::{OffsetPtrDefault, OffsetPtrImpl, OffsetPtrLegacyLong, OffsetPtrLegacyShort};
 use crate::scheme::native::*;
 
 pub struct DataMessage<'a> {

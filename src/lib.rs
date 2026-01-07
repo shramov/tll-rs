@@ -1,6 +1,7 @@
 #[macro_use]
 extern crate bitflags;
 
+pub mod bind;
 pub mod channel;
 pub mod config;
 pub mod decimal128;

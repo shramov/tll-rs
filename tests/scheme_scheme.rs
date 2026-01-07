@@ -1,8 +1,6 @@
 #![allow(dead_code, non_camel_case_types, non_upper_case_globals, non_snake_case)]
 
-pub use tll::mem::{MemOffset, MemRead};
-pub use tll::scheme::mem::ByteString;
-pub use tll::scheme::*;
+pub use tll::bind::*;
 
 pub const SCHEME_STRING : &str = "yamls+gz://eJylks1qhDAQgO/7FLkFisJqZZG9dR+jpYhusktAE8nPQRbfvTO22sRYaekpmcyXbzJJUiLrjp8JpQdCuHSdOcOEEMpLeiYPO/SQdELaMpnSsEZfIJMlhF5gzGF85VrB9DiOh3TWGdeg8SZ4y76UKXnMyZIm5FNNUU29jZ2540bBoMbxR4OIDSHgPMBtEiI7BQ4II4mPuG1GPOeBBsJI4yNumxGnItBAGGl8xG0zN59hyjUtjxiW5d7lMH4VXd3i2hq8+u03g+VTrHorlDT4ETBF8T2tFvJOx7WgKcP9cYla62J1fW/Fe4T1Vn9TT9ut449bGAyivp2u8eiVM+sXC7rS3KjWYYi9TfDS6eyIe13s0kSvtKOXv9Rb0fFega5i9fCX8wPuV0BPNYn2avynh70K3PsQ02/4ABSaUBY=";
 
@@ -13,28 +11,26 @@ pub enum e8 {
     A = 1,
     B = 2,
 }
-impl Binder for e8 {}
+impl BinderCopy for e8 {}
 
 #[derive(Debug)]
 pub struct sub<Buf: MemRead> {
     data: MemOffset<Buf>,
 }
-impl<Buf: MemRead + Copy> sub<Buf> {
-    pub fn bind(data: Buf) -> std::result::Result<Self, BindError> {
+impl<Buf: MemRead + Copy> Binder<Buf> for sub<Buf> {
+    fn bind_view(data: MemOffset<Buf>) -> Result<Self, BindError> {
         if data.mem_size() < 1 {
             return Err(BindError::new_size(1));
         }
-        Ok(Self {
-            data: MemOffset::new(data),
-        })
+        Ok(Self { data })
     }
 
-    pub fn bind_unchecked(data: Buf) -> Self {
-        Self {
-            data: MemOffset::new(data),
-        }
+    fn bind_unchecked(data: MemOffset<Buf>) -> Self {
+        Self { data }
     }
+}
 
+impl<Buf: MemRead + Copy> sub<Buf> {
     pub fn get_s8(&self) -> i8 {
         self.data.mem_get_primitive::<i8>(0)
     }
@@ -43,25 +39,23 @@ impl<Buf: MemRead + Copy> sub<Buf> {
 pub struct msg<Buf: MemRead> {
     data: MemOffset<Buf>,
 }
-impl<Buf: MemRead + Copy> msg<Buf> {
-    pub fn bind(data: Buf) -> std::result::Result<Self, BindError> {
+impl<Buf: MemRead + Copy> Binder<Buf> for msg<Buf> {
+    fn bind_view(data: MemOffset<Buf>) -> Result<Self, BindError> {
         if data.mem_size() < 129 {
             return Err(BindError::new_size(129));
         }
         // Array
         // Pointer
-        sub::<&[u8]>::bind(&data.as_mem()[103..])?;
-        Ok(Self {
-            data: MemOffset::new(data),
-        })
+        sub::<Buf>::bind_view(data.view(103))?;
+        Ok(Self { data })
     }
 
-    pub fn bind_unchecked(data: Buf) -> Self {
-        Self {
-            data: MemOffset::new(data),
-        }
+    fn bind_unchecked(data: MemOffset<Buf>) -> Self {
+        Self { data }
     }
+}
 
+impl<Buf: MemRead + Copy> msg<Buf> {
     pub fn get_i8(&self) -> i8 {
         self.data.mem_get_primitive::<i8>(0)
     }
@@ -92,19 +86,17 @@ impl<Buf: MemRead + Copy> msg<Buf> {
     pub fn get_d128(&self) -> tll::decimal128::Decimal128 {
         self.data.mem_get_primitive::<tll::decimal128::Decimal128>(38)
     }
-    pub fn get_c16(&self) -> tll::scheme::mem::ByteString<16, MemOffset<Buf>> {
-        tll::scheme::mem::ByteString::<16, MemOffset<Buf>>::new(self.data.view(54))
+    pub fn get_c16(&self) -> Result<&'_ str, StringBindError> {
+        tll::bind::byte_str(&self.data, 54, 16)
     }
     pub fn get_b8(&self) -> &[u8] {
         &self.data.as_mem()[70..70 + 8]
     }
-    pub fn get_arr4(&self) -> tll::scheme::mem::Array<u8, i32, 4, MemOffset<Buf>> {
-        tll::scheme::mem::Array::<u8, i32, 4, MemOffset<Buf>>::new(self.data.view(78))
+    pub fn get_arr4(&self) -> tll::bind::Array<u8, i32, 4, MemOffset<Buf>> {
+        tll::bind::Array::<u8, i32, 4, MemOffset<Buf>>::new(self.data.view(78))
     }
-    pub fn get_ptr(
-        &self,
-    ) -> Result<tll::scheme::mem::OffsetPtr<i64, tll::scheme::mem::OffsetPtrDefault, Buf>, BindError> {
-        tll::scheme::mem::OffsetPtr::<i64, tll::scheme::mem::OffsetPtrDefault, Buf>::new(self.data.view(95))
+    pub fn get_ptr(&self) -> Result<tll::bind::OffsetPtr<i64, tll::bind::OffsetPtrDefault, Buf>, BindError> {
+        tll::bind::OffsetPtr::<i64, tll::bind::OffsetPtrDefault, Buf>::new(self.data.view(95))
     }
     pub fn get_sub(&self) -> sub<Buf> {
         sub::<Buf> {
