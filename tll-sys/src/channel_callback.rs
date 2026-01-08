@@ -1,6 +1,27 @@
 use crate::channel::*;
+use crate::logger::TLL_LOGGER_INFO;
+
+use std::os::raw::c_char;
+
+#[inline(always)]
+fn dump(internal: &tll_channel_internal_t, msg: *const tll_msg_t) {
+    if internal.dump != 0 {
+        unsafe {
+            tll_channel_log_msg(
+                internal.self_,
+                std::ptr::null(),
+                TLL_LOGGER_INFO,
+                internal.dump,
+                msg,
+                "Recv".as_ptr() as *const c_char,
+                4,
+            )
+        };
+    }
+}
 
 pub fn channel_callback_data(internal: &tll_channel_internal_t, msg: *const tll_msg_t) -> i32 {
+    dump(internal, msg);
     for i in 0..internal.data_cb_size {
         unsafe {
             let ptr = internal.data_cb.offset(i as isize);
@@ -21,6 +42,7 @@ pub fn channel_callback(internal: &tll_channel_internal_t, msg: *const tll_msg_t
         return channel_callback_data(internal, msg);
     };
 
+    dump(internal, msg);
     for i in 0..internal.cb_size {
         unsafe {
             let ptr = internal.cb.offset(i as isize);
