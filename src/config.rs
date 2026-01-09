@@ -177,11 +177,11 @@ impl Config {
     }
 
     pub fn remove(&self, key: &str) {
-        unsafe { tll_config_del(self.ptr, key.as_ptr() as *const c_char, key.len() as c_int, 0 as c_int) };
+        unsafe { tll_config_remove(self.ptr, key.as_ptr() as *const c_char, key.len() as c_int) };
     }
 
-    pub fn remove_rec(&self, key: &str) {
-        unsafe { tll_config_del(self.ptr, key.as_ptr() as *const c_char, key.len() as c_int, 1 as c_int) };
+    pub fn unlink(&self, key: &str) {
+        unsafe { tll_config_unlink(self.ptr, key.as_ptr() as *const c_char, key.len() as c_int) };
     }
 
     pub fn sub(&self, key: &str) -> Option<Config> {
