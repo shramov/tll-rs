@@ -590,6 +590,7 @@ where
             return ();
         }
         let channel = unsafe { &mut *((*c).data as *mut T) };
+        channel.set_state(State::Destroy);
         channel.free();
         Self::dealloc(c)
     }
