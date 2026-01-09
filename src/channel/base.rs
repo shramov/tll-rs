@@ -141,6 +141,7 @@ pub struct Base {
     pub logger: Logger,
     stat: Option<crate::stat::Base<Stat>>,
     context: MaybeUninit<Context>,
+    pub config: Config,
     pub scheme_url: Option<String>,
     pub scheme_data: Option<Scheme>,
     pub scheme_control: Option<Scheme>,
@@ -160,6 +161,7 @@ impl Default for Base {
             c_name: CString::default(),
             name: String::default(),
             logger: Logger::new("tll.channel"),
+            config: Config::new(),
             data: unsafe { std::mem::zeroed::<tll_channel_internal_t>() },
             stat: None,
             context: MaybeUninit::zeroed(),
@@ -222,6 +224,7 @@ impl Base {
             tll_logger_free(self.data.logger);
             self.data.logger = tll_logger_copy(self.logger.as_ptr());
         }
+        self.data.config = self.config.as_ptr() as * mut tll_config_t;
         if url.get_typed("stat", false)? {
             let mut stat = crate::stat::Base::<Stat>::new(self.name());
             self.data.stat = stat.as_ptr();
