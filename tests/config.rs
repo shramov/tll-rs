@@ -73,3 +73,18 @@ fn test_chain() {
     assert_eq!(chain.get("d"), Some("".into()));
     assert_eq!(chain.get("e"), None);
 }
+
+#[test]
+fn callback() {
+    let mut cfg = Config::new();
+    assert!(cfg.get("a.b").is_none());
+    {
+        let idx = ConfigValue::default();
+        cfg.set_ptr("a.b", &idx).unwrap();
+        assert_eq!(cfg.get("a.b"), Some("0".to_owned()));
+        idx.set(10);
+        assert_eq!(cfg.get("a.b"), Some("10".to_owned()));
+        cfg.remove("a.b");
+    }
+    assert_eq!(cfg.get("a.b"), None);
+}

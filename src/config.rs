@@ -1,5 +1,7 @@
+use std::cell::Cell;
 use std::option::Option;
 use std::os::raw::{c_char, c_int, c_void};
+use std::rc::Rc;
 use std::str::FromStr;
 use tll_sys::config::*;
 
@@ -58,6 +60,29 @@ fn value_to_option(ptr: *const c_char, len: c_int) -> Option<String> {
     let r = String::from_utf8(v.to_vec());
     unsafe { tll_config_value_free(ptr) };
     r.ok()
+}
+
+pub type ConfigValue<T> = Rc<Cell<T>>;
+extern "C" fn config_callback_cell<T: ToString + Copy>(len: *mut c_int, data: *mut c_void) -> *mut c_char {
+    if data.is_null() {
+        return std::ptr::null_mut();
+    }
+    let v = unsafe { (*(data as *const Cell<T>)).get().to_string() };
+    let mut vec = v.into_bytes();
+    if vec.len() == 0 || vec[vec.len() - 1] != 0 {
+        vec.push(0)
+    }
+    let vlen = (vec.len() - 1) as c_int;
+    if !len.is_null() {
+        unsafe { *len = vlen }
+    }
+    unsafe { tll_config_value_dup(vec.as_ptr() as *const c_char, vlen) }
+}
+
+extern "C" fn config_callback_free<T: ToString>(_: tll_config_value_callback_t, data: *mut c_void) {
+    if !data.is_null() {
+        unsafe { ConfigValue::<T>::from_raw(data as *const Cell<T>) };
+    }
 }
 
 impl Config {
@@ -174,6 +199,26 @@ impl Config {
             )
         };
         self
+    }
+
+    pub fn set_ptr<T: ToString + Copy>(&mut self, key: &str, cb: &ConfigValue<T>) -> Result<()> {
+        let ptr = Rc::into_raw(cb.clone());
+        let r = unsafe {
+            tll_config_set_callback(
+                self.ptr,
+                key.as_ptr() as *const c_char,
+                key.len() as c_int,
+                Some(config_callback_cell::<T>),
+                ptr as *mut c_void,
+                Some(config_callback_free::<T>),
+            )
+        };
+        if r == 0 {
+            Ok(())
+        } else {
+            unsafe { ConfigValue::from_raw(ptr) };
+            Err(Error::from("Failed to add callback"))
+        }
     }
 
     pub fn remove(&self, key: &str) {
