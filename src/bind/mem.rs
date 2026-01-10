@@ -124,14 +124,17 @@ where
     usize: From<Counter>,
     Counter: Copy,
 {
-    pub fn size(&self) -> usize {
+    #[inline(always)]
+    pub fn len(&self) -> usize {
         usize::from(self.buf.mem_get_primitive::<Counter>(0))
     }
+    #[deprecated = "Use len function"]
+    pub fn size(&self) -> usize { self.len() }
 
     pub fn data(&self) -> ArrayView<Inner, Buf> {
         ArrayView::<Inner, Buf>::new(
             self.buf.view(std::mem::size_of::<Counter>()),
-            self.size(),
+            self.len(),
             std::mem::size_of::<Inner>(),
         )
     }
@@ -303,7 +306,11 @@ where
         Self::bind_unchecked(data)
     }
 
-    pub fn size(&self) -> usize {
+    #[deprecated = "Use len function"]
+    pub fn size(&self) -> usize { self.len() }
+
+    #[inline(always)]
+    pub fn len(&self) -> usize {
         <Ptr as OffsetPtrImpl>::size(&self.buf) as usize
     }
 
@@ -325,7 +332,7 @@ where
     }
 
     pub fn array(&self) -> ArrayView<Inner, Buf> {
-        ArrayView::new(self.buf.view(self.offset()), self.size(), self.entity())
+        ArrayView::new(self.buf.view(self.offset()), self.len(), self.entity())
     }
 
     pub fn iter(&self) -> ArrayIter<Inner, Buf> {
@@ -374,14 +381,17 @@ where
         Self(OffsetPtr::<u8, Ptr, Buf>::new_unchecked(data))
     }
 
+    #[deprecated = "Use len function"]
+    pub fn size(&self) -> usize { self.len() }
+
     #[inline(always)]
-    pub fn size(&self) -> usize {
-        std::cmp::max(self.0.size(), 1) - 1
+    pub fn len(&self) -> usize {
+        std::cmp::max(self.0.len(), 1) - 1
     }
 
     #[inline(always)]
     pub fn data(&self) -> Result<&'_ str, std::str::Utf8Error> {
-        let size = self.size();
+        let size = self.len();
         let offset = self.0.offset();
         if size == 0 {
             Ok("")
@@ -397,7 +407,7 @@ pub fn offset_str<Ptr: OffsetPtrImpl, Buf: MemRead>(
     mut offset: usize,
 ) -> Result<&'_ str, StringBindError> {
     let this = OffsetString::<Ptr, &[u8]>::new(MemOffset::new(data.as_mem()).view(offset))?;
-    let size = this.size();
+    let size = this.len();
     offset += this.0.offset();
     if size == 0 {
         Ok("")
