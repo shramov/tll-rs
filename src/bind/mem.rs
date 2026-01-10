@@ -189,11 +189,26 @@ pub trait OffsetPtrImpl {
 
 pub struct OffsetPtrDefault {}
 
+impl OffsetPtrDefault {
+    fn offset_field<Buf: MemRead>(buf: &Buf) -> usize {
+        buf.mem_get_primitive::<u32>(0) as usize
+    }
+
+    fn entity_field<Buf: MemRead>(buf: &Buf) -> usize {
+        buf.mem_get_primitive::<u8>(7) as usize
+    }
+}
+
 impl OffsetPtrImpl for OffsetPtrDefault {
     const SIZE: usize = 8;
 
     fn offset<Buf: MemRead>(buf: &Buf) -> usize {
-        buf.mem_get_primitive::<u32>(0) as usize
+        let offset = Self::offset_field(buf);
+        if Self::entity_field(buf) == 255 {
+            offset + 4
+        } else {
+            offset
+        }
     }
 
     fn size<Buf: MemRead>(buf: &Buf) -> usize {
@@ -202,9 +217,9 @@ impl OffsetPtrImpl for OffsetPtrDefault {
     }
 
     fn entity<Buf: MemRead>(buf: &Buf) -> usize {
-        let v = buf.mem_get_primitive::<u8>(7) as usize;
+        let v = Self::entity_field(buf);
         if v == 255 {
-            buf.mem_get_primitive::<u32>(Self::offset(buf)) as usize
+            buf.mem_get_primitive::<u32>(Self::offset_field(buf)) as usize
         } else {
             v
         }
