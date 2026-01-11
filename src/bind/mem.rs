@@ -360,6 +360,14 @@ where
     }
 }
 
+impl<Inner: Binder<Buf>, Ptr: OffsetPtrImpl, Buf: MemRead + Copy> OffsetPtr<Inner, Ptr, Buf> {
+    pub fn get(&self, idx: usize) -> Inner {
+        let entity = self.entity();
+        let offset = self.offset();
+        Inner::bind_unchecked(self.buf.view(offset + idx * entity))
+    }
+}
+
 impl<Inner: Binder<Buf>, Ptr: OffsetPtrImpl, Buf: MemRead + Copy> IntoIterator for OffsetPtr<Inner, Ptr, Buf> {
     type Item = Inner;
     type IntoIter = ArrayIter<Inner, Buf>;
