@@ -1,6 +1,23 @@
 use crate::bind::bind::{BindError, Binder, StringBindError};
 use crate::mem::{MemOffset, MemRead};
 
+pub struct Bytes<const SIZE: usize, Buf: MemRead> {
+    pub data: MemOffset<Buf>,
+}
+
+impl<const SIZE: usize, Buf: MemRead> Binder<Buf> for Bytes<SIZE, Buf> {
+    fn bind_unchecked(data: MemOffset<Buf>) -> Self {
+        Self { data }
+    }
+}
+
+impl<const SIZE: usize, Buf: MemRead> std::ops::Deref for Bytes<SIZE, Buf> {
+    type Target = [u8];
+    fn deref(&self) -> &Self::Target {
+        &self.data.as_mem()[..SIZE]
+    }
+}
+
 pub struct ByteString<const SIZE: usize, Buf> {
     pub data: Buf,
 }
