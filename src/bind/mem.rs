@@ -1,3 +1,5 @@
+use std::convert::TryInto;
+
 use crate::bind::bind::{BindError, Binder, StringBindError};
 use crate::mem::{MemOffset, MemRead};
 
@@ -138,12 +140,11 @@ impl<Counter, Inner, const SIZE: usize, Buf: MemRead> Array<Counter, Inner, SIZE
 impl<Counter, Inner, const SIZE: usize, Buf> Array<Counter, Inner, SIZE, Buf>
 where
     Buf: MemRead + Copy,
-    usize: From<Counter>,
-    Counter: Copy,
+    Counter: TryInto<usize> + Copy,
 {
     #[inline(always)]
     pub fn len(&self) -> usize {
-        usize::from(self.buf.mem_get_primitive::<Counter>(0))
+        self.buf.mem_get_primitive::<Counter>(0).try_into().unwrap_or(0)
     }
     #[deprecated = "Use len function"]
     pub fn size(&self) -> usize { self.len() }
@@ -168,8 +169,7 @@ impl<Counter, Inner, const SIZE: usize, Buf> IntoIterator for Array<Counter, Inn
 where
     Inner: Binder<Buf>,
     Buf: MemRead + Copy,
-    usize: From<Counter>,
-    Counter: Copy,
+    Counter: TryInto<usize> + Copy,
 {
     type Item = Inner;
     type IntoIter = ArrayIter<Inner, Buf>;
