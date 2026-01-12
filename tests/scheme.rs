@@ -96,15 +96,13 @@ fn test() -> Result<()> {
         );
         Ok(())
     };
-    assert!(c
-        .callback_add_mut(
+    c.callback_add_mut(
             &mut |_: &Channel, m: &Message| {
                 r = check(m);
                 0
             },
             Some(MsgMask::Data as u32)
-        )
-        .is_ok());
+        )?.release();
 
     assert!(c.open(None).is_ok());
 

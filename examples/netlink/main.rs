@@ -264,18 +264,18 @@ pub fn main() -> tll::result::Result<()> {
 
     let mut netlink = ctx.channel("netlink://;name=netlink;dump=scheme;addr=no;neigh=no")?;
     //netlink.callback_add(&|_, m| state.on_route(m), None).expect("Failed to add callback");
-    netlink.callback_add_mut::<SystemState, RouteCallback>(&mut state, None)?;
+    let _netlink_cb = netlink.callback_add_mut::<SystemState, RouteCallback>(&mut state, None)?;
 
     let mut nl80211 = ctx.channel("nl80211://;name=nl80211;dump=scheme;addr=no;neigh=no")?;
-    nl80211.callback_add_mut::<SystemState, NL80211Callback>(&mut state, None)?;
+    let _nl80211_cb = nl80211.callback_add_mut::<SystemState, NL80211Callback>(&mut state, None)?;
 
     let mut udev = ctx.channel("udev://;name=udev;dump=scheme;subsystem=power_supply")?;
-    udev.callback_add_mut::<SystemState, PowerCallback>(&mut state, None)?;
+    let _udev_cb = udev.callback_add_mut::<SystemState, PowerCallback>(&mut state, None)?;
 
     let mut tc = ctx.channel("timer://;interval=1s;clock=realtime;dump=frame;name=timer;skip-old=yes")?;
 
     //tc.callback_add_mut(&|_, m| state.on_timer(m), None).expect("Failed to add callback");
-    tc.callback_add_mut::<SystemState, TimerCallback>(&mut state, None)?;
+    let _timer_cb = tc.callback_add_mut::<SystemState, TimerCallback>(&mut state, None)?;
 
     let mut l = Loop::new("rust")?;
     l.add(&mut netlink)?;

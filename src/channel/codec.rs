@@ -10,6 +10,7 @@ pub struct Codec<T: CodecImpl> {
     base: Base,
     codec: T,
     child: OwnedChannel,
+    callback_drop: Option<CallbackDrop>,
 }
 
 impl<T> Default for Codec<T>
@@ -21,6 +22,7 @@ where
             base: Base::default(),
             codec: T::default(),
             child: unsafe { OwnedChannel::new_null() },
+            callback_drop: None,
         }
     }
 }
@@ -91,14 +93,16 @@ impl<T: CodecImpl> ChannelImpl for Codec<T> {
                 return Err(e);
             }
             Ok(mut c) => {
-                c.callback_add_mut(self, None)?;
+                self.callback_drop = Some(c.callback_add_mut(self, None)?);
                 self.child = c;
             }
         }
         self.inner_mut().init(url, master, ctx)
     }
 
-    fn free(&mut self) {}
+    fn free(&mut self) {
+        self.callback_drop = None;
+    }
 
     fn open(&mut self, cfg: &Config) -> Result<()> {
         self.inner_mut().open(cfg)?;

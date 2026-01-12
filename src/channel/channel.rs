@@ -277,6 +277,30 @@ impl<T: Fn(&Channel, &Message) -> i32> Callback<()> for T {
     }
 }
 
+#[derive(Debug)]
+pub struct CallbackDrop {
+    channel: Channel,
+    callback: tll_channel_callback_t,
+    user: *mut c_void,
+    mask: u32,
+}
+
+impl Drop for CallbackDrop {
+    fn drop(&mut self) {
+        if self.callback.is_some() {
+            unsafe {
+                tll_channel_callback_del(self.channel.ptr, self.callback, self.user, self.mask);
+            }
+        }
+    }
+}
+
+impl CallbackDrop {
+    pub fn release(&mut self) {
+        self.callback = None;
+    }
+}
+
 //impl<T : Callback> CallbackMut for T {
 //    fn message_callback_mut(&mut self, c: &Channel, m: &Message) -> i32 { self.message_callback(c, m) }
 //}
@@ -403,36 +427,34 @@ impl Channel {
         ()
     }
 
-    pub fn callback_add<F, T>(&mut self, f: &F, mask: Option<u32>) -> Result<()>
+    pub fn callback_add<F, T>(&mut self, f: &F, mask: Option<u32>) -> Result<CallbackDrop>
     where
         F: Callback<T>,
     {
-        let fptr = f as *const F as *mut F;
-        let r = unsafe {
-            tll_channel_callback_add(
-                self.ptr,
-                Some(callback_wrap::<F, T>),
-                fptr as *mut c_void,
-                mask.unwrap_or(MsgMask::All as u32),
-            )
-        };
-        error_check_str(r, "Failed to add callback")
+        let fptr = f as *const F as *mut F as *mut c_void;
+        let m = mask.unwrap_or(MsgMask::All as u32);
+        let r = unsafe { tll_channel_callback_add(self.ptr, Some(callback_wrap::<F, T>), fptr, m) };
+        error_check_str(r, "Failed to add callback").map(|_| CallbackDrop {
+            channel: self.clone(),
+            callback: Some(callback_wrap::<F, T>),
+            user: fptr,
+            mask: m,
+        })
     }
 
-    pub fn callback_add_mut<F, T>(&mut self, f: &mut F, mask: Option<u32>) -> Result<()>
+    pub fn callback_add_mut<F, T>(&mut self, f: &mut F, mask: Option<u32>) -> Result<CallbackDrop>
     where
         F: CallbackMut<T>,
     {
+        let m = mask.unwrap_or(MsgMask::All as u32);
         let fptr = f as *mut F;
-        let r = unsafe {
-            tll_channel_callback_add(
-                self.ptr,
-                Some(callback_wrap_mut::<F, T>),
-                fptr as *mut c_void,
-                mask.unwrap_or(MsgMask::All as u32),
-            )
-        };
-        error_check_str(r, "Failed to add callback")
+        let r = unsafe { tll_channel_callback_add(self.ptr, Some(callback_wrap_mut::<F, T>), fptr as *mut c_void, m) };
+        error_check_str(r, "Failed to add callback").map(|_| CallbackDrop {
+            channel: self.clone(),
+            callback: Some(callback_wrap_mut::<F, T>),
+            user: fptr as *mut c_void,
+            mask: m,
+        })
     }
 
     pub fn callback_del<F, Tag>(&mut self, f: &F, mask: Option<u32>) -> Result<()>

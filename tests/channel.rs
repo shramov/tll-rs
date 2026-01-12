@@ -42,7 +42,8 @@ fn test() -> Result<()> {
             last = (m.get_type(), m.msgid());
             0
         };
-        assert!(c.callback_add_mut(&mut cb, None).is_ok());
+        let cb = c.callback_add_mut(&mut cb, None);
+        assert!(cb.is_ok());
 
         assert!(c.open(None).is_ok());
 

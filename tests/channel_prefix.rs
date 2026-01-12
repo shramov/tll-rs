@@ -82,7 +82,7 @@ impl ChannelImpl for TestPrefix {
                 return Err(e);
             }
             Ok(mut c) => {
-                c.callback_add_mut(self, None)?;
+                c.callback_add_mut(self, None)?.release();
                 self.child = c
             }
         }
