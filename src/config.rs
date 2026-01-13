@@ -40,6 +40,12 @@ impl Clone for Config {
     }
 }
 
+impl Default for Config {
+    fn default() -> Self {
+        Config::new()
+    }
+}
+
 type BrowseVec = Vec<(String, Config)>;
 extern "C" fn browse_cb(key: *const c_char, klen: c_int, cfg: *const tll_config_t, user: *mut c_void) -> c_int {
     let r = unsafe { &mut *(user as *mut BrowseVec) };
