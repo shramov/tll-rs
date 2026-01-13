@@ -111,8 +111,8 @@ impl Config {
         cfg
     }
 
-    pub fn load(url: &str) -> Result<Config> {
-        let ptr = unsafe { tll_config_load(url.as_ptr() as *const c_char, url.len() as c_int) };
+    pub fn load<K: AsRef<str>>(url: K) -> Result<Config> {
+        let ptr = unsafe { tll_config_load(url.as_ref().as_ptr() as *const c_char, url.as_ref().len() as c_int) };
         if ptr.is_null() {
             Err(Error::from("Invalid config data"))
         } else {
@@ -120,13 +120,13 @@ impl Config {
         }
     }
 
-    pub fn load_data(proto: &str, data: &str) -> Result<Config> {
+    pub fn load_data<P: AsRef<str>, V: AsRef<str>>(proto: P, data: V) -> Result<Config> {
         let ptr = unsafe {
             tll_config_load_data(
-                proto.as_ptr() as *const c_char,
-                proto.len() as c_int,
-                data.as_ptr() as *const c_char,
-                data.len() as c_int,
+                proto.as_ref().as_ptr() as *const c_char,
+                proto.as_ref().len() as c_int,
+                data.as_ref().as_ptr() as *const c_char,
+                data.as_ref().len() as c_int,
             )
         };
         if ptr.is_null() {
@@ -148,13 +148,14 @@ impl Config {
         self.ptr
     }
 
-    pub fn get(&self, key: &str) -> Option<String> {
+    pub fn get<K: AsRef<str>>(&self, key: K) -> Option<String> {
         let mut len = 0 as c_int;
+        let k = key.as_ref();
         let ptr = unsafe {
             tll_config_get_copy(
                 self.ptr,
-                key.as_ptr() as *const c_char,
-                key.len() as c_int,
+                k.as_ptr() as *const c_char,
+                k.len() as c_int,
                 &mut len as *mut c_int,
             )
         };
@@ -182,7 +183,7 @@ impl Config {
         }
     }
 
-    pub fn get_bool(&self, key: &str, default: bool) -> Result<bool> {
+    pub fn get_bool<K: AsRef<str>>(&self, key: K, default: bool) -> Result<bool> {
         match self.get(key) {
             Some(s) => {
                 if s.len() == 0 {
@@ -194,14 +195,16 @@ impl Config {
         }
     }
 
-    pub fn set(&mut self, key: &str, value: &str) -> &mut Self {
+    pub fn set<K: AsRef<str>, V: AsRef<str>>(&mut self, key: K, value: V) -> &mut Self {
+        let k = key.as_ref();
+        let v = value.as_ref();
         unsafe {
             tll_config_set(
                 self.ptr,
-                key.as_ptr() as *const c_char,
-                key.len() as c_int,
-                value.as_ptr() as *const c_char,
-                value.len() as c_int,
+                k.as_ptr() as *const c_char,
+                k.len() as c_int,
+                v.as_ptr() as *const c_char,
+                v.len() as c_int,
             )
         };
         self
@@ -227,16 +230,35 @@ impl Config {
         }
     }
 
-    pub fn remove(&self, key: &str) {
-        unsafe { tll_config_remove(self.ptr, key.as_ptr() as *const c_char, key.len() as c_int) };
+    pub fn remove<K: AsRef<str>>(&self, key: K) {
+        unsafe {
+            tll_config_remove(
+                self.ptr,
+                key.as_ref().as_ptr() as *const c_char,
+                key.as_ref().len() as c_int,
+            )
+        };
     }
 
-    pub fn unlink(&self, key: &str) {
-        unsafe { tll_config_unlink(self.ptr, key.as_ptr() as *const c_char, key.len() as c_int) };
+    pub fn unlink<K: AsRef<str>>(&self, key: K) {
+        unsafe {
+            tll_config_unlink(
+                self.ptr,
+                key.as_ref().as_ptr() as *const c_char,
+                key.as_ref().len() as c_int,
+            )
+        };
     }
 
-    pub fn sub(&self, key: &str) -> Option<Config> {
-        let ptr = unsafe { tll_config_sub(self.ptr, key.as_ptr() as *const c_char, key.len() as c_int, 0 as c_int) };
+    pub fn sub<K: AsRef<str>>(&self, key: K) -> Option<Config> {
+        let ptr = unsafe {
+            tll_config_sub(
+                self.ptr,
+                key.as_ref().as_ptr() as *const c_char,
+                key.as_ref().len() as c_int,
+                0 as c_int,
+            )
+        };
         if !ptr.is_null() {
             return Some(Config { ptr: ptr });
         } else {
@@ -244,13 +266,13 @@ impl Config {
         }
     }
 
-    pub fn browse(&self, mask: &str) -> Vec<(String, Config)> {
+    pub fn browse<K: AsRef<str>>(&self, mask: K) -> Vec<(String, Config)> {
         let mut r = BrowseVec::new();
         unsafe {
             tll_config_browse(
                 self.ptr,
-                mask.as_ptr() as *const c_char,
-                mask.len() as c_int,
+                mask.as_ref().as_ptr() as *const c_char,
+                mask.as_ref().len() as c_int,
                 Some(browse_cb),
                 &mut r as *mut BrowseVec as *mut c_void,
             )
@@ -277,11 +299,11 @@ impl ConfigChain {
         Self { chain: [c0, c1, c2] }
     }
 
-    pub fn get(&self, key: &str) -> Option<String> {
+    pub fn get<K: AsRef<str>>(&self, key: K) -> Option<String> {
         let mut r = Option::<String>::default();
         for oc in &self.chain {
             if let Some(c) = oc {
-                if let Some(s) = c.get(key) {
+                if let Some(s) = c.get(key.as_ref()) {
                     if s.len() == 0 {
                         r = Some(s);
                     } else {
@@ -315,8 +337,8 @@ impl ConfigChain {
         Ok(default)
     }
 
-    pub fn get_bool(&self, key: &str, default: bool) -> Result<bool> {
-        self.get_typed_custom(key, default)
+    pub fn get_bool<K: AsRef<str>>(&self, key: K, default: bool) -> Result<bool> {
+        self.get_typed_custom(key.as_ref(), default)
     }
 }
 
