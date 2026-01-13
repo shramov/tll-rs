@@ -75,7 +75,7 @@ fn test() -> Result<()> {
 
         assert_eq!(c.scheme(), None);
 
-        assert!(c.callback_add(&callback, None).is_ok());
+        assert!(c.callback_add(&callback, MsgMask::All).is_ok());
 
         assert_eq!(c.name(), "custom");
         assert_eq!(c.state(), State::Closed);

@@ -93,7 +93,7 @@ impl<T: CodecImpl> ChannelImpl for Codec<T> {
                 return Err(e);
             }
             Ok(mut c) => {
-                self.callback_drop = Some(c.callback_add_mut(self, None)?);
+                self.callback_drop = Some(c.callback_add_mut(self, MsgMask::All)?);
                 self.child = c;
             }
         }

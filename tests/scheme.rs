@@ -97,12 +97,13 @@ fn test() -> Result<()> {
         Ok(())
     };
     c.callback_add_mut(
-            &mut |_: &Channel, m: &Message| {
-                r = check(m);
-                0
-            },
-            Some(MsgMask::Data as u32)
-        )?.release();
+        &mut |_: &Channel, m: &Message| {
+            r = check(m);
+            0
+        },
+        MsgMask::Data,
+    )?
+    .release();
 
     assert!(c.open(None).is_ok());
 
@@ -256,7 +257,7 @@ fn test_json() -> Result<()> {
 
     let mut c = ctx.channel_url(&url)?;
     let mut accum = Accum::default();
-    c.callback_add_mut(&mut accum, Some(tll::channel::MsgMask::Data as u32))?;
+    let _cb = c.callback_add_mut(&mut accum, MsgMask::Data)?;
     c.open(None)?;
     let scheme = tll::scheme::native::Scheme::from(c.scheme().ok_or("No data scheme")?);
     c.process()?;

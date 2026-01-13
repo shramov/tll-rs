@@ -35,3 +35,14 @@ bitflags! {
         const Urgent = TLL_POST_URGENT;
     }
 }
+
+bitflags! {
+    //#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)] // Enable for bitflags >= 2.0
+    pub struct MsgMask: u32 {
+        const All = TLL_MESSAGE_MASK_ALL;
+        const Data = TLL_MESSAGE_MASK_DATA;
+        const Control = TLL_MESSAGE_MASK_CONTROL;
+        const State = TLL_MESSAGE_MASK_STATE;
+        const Channel = TLL_MESSAGE_MASK_CHANNEL;
+    }
+}

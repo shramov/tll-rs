@@ -60,16 +60,6 @@ impl From<State> for tll_state_t {
     }
 }
 
-#[repr(u32)]
-#[derive(Debug, PartialEq, Clone, Copy)]
-pub enum MsgMask {
-    All = TLL_MESSAGE_MASK_ALL as u32,
-    Data = TLL_MESSAGE_MASK_DATA as u32,
-    Control = TLL_MESSAGE_MASK_CONTROL as u32,
-    State = TLL_MESSAGE_MASK_STATE as u32,
-    Channel = TLL_MESSAGE_MASK_CHANNEL as u32,
-}
-
 #[derive(Debug, PartialEq, Eq)]
 pub struct Context {
     ptr: *mut tll_channel_context_t,
@@ -427,12 +417,12 @@ impl Channel {
         ()
     }
 
-    pub fn callback_add<F, T>(&mut self, f: &F, mask: Option<u32>) -> Result<CallbackDrop>
+    pub fn callback_add<F, T>(&mut self, f: &F, mask: MsgMask) -> Result<CallbackDrop>
     where
         F: Callback<T>,
     {
         let fptr = f as *const F as *mut F as *mut c_void;
-        let m = mask.unwrap_or(MsgMask::All as u32);
+        let m = mask.bits();
         let r = unsafe { tll_channel_callback_add(self.ptr, Some(callback_wrap::<F, T>), fptr, m) };
         error_check_str(r, "Failed to add callback").map(|_| CallbackDrop {
             channel: self.clone(),
@@ -442,11 +432,11 @@ impl Channel {
         })
     }
 
-    pub fn callback_add_mut<F, T>(&mut self, f: &mut F, mask: Option<u32>) -> Result<CallbackDrop>
+    pub fn callback_add_mut<F, T>(&mut self, f: &mut F, mask: MsgMask) -> Result<CallbackDrop>
     where
         F: CallbackMut<T>,
     {
-        let m = mask.unwrap_or(MsgMask::All as u32);
+        let m = mask.bits();
         let fptr = f as *mut F;
         let r = unsafe { tll_channel_callback_add(self.ptr, Some(callback_wrap_mut::<F, T>), fptr as *mut c_void, m) };
         error_check_str(r, "Failed to add callback").map(|_| CallbackDrop {
@@ -457,7 +447,7 @@ impl Channel {
         })
     }
 
-    pub fn callback_del<F, Tag>(&mut self, f: &F, mask: Option<u32>) -> Result<()>
+    pub fn callback_del<F, Tag>(&mut self, f: &F, mask: MsgMask) -> Result<()>
     where
         F: Callback<Tag>,
     {
@@ -467,13 +457,13 @@ impl Channel {
                 self.ptr,
                 Some(callback_wrap::<F, Tag>),
                 fptr as *mut c_void,
-                mask.unwrap_or(MsgMask::All as u32),
+                mask.bits(),
             )
         };
         error_check_str(r, "Failed to del callback")
     }
 
-    pub fn callback_del_mut<F, Tag>(&mut self, f: &F, mask: Option<u32>) -> Result<()>
+    pub fn callback_del_mut<F, Tag>(&mut self, f: &F, mask: MsgMask) -> Result<()>
     where
         F: CallbackMut<Tag>,
     {
@@ -483,7 +473,7 @@ impl Channel {
                 self.ptr,
                 Some(callback_wrap_mut::<F, Tag>),
                 fptr as *mut c_void,
-                mask.unwrap_or(MsgMask::All as u32),
+                mask.bits(),
             )
         };
         error_check_str(r, "Failed to del callback")
