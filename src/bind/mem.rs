@@ -44,7 +44,7 @@ impl<const SIZE: usize, Buf: MemRead> ByteString<SIZE, Buf> {
 
 #[inline(always)]
 pub fn byte_str<Buf: MemRead>(data: &MemOffset<Buf>, offset: usize, size: usize) -> Result<&'_ str, StringBindError> {
-    str::from_utf8(data.mem_get_bytestring(offset, size)).map_err(StringBindError::from)
+    std::str::from_utf8(data.mem_get_bytestring(offset, size)).map_err(StringBindError::from)
 }
 
 #[derive(Debug)]
@@ -421,7 +421,7 @@ where
         if size == 0 {
             Ok("")
         } else {
-            str::from_utf8(&self.0.buf.as_mem()[offset..offset + size])
+            std::str::from_utf8(&self.0.buf.as_mem()[offset..offset + size])
         }
     }
 }
@@ -437,7 +437,7 @@ pub fn offset_str<Ptr: OffsetPtrImpl, Buf: MemRead>(
     if size == 0 {
         Ok("")
     } else {
-        str::from_utf8(&data.as_mem()[offset..offset + size]).map_err(StringBindError::from)
+        std::str::from_utf8(&data.as_mem()[offset..offset + size]).map_err(StringBindError::from)
     }
 }
 

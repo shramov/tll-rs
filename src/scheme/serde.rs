@@ -4,8 +4,8 @@ use std::rc::Rc;
 
 use base64::{engine::general_purpose::STANDARD as base64, Engine};
 use chrono::Timelike;
-pub use serde_core::ser::Serialize;
-use serde_core::ser::{Error, SerializeMap, SerializeSeq, Serializer};
+pub use serde::ser::Serialize;
+use serde::ser::{Error, SerializeMap, SerializeSeq, Serializer};
 
 use crate::bind::{OffsetPtrDefault, OffsetPtrImpl, OffsetPtrLegacyLong, OffsetPtrLegacyShort};
 use crate::decimal128::{Decimal128, Unpacked128};
@@ -156,7 +156,7 @@ fn serialize_integer<
                     }).map_err(S::Error::custom)?;
                 }
             }
-            ser.serialize_str(unsafe { str::from_utf8_unchecked(&buf[..]) })
+            ser.serialize_str(unsafe { std::str::from_utf8_unchecked(&buf[..]) })
         }
         _ => v.serialize(ser),
     }
