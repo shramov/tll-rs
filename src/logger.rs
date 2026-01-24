@@ -69,7 +69,7 @@ impl Logger {
         self.ptr
     }
 
-    pub fn name<'a>(&'a self) -> &'a str {
+    pub fn name(&self) -> &'_ str {
         let n = unsafe { tll_logger_name(self.ptr) };
         if n.is_null() {
             ""
