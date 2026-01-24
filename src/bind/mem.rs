@@ -1,7 +1,7 @@
 use std::convert::TryInto;
 
 use crate::bind::bind::{BindError, Binder, StringBindError};
-use crate::mem::{MemOffset, MemRead};
+use crate::mem::{MemGrow, MemOffset, MemRead, MemWrite};
 
 pub struct Bytes<const SIZE: usize, Buf: MemRead> {
     pub data: MemOffset<Buf>,
@@ -204,7 +204,12 @@ pub trait OffsetPtrImpl {
     fn size<Buf: MemRead>(buf: &Buf) -> usize;
     fn entity<Buf: MemRead>(buf: &Buf) -> usize;
 
-    //fn write<Buf: MemWrite>(&self, buf: &mut Buf, ptr: &GenericOffsetPtr);
+    fn write<Buf: MemGrow>(buf: &mut Buf, ptr: GenericOffsetPtr);
+    fn resize<Buf: MemGrow>(buf: &mut Buf, mut ptr: GenericOffsetPtr) {
+        ptr.offset = buf.mem_size() as u32;
+        buf.mem_resize(ptr.entity as usize * ptr.size as usize);
+        Self::write(buf, ptr)
+    }
 }
 
 pub struct OffsetPtrDefault {}
@@ -244,6 +249,25 @@ impl OffsetPtrImpl for OffsetPtrDefault {
             v
         }
     }
+
+    fn write<Buf: MemGrow>(buf: &mut Buf, ptr: GenericOffsetPtr) {
+        buf.mem_set_primitive::<u32>(0, ptr.offset as u32);
+        buf.mem_set_primitive::<u16>(4, (ptr.size & 0xffffu32) as u16);
+        buf.mem_set_primitive::<u8>(4, (ptr.size >> 16) as u8);
+        buf.mem_set_primitive::<u16>(7, ptr.entity as u16);
+    }
+
+    fn resize<Buf: MemGrow>(buf: &mut Buf, mut ptr: GenericOffsetPtr) {
+        ptr.offset = buf.mem_size() as u32;
+
+        let extra = if ptr.entity > 254 { 4 } else { 0 };
+        buf.mem_resize(extra + ptr.entity as usize * ptr.size as usize);
+        if ptr.entity > 254 {
+            buf.mem_set_primitive::<u32>(ptr.offset as usize, ptr.entity);
+            ptr.entity = 255;
+        }
+        Self::write(buf, ptr)
+    }
 }
 
 pub struct OffsetPtrLegacyShort {}
@@ -262,6 +286,11 @@ impl OffsetPtrImpl for OffsetPtrLegacyShort {
     fn entity<Buf: MemRead>(_buf: &Buf) -> usize {
         0
     }
+
+    fn write<Buf: MemGrow>(buf: &mut Buf, ptr: GenericOffsetPtr) {
+        buf.mem_set_primitive::<u16>(0, ptr.offset as u16);
+        buf.mem_set_primitive::<u16>(2, ptr.size as u16);
+    }
 }
 
 pub struct OffsetPtrLegacyLong {}
@@ -279,6 +308,12 @@ impl OffsetPtrImpl for OffsetPtrLegacyLong {
 
     fn entity<Buf: MemRead>(buf: &Buf) -> usize {
         buf.mem_get_primitive::<u16>(6) as usize
+    }
+
+    fn write<Buf: MemGrow>(buf: &mut Buf, ptr: GenericOffsetPtr) {
+        buf.mem_set_primitive::<u32>(0, ptr.offset as u32);
+        buf.mem_set_primitive::<u16>(4, ptr.size as u16);
+        buf.mem_set_primitive::<u16>(6, ptr.entity as u16);
     }
 }
 
@@ -357,6 +392,19 @@ where
             array: self.array(),
             index: 0,
         }
+    }
+}
+
+impl<Inner: Binder<Buf>, Ptr: OffsetPtrImpl, Buf: MemGrow> OffsetPtr<Inner, Ptr, Buf> {
+    pub fn resize(&mut self, size: usize) {
+        Ptr::resize(
+            &mut self.buf,
+            GenericOffsetPtr {
+                offset: 0,
+                size: size as u32,
+                entity: 0,
+            },
+        )
     }
 }
 
