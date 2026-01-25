@@ -2,7 +2,7 @@ use std::io::Write;
 use std::ops::Deref;
 use std::rc::Rc;
 
-use base64::{engine::general_purpose::STANDARD as base64, Engine};
+use base64; //::{engine::general_purpose::STANDARD as base64, Engine};
 use chrono::Timelike;
 pub use serde::ser::Serialize;
 use serde::ser::{Error, SerializeMap, SerializeSeq, Serializer};
@@ -227,7 +227,7 @@ impl<'a> Serialize for DataField<'a> {
                     let s = std::str::from_utf8(slice).map_err(Error::custom)?;
                     ser.serialize_str(s)
                 } else {
-                    ser.serialize_str(&base64.encode(&self.data[..*capacity]))
+                    ser.serialize_str(&base64::encode(&self.data[..*capacity]))
                 }
             }
             Type::Array {
