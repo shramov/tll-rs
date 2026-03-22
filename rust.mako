@@ -1,6 +1,6 @@
 #![allow(dead_code, non_camel_case_types, non_upper_case_globals, non_snake_case)]
 
-pub use tll::scheme::*;
+pub use tll::bind::*;
 
 pub const SCHEME_STRING : &str = "${scheme.dump('yamls+gz')}";
 
@@ -46,6 +46,12 @@ KEYWORDS = {'type': 'type_'}
 def keyword(n):
     return KEYWORDS.get(n, n)
 
+OFFSET_PTR_VERSION = {
+    S.OffsetPtrVersion.Default: 'tll::bind::OffsetPtrDefault',
+    S.OffsetPtrVersion.LegacyShort: 'tll::bind::OffsetPtrLegacyShort',
+    S.OffsetPtrVersion.LegacyLong: 'tll::bind::OffsetPtrLegacyLong',
+}
+
 def has_pointer_field(f):
     if f.type == f.Pointer:
         return True
@@ -63,36 +69,49 @@ def has_pointer(msg):
 DECL_CACHE = set()
 options.msgid = 'MSGID'
 
-def field2type(f):
+def primitive(f):
+    if numeric(f.type) is not None:
+        return True
+    if f.type == f.Type.Decimal128:
+        return True
+    return False
+
+def _field2type(f):
     t = numeric(f.type)
     if t is not None:
         if f.sub_type == f.Sub.Bits:
-            return t #f.name
+            return t, None #f.name
         elif f.sub_type == f.Sub.Enum:
-            return f.type_enum.name
+            return f.type_enum.name, None
         elif f.sub_type == f.Sub.Duration:
-            return f"tll::scheme::Duration<{t}, {time_resolution(f)}>"
+            return f"tll::scheme::Duration<{t}, {time_resolution(f)}>", None
         elif f.sub_type == f.Sub.TimePoint:
-            return f"tll::scheme::TimePoint<{t}, {time_resolution(f)}>"
-        return t
+            return f"tll::scheme::TimePoint<{t}, {time_resolution(f)}>", None
+        return t, None
     elif f.type == f.Decimal128:
-        return "tll::decimal128::Decimal128"
+        return "tll::decimal128::Decimal128", None
     elif f.type == f.Bytes:
         if f.sub_type == f.Sub.ByteString:
-            return f"tll::scheme::ByteString<{f.size}>"
-        return f"[u8; {f.size}]"
+            return f' &\'_ str', 'StringBindError'
+        return f"tll::bind::Bytes<{f.size}, Buf>", None
     elif f.type == f.Message:
-        return f.type_msg.name
+        return f"{f.type_msg.name}<Buf>", None
     elif f.type == f.Array:
         t = field2type(f.type_array)
         ct = field2type(f.count_ptr)
-        return f"tll::scheme::Array<{t}, {ct}, {f.count}>"
+        return f"tll::bind::Array<{ct}, {t}, {f.count}, MemOffset<Buf>>", None
     elif f.type == f.Pointer:
-	if f.sub_type == f.Sub.ByteString:
-	    return f'tll::scheme::OffsetString'
+        if f.sub_type == f.Sub.ByteString:
+            return f' &\'_ str', 'StringBindError'
         t = field2type(f.type_ptr)
-        return f"tll::scheme::OffsetPtr<{t}>"
+        return f"tll::bind::OffsetPtr<{t}, {OFFSET_PTR_VERSION[f.offset_ptr_version]}, Buf>", "BindError"
     raise ValueError(f"Unknown type for field {f.name}: {f.type}")
+
+def field2type(f):
+    t, err = _field2type(f)
+    if err is None:
+        return t
+    return f'Result<{t}, {err}>'
 %>\
 <%def name='enum2code(e)'>\
 #[repr(${numeric(e.type)})]
@@ -100,26 +119,10 @@ def field2type(f):
 pub enum ${e.name}
 {
 % for n,v in sorted(e.items(), key=lambda t: (t[1], t[0])):
-        ${keyword(n)} = ${v},
+    ${keyword(n)} = ${v},
 % endfor
 }
-impl Binder for ${e.name} {}
-</%def>\
-<%def name='bytestring2code(f)'>\
-%if False and f'ByteString${f.size}' not in DECL_CACHE:
-#[repr(C, packed(1))]
-#[ derive( Debug, Clone, Copy, PartialEq, Eq ) ]
-pub struct ByteString${f.size}
-{
-        data: [u8; ${f.size}],
-}
-
-impl tll::scheme::ByteString for ByteString${f.size}
-{
-        fn get_data(&self) -> &[u8] { &self.data }
-}
-impl Binder for ByteString${f.size} {}<% DECL_CACHE.add(f'ByteString${f.size}') %>
-%endif
+impl BinderCopy for ${e.name} { type Target = Self; }
 </%def>\
 <%def name='field2decl(f)' filter='weaktrim'>
 % if f.type == f.Array:
@@ -127,58 +130,101 @@ impl Binder for ByteString${f.size} {}<% DECL_CACHE.add(f'ByteString${f.size}') 
 % elif f.type == f.Pointer:
 <%call expr='field2decl(f.type_ptr)'></%call>\
 % elif f.type == f.Bytes:
-<%call expr='bytestring2code(f)'></%call>\
 % elif f.sub_type == f.Sub.Bits:
-/*
-struct ${f.name}: public tll::scheme::Bits<${numeric(f.type)}>
-{
-% for n,b in sorted(f.bitfields.items(), key=lambda t: (t[1].offset, t[1].size, t[0])):
-        auto ${b.name}() const { return get(${b.offset}, ${b.size}); }; void ${b.name}(${"unsigned" if b.size > 1 else "bool"} v) { return set(${b.offset}, ${b.size}, v); };
-% endfor
-};
-*/
 % endif
 </%def>\
-<%def name='field2code(f)'>\
-        pub ${keyword(f.name)}: ${field2type(f)},\
-</%def>
 % for e in scheme.enums.values():
 <%call expr='enum2code(e)'></%call>
 % endfor
 % for msg in scheme.messages:
+% for e in msg.enums.values():
+<%call expr='enum2code(e)'></%call>
+% endfor
 % for f in msg.fields:
 <%call expr='field2decl(f)'></%call>\
 % endfor
 % endfor
 % for msg in scheme.messages:
-#[repr(C, packed(1))]
-% if not has_pointer(msg):
-#[ derive( Debug, Clone, Copy ) ]
-% endif
-pub struct ${keyword(msg.name)} {
-% for e in msg.enums.values():
-<%call expr='enum2code(e)'></%call>
-% endfor
+#[ derive( Debug ) ]
+pub struct ${keyword(msg.name)}<Buf: MemRead> {
+    data: MemOffset<Buf>,
+}
+impl<Buf: MemRead + Copy> Binder<Buf> for ${keyword(msg.name)}<Buf> {
+    fn bind_view(data: MemOffset<Buf>) -> Result<Self, BindError> {
+        if data.mem_size() < ${msg.size} { return Err(BindError::new_size(${msg.size})); }
 % for f in msg.fields:
-<%call expr='field2code(f)'></%call>
+% if f.type == f.Type.Pointer:
+        // Pointer
+% elif f.type == f.Type.Array:
+        // Array
+% elif f.type == f.Type.Message:
+        ${keyword(f.type_msg.name)}::bind_view(data.view(${f.offset}))?;
+% endif
+% endfor
+        Ok(Self { data })
+    }
+
+    fn bind_unchecked(data: MemOffset<Buf>) -> Self {
+        Self { data }
+    }
+}
+
+impl<Buf: MemRead + Copy> ${keyword(msg.name)}<Buf> {
+    pub fn meta_size() -> usize { ${msg.size} }
+
+% for f in msg.fields:
+    pub fn get_${keyword(f.name)}(&self) -> ${field2type(f)} {
+% if primitive(f):
+        self.data.mem_get_primitive::<${field2type(f)}>(${f.offset})
+% elif f.type == f.Type.Message:
+        ${keyword(f.type_msg.name)}::<Buf> { data: self.data.view(${f.offset})}
+% elif f.type == f.Type.Bytes:
+% if f.sub_type == f.Sub.ByteString:
+        tll::bind::byte_str(&self.data, ${f.offset}, ${f.size})
+% else:
+        tll::bind::Bytes::<${f.size}, Buf>::bind_unchecked(self.data.view(${f.offset}))
+% endif
+% elif f.type == f.Type.Array:
+        tll::bind::Array::<${field2type(f.count_ptr)}, ${field2type(f.type_array)}, ${f.count}, MemOffset<Buf>>::new(self.data.view(${f.offset}))
+% elif f.type == f.Type.Pointer and f.sub_type == f.Sub.ByteString:
+        tll::bind::offset_str::<${OFFSET_PTR_VERSION[f.offset_ptr_version]}, Buf>(&self.data, ${f.offset})
+% elif f.type == f.Type.Pointer:
+        tll::bind::OffsetPtr::<${field2type(f.type_ptr)}, ${OFFSET_PTR_VERSION[f.offset_ptr_version]}, Buf>::new(self.data.view(${f.offset}))
+% endif
+    }
+% endfor
+}
+
+impl<Buf: MemWrite> ${keyword(msg.name)}<Buf> {
+% for f in msg.fields:
+% if primitive(f):
+    pub fn set_${keyword(f.name)}(&mut self, v: ${field2type(f)}) {
+        self.data.mem_set_primitive::<${field2type(f)}>(${f.offset}, v)
+    }
+% elif f.type == f.Type.Bytes:
+% if f.sub_type == f.Sub.ByteString:
+    pub fn set_${keyword(f.name)}(&mut self, v: &str) {
+        self.data.mem_set_bytes(${f.offset}, ${f.size}, v.as_bytes())
+% else:
+    pub fn set_${keyword(f.name)}(&mut self, v: &[u8]) {
+        self.data.mem_set_bytes(${f.offset}, ${f.size}, v)
+% endif
+    }
+% elif f.type == f.Type.Message:
+    pub fn mut_${keyword(f.name)}(&mut self) -> ${keyword(f.name)}::< &mut Buf> {
+        ${keyword(f.name)}::bind_unchecked(self.data.reborrow().view(${f.offset}))
+    }
+% elif f.type == f.Type.Array:
+    pub fn mut_${keyword(f.name)}(&mut self) -> tll::bind::Array::<${field2type(f.count_ptr)}, ${field2type(f.type_array)}, ${f.count}, MemOffset< &mut Buf>> {
+        tll::bind::Array::<${field2type(f.count_ptr)}, ${field2type(f.type_array)}, ${f.count}, MemOffset< &mut Buf>>::new(self.data.reborrow().view(${f.offset}))
+    }
+% endif
 % endfor
 }
 % if msg.msgid != 0:
-impl MsgId for ${keyword(msg.name)}
+impl<Buf: MemRead> MsgId for ${keyword(msg.name)}<Buf>
 {
         const MSGID : i32 = ${msg.msgid};
 }
 % endif
-impl Binder for ${keyword(msg.name)}
-{
-    fn bind(data: &[u8]) -> Option<<&Self>
-    {
-        if data.len() < std::mem::size_of::<Self>() { return None; }
-% for f in msg.fields:
-        <${field2type(f)} as Binder>::bind(&data[${f.offset}..])?; // ${f.name}
-% endfor
-        Some(unsafe { bind_unchecked::<Self>(data) })
-    }
-}
-
 % endfor
