@@ -59,6 +59,8 @@ def has_pointer_field(f):
         return has_pointer_field(f.type_array)
     elif f.type == f.Message:
         return has_pointer(f.type_msg)
+    elif f.type == f.Union:
+        return any([has_pointer(f) for f in f.type_union.fields])
     return False
 
 def has_pointer(msg):
@@ -105,6 +107,8 @@ def _field2type(f):
             return f' &\'_ str', 'StringBindError'
         t = field2type(f.type_ptr)
         return f"tll::bind::OffsetPtr<{t}, {OFFSET_PTR_VERSION[f.offset_ptr_version]}, Buf>", "BindError"
+    elif f.type == f.Union:
+    	return f"{f.type_union.name}<Buf>", "UnionBindError"
     raise ValueError(f"Unknown type for field {f.name}: {f.type}")
 
 def field2type(f):
@@ -124,24 +128,58 @@ pub enum ${e.name}
 }
 impl BinderCopy for ${e.name} { type Target = Self; }
 </%def>\
-<%def name='field2decl(f)' filter='weaktrim'>
+<%def name='union2code(u, prefix="")'>\
+#[ derive( Debug ) ]
+pub enum ${u.name}<Buf: MemRead>
+{
+% for f in u.fields:
+        ${f.name}(${_field2type(f)[0]}),
+% endfor
+}
+
+impl <Buf: MemRead + Copy> UnionType<Buf> for ${u.name}<Buf> {
+    fn bind_index(index: usize, data: MemOffset<Buf>) -> Result<Self, UnionBindError> {
+        match index {
+% for i,f in enumerate(u.fields):
+            ${i} => Ok(Self::${f.name}(
+% if primitive(f):
+	    data.mem_get_primitive::<${field2type(f)}>(0)
+% elif f.type == f.Type.Message:
+	    ${f.type_msg.name}::bind_view(data)?
+% endif
+	    )),
+% endfor
+            _ => Err(UnionBindError::UnionError(index)),
+        }
+    }
+}
+</%def>\
+<%def name='field2decl(f, prefix="")' filter='weaktrim'>
 % if f.type == f.Array:
 <%call expr='field2decl(f.type_array)'></%call>\
 % elif f.type == f.Pointer:
 <%call expr='field2decl(f.type_ptr)'></%call>\
 % elif f.type == f.Bytes:
 % elif f.sub_type == f.Sub.Bits:
+% elif f.type == f.Union:
+<%call expr='union2code(f.type_union, prefix=prefix)'></%call>\
+% for uf in f.type_union.fields:
+<%call expr='field2decl(uf, prefix=prefix)'></%call>\
+% endfor
 % endif
 </%def>\
 % for e in scheme.enums.values():
 <%call expr='enum2code(e)'></%call>
+% endfor
+% for u in scheme.unions.values():
+<%call expr='union2code(u)'></%call>
 % endfor
 % for msg in scheme.messages:
 % for e in msg.enums.values():
 <%call expr='enum2code(e)'></%call>
 % endfor
 % for f in msg.fields:
-<%call expr='field2decl(f)'></%call>\
+<%call expr='field2decl(f, prefix=f"{msg.name}_")'></%call>\
 % endfor
 % endfor
 % for msg in scheme.messages:
@@ -159,6 +197,8 @@ impl<Buf: MemRead + Copy> Binder<Buf> for ${keyword(msg.name)}<Buf> {
         // Array
 % elif f.type == f.Type.Message:
         ${keyword(f.type_msg.name)}::bind_view(data.view(${f.offset}))?;
+% elif f.type == f.Type.Union:
+        // Union
 % endif
 % endfor
         Ok(Self { data })
@@ -190,6 +230,8 @@ impl<Buf: MemRead + Copy> ${keyword(msg.name)}<Buf> {
         tll::bind::offset_str::<${OFFSET_PTR_VERSION[f.offset_ptr_version]}, Buf>(&self.data, ${f.offset})
 % elif f.type == f.Type.Pointer:
         tll::bind::OffsetPtr::<${field2type(f.type_ptr)}, ${OFFSET_PTR_VERSION[f.offset_ptr_version]}, Buf>::new(self.data.view(${f.offset}))
+% elif f.type == f.Type.Union:
+	tll::bind::union_bind::<${f.type_union.name}<Buf>, u8, Buf>(self.data, ${f.offset})
 % endif
     }
 % endfor
@@ -212,7 +254,7 @@ impl<Buf: MemWrite> ${keyword(msg.name)}<Buf> {
     }
 % elif f.type == f.Type.Message:
     pub fn mut_${keyword(f.name)}(&mut self) -> ${keyword(f.name)}::< &mut Buf> {
-        ${keyword(f.name)}::bind_unchecked(self.data.reborrow().view(${f.offset}))
+    	${keyword(f.name)}::bind_unchecked(self.data.reborrow().view(${f.offset}))
     }
 % elif f.type == f.Type.Array:
     pub fn mut_${keyword(f.name)}(&mut self) -> tll::bind::Array::<${field2type(f.count_ptr)}, ${field2type(f.type_array)}, ${f.count}, MemOffset< &mut Buf>> {
