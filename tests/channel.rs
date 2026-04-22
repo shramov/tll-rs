@@ -63,3 +63,23 @@ fn test() -> Result<()> {
     assert!(ctx.channel("null://;name=null").is_ok());
     Ok(())
 }
+
+#[test]
+fn test_context_scheme() -> Result<()> {
+    let ctx = Context::new();
+
+    let mut c0 = ctx.channel("null://;name=c0;scheme=yamls://[{name: Data, id: 10}]")?;
+
+    assert!(ctx.scheme_load("channel://c0").is_err());
+    c0.open(None)?;
+    assert_eq!(c0.state(), State::Active);
+    assert!(c0.scheme().is_some());
+    assert!(ctx.scheme_load("channel://c0").is_ok());
+
+    let mut c1 = ctx.channel("null://;name=c1;scheme=channel://c0")?;
+    c1.open(None)?;
+    assert_eq!(c1.state(), State::Active);
+    assert!(c1.scheme().is_some());
+
+    Ok(())
+}

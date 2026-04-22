@@ -191,6 +191,16 @@ impl Context {
             Some(Channel { ptr: ptr })
         }
     }
+
+    pub fn scheme_load(&self, url: &str) -> Result<Scheme> {
+        let ptr =
+            unsafe { tll_channel_context_scheme_load(self.ptr, url.as_ptr() as *const c_char, url.len() as c_int, 1) };
+        if ptr.is_null() {
+            Err(Error::from("Failed to load scheme"))
+        } else {
+            Ok(Scheme::from(ptr))
+        }
+    }
 }
 
 impl Drop for Context {

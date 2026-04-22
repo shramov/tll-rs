@@ -536,7 +536,7 @@ where
         match <T>::scheme_policy() {
             SchemePolicy::Normal => match &channel.base().scheme_url {
                 Some(url) => {
-                    channel.base_mut().scheme_data = Some(Scheme::new(url)?);
+                    channel.base_mut().scheme_data = Some(channel.base().context().scheme_load(url)?);
                 }
                 None => (),
             },
