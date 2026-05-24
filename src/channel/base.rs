@@ -1,27 +1,23 @@
 use tll_sys::channel::*;
 use tll_sys::channel_callback::*;
-pub use tll_sys::config::tll_config_t;
 use tll_sys::logger::{tll_logger_copy, tll_logger_free};
 use tll_sys::scheme::tll_scheme_t;
 
-// Reexport for using in macro
 pub use crate::config::ConfigChainBuilder;
-pub use crate::result::EINVAL;
+pub use crate::result::EINVAL; // Reexport for using in macro
 pub use tll_sys::channel::{tll_channel_context_t, tll_channel_module_t, TLL_CHANNEL_MODULE_VERSION};
+pub use tll_sys::config::tll_config_t;
 
-use crate::*; // Import logging macros
 use crate::channel::*;
 use crate::config::*;
-
-use crate::result::*;
 use crate::logger::*;
-
+use crate::result::*;
 use crate::scheme::Scheme;
+use crate::*; // Import logging macros
 
 use std::ffi::CString;
 use std::mem::MaybeUninit;
 use std::os::raw::{c_int, c_long, c_void};
-//use std::option::Option;
 
 #[derive(Debug, Eq, PartialEq)]
 pub enum ProcessPolicy {
@@ -224,7 +220,7 @@ impl Base {
             tll_logger_free(self.data.logger);
             self.data.logger = tll_logger_copy(self.logger.as_ptr());
         }
-        self.data.config = self.config.as_ptr() as * mut tll_config_t;
+        self.data.config = self.config.as_ptr() as *mut tll_config_t;
         if url.get_typed("stat", false)? {
             let mut stat = crate::stat::Base::<Stat>::new(self.name());
             self.data.stat = stat.as_ptr();
