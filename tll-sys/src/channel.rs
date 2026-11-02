@@ -90,7 +90,7 @@ impl ::std::fmt::Debug for tll_addr_t {
 #[repr(C)]
 #[derive(Copy, Clone)]
 pub struct tll_msg_t {
-    pub type_: ::std::os::raw::c_short,
+    pub type_: ::std::os::raw::c_ushort,
     pub flags: ::std::os::raw::c_short,
     pub msgid: ::std::os::raw::c_int,
     pub seq: ::std::os::raw::c_longlong,
