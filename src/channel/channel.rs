@@ -13,7 +13,7 @@ use std::ops::Deref;
 
 use std::ffi::CStr;
 use std::ffi::CString;
-use std::os::raw::{c_char, c_int, c_short, c_void};
+use std::os::raw::{c_char, c_int, c_ushort, c_void};
 
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum State {
@@ -392,7 +392,7 @@ impl Channel {
         self.scheme_type(MsgType::Control)
     }
     pub fn scheme_type(&self, type_: MsgType) -> Option<Scheme> {
-        let ptr = unsafe { tll_channel_scheme(self.ptr, c_short::from(type_) as c_int) };
+        let ptr = unsafe { tll_channel_scheme(self.ptr, c_ushort::from(type_) as c_int) };
         if ptr.is_null() {
             None
         } else {

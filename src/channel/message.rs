@@ -1,5 +1,5 @@
 use std::ops::{Deref, DerefMut};
-use std::os::raw::c_short;
+use std::os::raw::c_ushort;
 use std::os::raw::c_void;
 use tll_sys::channel::*;
 
@@ -9,31 +9,31 @@ pub enum MsgType {
     Control,
     State,
     Channel,
-    Unknown(i16),
+    Unknown(u16),
 }
 
-impl From<c_short> for MsgType {
+impl From<c_ushort> for MsgType {
     #[inline(always)]
-    fn from(x: i16) -> Self {
+    fn from(x: c_ushort) -> Self {
         match x as tll_msg_type_t {
             TLL_MESSAGE_DATA => MsgType::Data,
             TLL_MESSAGE_CONTROL => MsgType::Control,
             TLL_MESSAGE_STATE => MsgType::State,
             TLL_MESSAGE_CHANNEL => MsgType::Channel,
-            r => MsgType::Unknown(r as i16),
+            r => MsgType::Unknown(r as u16),
         }
     }
 }
 
-impl From<MsgType> for c_short {
+impl From<MsgType> for c_ushort {
     #[inline(always)]
-    fn from(value: MsgType) -> c_short {
+    fn from(value: MsgType) -> c_ushort {
         match value {
-            MsgType::Data => TLL_MESSAGE_DATA as c_short,
-            MsgType::Control => TLL_MESSAGE_CONTROL as c_short,
-            MsgType::State => TLL_MESSAGE_STATE as c_short,
-            MsgType::Channel => TLL_MESSAGE_CHANNEL as c_short,
-            MsgType::Unknown(r) => r as c_short,
+            MsgType::Data => TLL_MESSAGE_DATA as c_ushort,
+            MsgType::Control => TLL_MESSAGE_CONTROL as c_ushort,
+            MsgType::State => TLL_MESSAGE_STATE as c_ushort,
+            MsgType::Channel => TLL_MESSAGE_CHANNEL as c_ushort,
+            MsgType::Unknown(r) => r as c_ushort,
         }
     }
 }

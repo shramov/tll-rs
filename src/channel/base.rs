@@ -635,7 +635,7 @@ where
             return std::ptr::null();
         }
         let channel = unsafe { &*((*c).data as *const T) };
-        match channel.scheme(MsgType::from(typ as i16)) {
+        match channel.scheme(MsgType::from(typ as u16)) {
             Some(s) => s.as_ptr(),
             None => std::ptr::null(),
         }
