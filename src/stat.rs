@@ -114,7 +114,7 @@ impl Block {
     }
 
     pub fn swap(&self) -> Option<Page> {
-        let p = unsafe { tll_stat_block_swap(self.0) };
+        let p = unsafe { tll_stat_page_swap(self.0) };
         if p.is_null() {
             None
         } else {
@@ -178,22 +178,24 @@ impl List {
     }
 }
 
-pub struct BasePage<T> {
+struct BasePage<T> {
     page: tll_stat_page_t,
     data: T,
 }
 
+impl<T: Default> Default for BasePage<T> {
+    fn default() -> BasePage<T> {
+        BasePage {
+            page: unsafe { std::mem::zeroed::<tll_stat_page_t>() },
+            data: Default::default(),
+        }
+    }
+}
+
 impl<T: Default> BasePage<T> {
-    pub fn new() -> BasePage<T> {
-        let mut b = unsafe {
-            BasePage {
-                page: std::mem::zeroed::<tll_stat_page_t>(),
-                data: Default::default(),
-            }
-        };
-        b.page.fields = &mut b.data as *mut T as *mut tll_stat_field_t;
-        b.page.size = std::mem::size_of::<T>() / std::mem::size_of::<tll_stat_field_t>();
-        b
+    pub fn fix(&mut self) {
+        self.page.fields = &mut self.data as *mut T as *mut tll_stat_field_t;
+        self.page.size = std::mem::size_of::<T>() / std::mem::size_of::<tll_stat_field_t>();
     }
 }
 
@@ -227,14 +229,14 @@ impl<'a, T: Default> Drop for Reference<'a, T> {
 }
 
 impl<T: Default> Base<T> {
-    pub fn new(name: &str) -> Base<T> {
-        let mut b = unsafe {
-            Base {
-                block: std::mem::zeroed::<tll_stat_block_t>(),
-                data: [BasePage::<T>::new(), BasePage::<T>::new()],
-                name: name.to_string() + "\0",
-            }
-        };
+    pub fn new(name: &str) -> Box<Base<T>> {
+        let mut b = Box::new(Base {
+            block: unsafe { std::mem::zeroed::<tll_stat_block_t>() },
+            data: [BasePage::<T>::default(), BasePage::<T>::default()],
+            name: name.to_string() + "\0",
+        });
+        b.data[0].fix();
+        b.data[1].fix();
         b.block.name = b.name.as_bytes().as_ptr() as *const c_char;
         b.block.active = &mut b.data[0].page;
         b.block.inactive = &mut b.data[1].page;

@@ -135,7 +135,7 @@ pub struct Base {
     c_name: CString,
     name: String,
     pub logger: Logger,
-    stat: Option<crate::stat::Base<Stat>>,
+    stat: Option<Box<crate::stat::Base<Stat>>>,
     context: MaybeUninit<Context>,
     pub config: Config,
     pub scheme_url: Option<String>,
