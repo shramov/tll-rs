@@ -1,7 +1,7 @@
 #![allow(dead_code, non_camel_case_types, non_upper_case_globals, non_snake_case)]
 
 use std::fmt;
-use std::os::raw::{c_char, c_int};
+use std::os::raw::{c_char, c_int, c_void};
 
 pub type tll_stat_type_t = u8;
 pub const TLL_STAT_SUM: tll_stat_type_t = 0;
@@ -48,6 +48,8 @@ pub struct tll_stat_block_t {
     pub active: *mut tll_stat_page_t,
     pub inactive: *mut tll_stat_page_t,
     pub name: *const c_char,
+    pub persistent: *mut tll_stat_page_t,
+    pub reserved: [*const c_void; 2],
 }
 
 #[derive(Debug)]
@@ -64,7 +66,7 @@ extern "C" {
     pub fn tll_stat_page_acquire(obj: *mut tll_stat_block_t) -> *mut tll_stat_page_t;
     pub fn tll_stat_page_release(obj: *mut tll_stat_block_t, page: *mut tll_stat_page_t);
 
-    pub fn tll_stat_block_swap(obj: *mut tll_stat_block_t) -> *mut tll_stat_page_t;
+    pub fn tll_stat_page_swap(obj: *mut tll_stat_block_t) -> *mut tll_stat_page_t;
 
     pub fn tll_stat_list_new() -> *mut tll_stat_list_t;
     pub fn tll_stat_list_free(obj: *mut tll_stat_list_t);
