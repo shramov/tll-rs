@@ -20,6 +20,14 @@ impl std::fmt::Display for Error {
 
 pub type Result<T> = std::result::Result<T, Error>;
 
+/*
+impl<T: std::error::Error> From<T> for Error {
+    fn from(e: T) -> Self {
+        Error { code: None, msg: e.to_string() }
+    }
+}
+*/
+
 impl From<&mut Error> for Error {
     fn from(e: &mut Error) -> Self {
         e.clone()
@@ -53,6 +61,18 @@ impl From<i32> for Error {
 impl From<std::str::Utf8Error> for Error {
     fn from(_: std::str::Utf8Error) -> Self {
         Error::from("Invalid utf-8 string")
+    }
+}
+
+impl From<std::num::ParseIntError> for Error {
+    fn from(e: std::num::ParseIntError) -> Self {
+        Error::from(e.to_string())
+    }
+}
+
+impl From<std::num::ParseFloatError> for Error {
+    fn from(e: std::num::ParseFloatError) -> Self {
+        Error::from(e.to_string())
     }
 }
 
