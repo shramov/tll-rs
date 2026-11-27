@@ -148,12 +148,17 @@ fn serialize_integer<
             if time.num_seconds_from_midnight() != 0 || time.nanosecond() != 0 {
                 write!(buf, "T{}", time.format("%H:%M:%S")).map_err(S::Error::custom)?;
                 if time.nanosecond() != 0 {
-                    write!(buf, "{}", match res {
-                        TimeResolution::Ns => time.format("%.9f"),
-                        TimeResolution::Us => time.format("%.6f"),
-                        TimeResolution::Ms => time.format("%.3f"),
-                        _ => time.format("%.f"),
-                    }).map_err(S::Error::custom)?;
+                    write!(
+                        buf,
+                        "{}",
+                        match res {
+                            TimeResolution::Ns => time.format("%.9f"),
+                            TimeResolution::Us => time.format("%.6f"),
+                            TimeResolution::Ms => time.format("%.3f"),
+                            _ => time.format("%.f"),
+                        }
+                    )
+                    .map_err(S::Error::custom)?;
                 }
             }
             ser.serialize_str(unsafe { std::str::from_utf8_unchecked(&buf[..]) })
@@ -169,7 +174,10 @@ fn serialize_ptr<'a, Ptr: OffsetPtrImpl, S: Serializer>(
 ) -> std::result::Result<S::Ok, S::Error> {
     let size = Ptr::size(&this.data);
     let offset = Ptr::offset(&this.data);
-    let entity = Ptr::entity(&this.data);
+    let entity = match Ptr::entity(&this.data) {
+        0 => data_field.size,
+        e => e,
+    };
     if this.data.len() < offset + size * entity {
         return Err(Error::custom("Offset pointer out of bounds"));
     }
